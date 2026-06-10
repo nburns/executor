@@ -84,7 +84,7 @@ _note_sound_interrupt (void)
 static void
 set_up_tm_task (void)
 {
-  fake_sound_tm_task.tmAddr = (ProcPtr) CL ((uint32) fake_sound_callback);
+  PACKED_ASSIGN (fake_sound_tm_task.tmAddr, (ProcPtr) fake_sound_callback);
   InsTime ((QElemPtr) &fake_sound_tm_task);
   PrimeTime ((QElemPtr) &fake_sound_tm_task, MSECS_FOR_BUFFER_TO_PLAY);
 }

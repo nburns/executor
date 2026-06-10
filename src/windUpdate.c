@@ -79,11 +79,11 @@ PUBLIC int ROMlib_emptyvis = 0;
 P1(PUBLIC pascal trap, void, BeginUpdate, WindowPtr, w)
 {
 /* #warning Should SaveVisRgn ever become 0? */
-  if (!SaveVisRgn)
-    SaveVisRgn = (RgnHandle) RM(NewHandle(0));
-  
-  CopyRgn(PORT_VIS_REGION (w), MR(SaveVisRgn));
-  
+  if (!GET_SaveVisRgn ())
+    SET_SaveVisRgn ((RgnHandle) NewHandle (0));
+
+  CopyRgn(PORT_VIS_REGION (w), GET_SaveVisRgn ());
+
   if (EmptyRgn (WINDOW_UPDATE_REGION (w)))
     ROMlib_emptyvis = 1;
 #if 0
@@ -95,7 +95,7 @@ P1(PUBLIC pascal trap, void, BeginUpdate, WindowPtr, w)
       OffsetRgn (PORT_VIS_REGION (w),
 		 CW (PORT_BOUNDS (w).left),
 		 CW (PORT_BOUNDS (w).top));
-      SectRgn (PORT_VIS_REGION (w), MR (SaveVisRgn), PORT_VIS_REGION (w));
+      SectRgn (PORT_VIS_REGION (w), GET_SaveVisRgn (), PORT_VIS_REGION (w));
       SetEmptyRgn (WINDOW_UPDATE_REGION (w));
       ROMlib_emptyvis = EmptyRgn (PORT_VIS_REGION (w));
     }
@@ -103,9 +103,9 @@ P1(PUBLIC pascal trap, void, BeginUpdate, WindowPtr, w)
 
 P1(PUBLIC pascal trap, void, EndUpdate, WindowPtr, w)
 {
-  CopyRgn(MR(SaveVisRgn), PORT_VIS_REGION (w));
-  CopyRgn (WINDOW_CONT_REGION (w), MR (SaveVisRgn));
-  OffsetRgn (MR (SaveVisRgn),
+  CopyRgn(GET_SaveVisRgn (), PORT_VIS_REGION (w));
+  CopyRgn (WINDOW_CONT_REGION (w), GET_SaveVisRgn ());
+  OffsetRgn (GET_SaveVisRgn (),
 	     CW (PORT_BOUNDS (w).left),
 	     CW (PORT_BOUNDS (w).top));
   ROMlib_emptyvis = 0;

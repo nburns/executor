@@ -24,9 +24,9 @@ char ROMlib_rcsid_teInit[] =
 
 P0 (PUBLIC pascal trap, void, TEInit)
 {
-  TEScrpHandle = RM (NewHandle (0));
+  SET_TEScrpHandle (NewHandle (0));
   TEScrpLength = CWC (0);
-  TEDoText = RM ((ProcPtr) P_ROMlib_dotext);
+  SET_TEDoText ((ProcPtr) P_ROMlib_dotext);
 }
 
 /* This code just does "moveql #1,d0 ; rts".  We use it because

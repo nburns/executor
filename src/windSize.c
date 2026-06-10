@@ -104,7 +104,7 @@ P4(PUBLIC pascal trap, void, MoveWindow, WindowPtr, wp, INTEGER, h, INTEGER, v,
 	SectRgn (movepart, PORT_CLIP_REGION (MR (wmgr_port)), movepart);
 	ClipRect (&GD_BOUNDS (MR (TheGDevice)));
 
-	WRAPPER_SET_PIXMAP_X (wrapper, GD_PMAP_X (MR (TheGDevice)));
+	WRAPPER_SET_PIXMAP_X (wrapper, GD_PMAP (MR (TheGDevice)));
 
 #define NEW_CLIP_HACK
 #if defined(NEW_CLIP_HACK)
@@ -172,7 +172,7 @@ P3 (PUBLIC pascal trap, void, DragWindow, WindowPtr, wp, Point, p, Rect *, rp)
     (MR (wmgr_port),
      {
        GetOSEvent (0, &ev);
-       SetClip (MR (GrayRgn));
+       SetClip (GET_GrayRgn ());
        cmddown = ev.modifiers & CWC (cmdKey);
        if (cmddown)
 	 ClipAbove ((WindowPeek) wp);
@@ -253,7 +253,7 @@ P3(PUBLIC pascal trap, LONGINT, GrowWindow, WindowPtr, w, Point, startp,
       pinr.bottom = CWC(32767);
 
     gp = thePort;
-    SETUP_PORT (MR ((GrafPtr) WMgrPort));
+    SETUP_PORT (GET_WMgrPort ());
     SETUP_PORT (MR (wmgr_port));
     ClipRect (&GD_BOUNDS (MR (TheGDevice)));
     ClipAbove((WindowPeek) w);
@@ -277,7 +277,7 @@ P3(PUBLIC pascal trap, LONGINT, GrowWindow, WindowPtr, w, Point, startp,
 	CALLDRAGHOOK();
       }
     WINDCALL ((WindowPtr) w, wGrow, (LONGINT) (long) &r);
-    RESTORE_PORT (MR ((GrafPtr) WMgrPort));
+    RESTORE_PORT (GET_WMgrPort ());
     RESTORE_PORT (gp);
     if (p.h != startp.h || p.v != startp.v)
 /*-->*/ return(((LONGINT)(CW(r.bottom) - CW(r.top)) << 16)|

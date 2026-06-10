@@ -204,6 +204,14 @@ extern Pattern 	DeskPattern;
 # define SET_CurActivate(v)  (CurActivate_H.pp = RPP(v))
 # define GET_CurDeactive()   ((WindowPtr) PPR(CurDeactive_H))
 # define SET_CurDeactive(v)  (CurDeactive_H.pp = RPP(v))
+# define GET_GhostWindow()   ((WindowPtr) PPR(GhostWindow_H))
+# define SET_GhostWindow(v)  (GhostWindow_H.pp = RPP(v))
+# define GET_DeskHook()      ((ProcPtr) PPR(DeskHook_H))
+# define SET_DeskHook(v)     (DeskHook_H.pp = RPP(v))
+# define GET_DragHook()      ((ProcPtr) PPR(DragHook_H))
+# define SET_DragHook(v)     (DragHook_H.pp = RPP(v))
+# define GET_DeskCPat()      ((PixPatHandle) PPR(DeskCPat_H))
+# define SET_DeskCPat(v)     (DeskCPat_H.pp = RPP(v))
 #endif
 
 #if !defined (__STDC__)

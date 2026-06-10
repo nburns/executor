@@ -21,11 +21,11 @@ char ROMlib_rcsid_AE_hdlr[] =
     AE_info_t *info;							      \
     AE_zone_tables_h zone_tables;					      \
 									      \
-    info = MR (AE_info);						      \
+    info = (AE_info_t *) PPR (AE_info_H);				      \
 									      \
     zone_tables = ((system_p)						      \
-		   ? MR (info->system_zone_tables)			      \
-		   : MR (info->appl_zone_tables));			      \
+		   ? (AE_zone_tables_h) PPR (info->system_zone_tables)	      \
+		   : (AE_zone_tables_h) PPR (info->appl_zone_tables));	      \
 									      \
     HxP (zone_tables, class ## _hdlr_table);				      \
   })
@@ -46,22 +46,19 @@ AE_init (void)
        zone_tables
 	 = (AE_zone_tables_h) NewHandleClear (sizeof (AE_zone_tables_t));
 
-       err = _AE_hdlr_table_alloc (16, 0x80008, 0,
-				   /* #### */
-				   FALSE,
-				   &HxX (zone_tables, event_hdlr_table));
-       err = _AE_hdlr_table_alloc (16, 0x80008, 0,
-				   /* #### */
-				   FALSE,
-				   &HxX (zone_tables, coercion_hdlr_table));
-       err = _AE_hdlr_table_alloc (16, 0x80008, 0,
-				   /* #### */
-				   FALSE,
-				   &HxX (zone_tables, special_hdlr_table));
-       info->system_zone_tables = RM (zone_tables);
+       {
+	 AE_hdlr_table_h t;
+	 err = _AE_hdlr_table_alloc (16, 0x80008, 0, FALSE, &t);
+	 PACKED_ASSIGN (HxX (zone_tables, event_hdlr_table), t);
+	 err = _AE_hdlr_table_alloc (16, 0x80008, 0, FALSE, &t);
+	 PACKED_ASSIGN (HxX (zone_tables, coercion_hdlr_table), t);
+	 err = _AE_hdlr_table_alloc (16, 0x80008, 0, FALSE, &t);
+	 PACKED_ASSIGN (HxX (zone_tables, special_hdlr_table), t);
+       }
+       PACKED_ASSIGN (info->system_zone_tables, zone_tables);
      });
-  
-  AE_info = RM (info);
+
+  AE_info_H.pp = RPP (info);
 }
 
 void
@@ -70,29 +67,26 @@ AE_reinit (void)
   AE_info_t *info;
   OSErr err;
   
-  info = MR (AE_info);
-  
+  info = (AE_info_t *) PPR (AE_info_H);
+
   ZONE_SAVE_EXCURSION
     (ApplZone,
      {
        AE_zone_tables_h zone_tables;
-       
+
        zone_tables
 	 = (AE_zone_tables_h) NewHandleClear (sizeof (AE_zone_tables_t));
-       
-       err = _AE_hdlr_table_alloc (16, 0x80008, 0,
-				   /* #### */
-				   FALSE,
-				   &HxX (zone_tables, event_hdlr_table));
-       err = _AE_hdlr_table_alloc (16, 0x80008, 0,
-				   /* #### */
-				   FALSE,
-				   &HxX (zone_tables, coercion_hdlr_table));
-       err = _AE_hdlr_table_alloc (16, 0x80008, 0,
-				   /* #### */
-				   FALSE,
-				   &HxX (zone_tables, special_hdlr_table));
-       info->appl_zone_tables = RM (zone_tables);
+
+       {
+	 AE_hdlr_table_h t;
+	 err = _AE_hdlr_table_alloc (16, 0x80008, 0, FALSE, &t);
+	 PACKED_ASSIGN (HxX (zone_tables, event_hdlr_table), t);
+	 err = _AE_hdlr_table_alloc (16, 0x80008, 0, FALSE, &t);
+	 PACKED_ASSIGN (HxX (zone_tables, coercion_hdlr_table), t);
+	 err = _AE_hdlr_table_alloc (16, 0x80008, 0, FALSE, &t);
+	 PACKED_ASSIGN (HxX (zone_tables, special_hdlr_table), t);
+       }
+       PACKED_ASSIGN (info->appl_zone_tables, zone_tables);
      });
   
 
@@ -115,7 +109,7 @@ hdlr_table_elt (AE_hdlr_table_h table,
       elt = &elts[elt_index];
 
       if (   (hdlr == NULL
-	      || hdlr->fn == elt->hdlr.fn)
+	      || hdlr->fn.pp == elt->hdlr.fn.pp)
 	  && elt->selector.sel0 == selector->sel0
 	  && elt->selector.sel1 == selector->sel1)
 	{
@@ -258,7 +252,7 @@ P5 (PUBLIC pascal trap, OSErr, AEInstallEventHandler,
   selector.sel0 = CL (event_class);
   selector.sel1 = CL (event_id);
 
-  hdlr.fn = RM (hdlr_fn);
+  PACKED_ASSIGN (hdlr.fn, hdlr_fn);
   hdlr.refcon = CL (refcon);
   
   err = hdlr_table_elt (table, &selector, &hdlr, TRUE, &elt);
@@ -312,7 +306,7 @@ P5 (PUBLIC pascal trap, OSErr, AEGetEventHandler,
     AE_RETURN_ERROR (err);
   
   /* warning: `elt' is a pointer into an unlocked handle */
-  *hdlr = elt->hdlr.fn;
+  *hdlr = (EventHandlerProcPtr) PPR (elt->hdlr.fn);
   *refcon = elt->hdlr.refcon;
   
   /* hack because various applications complain if they get sent
@@ -361,7 +355,7 @@ P6 (PUBLIC pascal trap, OSErr, AEInstallCoercionHandler,
   selector.sel0 = CL (from_type);
   selector.sel1 = CL (to_type);
   
-  hdlr.fn = RM (hdlr_fn);
+  PACKED_ASSIGN (hdlr.fn, hdlr_fn);
   hdlr.refcon = CL (refcon);
   
   err = hdlr_table_elt (table, &selector, &hdlr, TRUE, &elt);
@@ -397,7 +391,7 @@ P6 (PUBLIC pascal trap, OSErr, AEGetCoercionHandler,
     AE_RETURN_ERROR (err);
   
   /* warning: `elt' is a pointer into an unlocked handle */
-  *hdlr_out = elt->hdlr.fn;
+  *hdlr_out = (ProcPtr) PPR (elt->hdlr.fn);
   *refcon_out = elt->hdlr.refcon;
   
   /* #### *from_type_is_desc_p_out = elt->flag; */
@@ -452,7 +446,7 @@ P3 (PUBLIC pascal trap, OSErr, AEInstallSpecialHandler,
   selector.sel0 = CL (function_class);
   selector.sel1 = CL (k_special_sel1);
   
-  hdlr.fn = RM (hdlr_fn);
+  PACKED_ASSIGN (hdlr.fn, hdlr_fn);
   hdlr.refcon = CL (-1);
   
   err = hdlr_table_elt (table, &selector, &hdlr, TRUE, &elt);
@@ -484,7 +478,7 @@ P3 (PUBLIC pascal trap, OSErr, AEGetSpecialHandler,
     AE_RETURN_ERROR (err);
   
   /* warning: `elt' is a pointer into an unlocked handle */
-  *hdlr_out = elt->hdlr.fn;
+  *hdlr_out = (ProcPtr) PPR (elt->hdlr.fn);
   
   AE_RETURN_ERROR (noErr);
 }

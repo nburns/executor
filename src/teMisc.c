@@ -152,7 +152,7 @@ ROMlib_sledgehammer_te (TEHandle te)
 A2 (PUBLIC, void, SetWordBreak, ProcPtr, wb, TEHandle, teh)
 {
   TE_SLAM (teh);
-  HxX (teh, wordBreak) = RM(wb);
+  PACKED_ASSIGN (HxX (teh, wordBreak), wb);
   TE_SLAM (teh);
 }
 
@@ -170,7 +170,7 @@ A2 (PUBLIC, void, SetWordBreak, ProcPtr, wb, TEHandle, teh)
 A2(PUBLIC, void, SetClikLoop, ProcPtr, cp, TEHandle, teh)
 {
   TE_SLAM (teh);
-  HxX(teh, clikLoop) = RM(cp);
+  PACKED_ASSIGN (HxX (teh, clikLoop), cp);
   TE_SLAM (teh);
 }
 
@@ -611,7 +611,7 @@ ROMlib_call_TEDoText (TEPtr tp, int16 first, int16 last, int16 what)
 {
   register int16 myd0;
 
-  if ((a0trap INTEGERRET (*) (void)) MR (TEDoText) == (void *) P_ROMlib_dotext)
+  if ((a0trap INTEGERRET (*) (void)) PPR (TEDoText_H) == (void *) P_ROMlib_dotext)
     myd0 = C_ROMlib_dotext (tp, first, last, what);
   else
     {
@@ -629,7 +629,7 @@ ROMlib_call_TEDoText (TEPtr tp, int16 first, int16 last, int16 what)
 	EM_D3 = (LONGINT) first;
 	EM_D4 = (LONGINT) last;
 	EM_D7 = (LONGINT) what;
-	EM_A0 = (LONGINT) (long) CL ((long) TEDoText);
+	EM_A0 = (LONGINT) (long) CL ((long) TEDoText_H.pp);
 	CALL_EMULATOR (EM_A0);
 	myd0 = EM_D0;
 	EM_D2 = saved2;

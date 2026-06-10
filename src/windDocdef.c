@@ -130,7 +130,7 @@ validate_colors_for_window (GrafPtr w)
     color_window_colors[i] = default_color_win_ctab[i].rgb;
   
   t_aux_w = STARH (lookup_aux_win (w));
-  if (t_aux_w && HxX (t_aux_w, awCTable))
+  if (t_aux_w && HxX (t_aux_w, awCTable).pp)
     {
       CTabHandle w_ctab;
       ColorSpec *w_ctab_table;
@@ -438,38 +438,39 @@ draw_title (GrafPtr w,
 
 /* #warning "clean up this port mess in draw_title ()" */
   GetPort(&tp);
-  tp.p = MR(tp.p);
-  
+  {
+  GrafPtr tp_native = PPR(tp);
+
   if (go_away_drawn)
     left_bound = left + 28;
   else
     left_bound = left;
-  
+
   title_width = WINDOW_TITLE_WIDTH (w);
   if (title_width)
     {
       title_start = left + (right - left - title_width) / 2 - 6;
-      saveclip = PORT_CLIP_REGION (tp.p);
-      PORT_CLIP_REGION_X (tp.p) = RM (NewRgn ());
+      saveclip = PORT_CLIP_REGION (tp_native);
+      PACKED_ASSIGN (PORT_CLIP_REGION_X (tp_native), NewRgn ());
       if (title_start >= left_bound)
-	CopyRgn (saveclip, PORT_CLIP_REGION (tp.p));
+	CopyRgn (saveclip, PORT_CLIP_REGION (tp_native));
       else
 	{
 	  title_start = left_bound;
-	  SetRectRgn (PORT_CLIP_REGION (tp.p),
+	  SetRectRgn (PORT_CLIP_REGION (tp_native),
 		      title_start, top - 16,
 		      right - (zoom_drawn ? 28 : 0), top-3);
-	  SectRgn (PORT_CLIP_REGION (tp.p), saveclip, PORT_CLIP_REGION (tp.p));
+	  SectRgn (PORT_CLIP_REGION (tp_native), saveclip, PORT_CLIP_REGION (tp_native));
 	}
-      
+
       {
 	RgnHandle additional_clip_rgn;
 
 	additional_clip_rgn = NewRgn ();
 	SetRectRgn (additional_clip_rgn, title_start, top - 16,
 		    title_start + title_width + 12, top - 2);
-	SectRgn (PORT_CLIP_REGION (tp.p), additional_clip_rgn,
-		 PORT_CLIP_REGION (tp.p));
+	SectRgn (PORT_CLIP_REGION (tp_native), additional_clip_rgn,
+		 PORT_CLIP_REGION (tp_native));
       
 	/* erase the text to be drawn with the title bar background
 	   color */
@@ -492,10 +493,11 @@ draw_title (GrafPtr w,
       
       if (saveclip)
 	{
-	  DisposeRgn (PORT_CLIP_REGION (tp.p));
-	  PORT_CLIP_REGION_X (tp.p) = RM (saveclip);
+	  DisposeRgn (PORT_CLIP_REGION (tp_native));
+	  PACKED_ASSIGN (PORT_CLIP_REGION_X (tp_native), saveclip);
 	}
     }
+  }
 }
 
 void
@@ -1102,7 +1104,7 @@ P4 (PUBLIC pascal, LONGINT, wdef0,
 	{
 	  WStateData *wsp;
 	  
-	  WINDOW_DATA_X (w) = RM (NewHandle ((Size) sizeof (WStateData)));
+	  PACKED_ASSIGN (WINDOW_DATA_X (w), NewHandle ((Size) sizeof (WStateData)));
 	  wsp = MR (* (WStateData **) WINDOW_DATA (w));
 	  
 	  wsp->stdState = GD_BOUNDS (MR (TheGDevice));

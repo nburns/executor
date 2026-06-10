@@ -358,9 +358,9 @@ P3(PUBLIC, pascal trap OSErr, SndPlay, SndChannelPtr, chanp, Handle, sndh,
       {
 	HIDDEN_SndChannelPtr foo;
 
-	foo.p = CLC (0);
+	foo.pp = 0;
 	SndNewChannel (&foo, sampledSynth, 0, 0);
-	chanp = MR (foo.p);
+	chanp = (SndChannelPtr) PPR (foo);
       }
 
     for (i=0 ; i < num_commands ; i++)
@@ -421,19 +421,19 @@ P4(PUBLIC pascal trap, OSErr, SndNewChannel, HIDDEN_SndChannelPtr *, chanpp,
 
   case soundon:
     if (STARH (chanpp) == NULL) {
-      chanpp->p = RM ((SndChannelPtr) NewPtr (sizeof (SndChannel)));
+      chanpp->pp = RPP ((SndChannelPtr) NewPtr (sizeof (SndChannel)));
       chanp = STARH (chanpp);
       chanp->flags = CWC (CHAN_ALLOC_FLAG);
     } else {
       chanp = STARH (chanpp);
       chanp->flags = CWC (0);
     }
-    chanp->nextChan = allchans.p;
-    allchans.p = RM (chanp);
-    chanp->firstMod = RM ((Ptr) NewPtr (sizeof (ModifierStub)));
+    chanp->nextChan.pp = allchans.pp;
+    allchans.pp = RPP (chanp);
+    PACKED_ASSIGN (chanp->firstMod, (Ptr) NewPtr (sizeof (ModifierStub)));
     SND_CHAN_TIME (chanp) = 0;
     SND_CHAN_CURRENT_START (chanp) = 0;
-    chanp->callBack = RM (userroutinep);
+    PACKED_ASSIGN (chanp->callBack, userroutinep);
     /*chanp->userInfo = 0;*/
     chanp->wait = 0;
     chanp->cmdInProg.cmd = 0;
@@ -598,7 +598,7 @@ do_current_command (SndChannelPtr chanp, struct hunger_info info)
 	{
 	  duration = snd_duration (hp);
 	  
-	  sp = (hp->samplePtr ? MR ((unsigned char *) hp->samplePtr)
+	  sp = (hp->samplePtr.pp ? (unsigned char *) PPR (hp->samplePtr)
 		: hp->sampleArea);
 	  
 	  warning_sound_log ("bufferCmd dur %d", (int) duration);
@@ -619,7 +619,7 @@ do_current_command (SndChannelPtr chanp, struct hunger_info info)
     case callBackCmd:
       warning_sound_log ("callBackCmd");
       cmd = chanp->cmdInProg;
-      CToPascalCall (MR (chanp->callBack), CTOP_SetCTitle,
+      CToPascalCall ((ProcPtr) PPR (chanp->callBack), CTOP_SetCTitle,
 		     chanp, &cmd);
       CMD_DONE (chanp);
       break;
@@ -740,7 +740,7 @@ sound_callback (syn68k_addr_t interrupt_addr, void *unused)
   info = SOUND_GET_HUNGER_INFO ();
 
   /* For each channel, grab some samples and mix them in */
-  for (chanp = MR (allchans.p) ; chanp != NULL ; chanp = MR (chanp->nextChan))
+  for (chanp = (SndChannelPtr) PPR (allchans) ; chanp != NULL ; chanp = (SndChannelPtr) PPR (chanp->nextChan))
     {
       if (earlier_p (SND_CHAN_TIME (chanp), info.t2))
 	{
@@ -1066,13 +1066,13 @@ P2(PUBLIC, pascal trap OSErr, SndDisposeChannel, SndChannelPtr, chanp,
 #endif
 
 	for (pp = &allchans;
-	     pp->p && MR(pp->p) != chanp;
-	     pp = (HIDDEN_SndChannelPtr *) &MR(pp->p)->nextChan)
+	     pp->pp && STARH (pp) != chanp;
+	     pp = (HIDDEN_SndChannelPtr *) &STARH (pp)->nextChan)
 	    ;
-	if (pp->p)
+	if (pp->pp)
 	  {
-	    pp->p = chanp->nextChan;
-	    DisposPtr (MR ((Ptr) chanp->firstMod));
+	    pp->pp = chanp->nextChan.pp;
+	    DisposPtr ((Ptr) PPR (chanp->firstMod));
 	    if (chanp->flags & CWC(CHAN_ALLOC_FLAG))
 	      DisposPtr((Ptr) chanp);
 	  }

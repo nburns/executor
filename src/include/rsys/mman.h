@@ -320,19 +320,19 @@ enum { TRAP_MASK = 0xF9FF };
   typeof (v12) _v12 = (v12);					\
   typeof (v13) _v13 = (v13);					\
   typeof (STARH (h)) _hp = STARH (h);				\
-  _hp->f1 = _v1;						\
-  _hp->f2 = _v2;						\
-  _hp->f3 = _v3;						\
-  _hp->f4 = _v4;						\
-  _hp->f5 = _v5;						\
-  _hp->f6 = _v6;						\
-  _hp->f7 = _v7;						\
-  _hp->f8 = _v8;						\
-  _hp->f9 = _v9;						\
-  _hp->f10 = _v10;						\
-  _hp->f11 = _v11;						\
-  _hp->f12 = _v12;						\
-  _hp->f13 = _v13;						\
+  _HA(_hp, f1, _v1);						\
+  _HA(_hp, f2, _v2);						\
+  _HA(_hp, f3, _v3);						\
+  _HA(_hp, f4, _v4);						\
+  _HA(_hp, f5, _v5);						\
+  _HA(_hp, f6, _v6);						\
+  _HA(_hp, f7, _v7);						\
+  _HA(_hp, f8, _v8);						\
+  _HA(_hp, f9, _v9);						\
+  _HA(_hp, f10, _v10);						\
+  _HA(_hp, f11, _v11);						\
+  _HA(_hp, f12, _v12);						\
+  _HA(_hp, f13, _v13);						\
 })
 
 #define HASSIGN_14(h, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5,	\
@@ -354,20 +354,20 @@ enum { TRAP_MASK = 0xF9FF };
   typeof (v13) _v13 = (v13);					\
   typeof (v14) _v14 = (v14);					\
   typeof (STARH (h)) _hp = STARH (h);				\
-  _hp->f1 = _v1;						\
-  _hp->f2 = _v2;						\
-  _hp->f3 = _v3;						\
-  _hp->f4 = _v4;						\
-  _hp->f5 = _v5;						\
-  _hp->f6 = _v6;						\
-  _hp->f7 = _v7;						\
-  _hp->f8 = _v8;						\
-  _hp->f9 = _v9;						\
-  _hp->f10 = _v10;						\
-  _hp->f11 = _v11;						\
-  _hp->f12 = _v12;						\
-  _hp->f13 = _v13;						\
-  _hp->f14 = _v14;						\
+  _HA(_hp, f1, _v1);						\
+  _HA(_hp, f2, _v2);						\
+  _HA(_hp, f3, _v3);						\
+  _HA(_hp, f4, _v4);						\
+  _HA(_hp, f5, _v5);						\
+  _HA(_hp, f6, _v6);						\
+  _HA(_hp, f7, _v7);						\
+  _HA(_hp, f8, _v8);						\
+  _HA(_hp, f9, _v9);						\
+  _HA(_hp, f10, _v10);						\
+  _HA(_hp, f11, _v11);						\
+  _HA(_hp, f12, _v12);						\
+  _HA(_hp, f13, _v13);						\
+  _HA(_hp, f14, _v14);						\
 })
 
 #define HASSIGN_15(h, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5,	\
@@ -391,21 +391,21 @@ enum { TRAP_MASK = 0xF9FF };
   typeof (v14) _v14 = (v14);					\
   typeof (v15) _v15 = (v15);					\
   typeof (STARH (h)) _hp = STARH (h);				\
-  _hp->f1 = _v1;						\
-  _hp->f2 = _v2;						\
-  _hp->f3 = _v3;						\
-  _hp->f4 = _v4;						\
-  _hp->f5 = _v5;						\
-  _hp->f6 = _v6;						\
-  _hp->f7 = _v7;						\
-  _hp->f8 = _v8;						\
-  _hp->f9 = _v9;						\
-  _hp->f10 = _v10;						\
-  _hp->f11 = _v11;						\
-  _hp->f12 = _v12;						\
-  _hp->f13 = _v13;						\
-  _hp->f14 = _v14;						\
-  _hp->f15 = _v15;						\
+  _HA(_hp, f1, _v1);						\
+  _HA(_hp, f2, _v2);						\
+  _HA(_hp, f3, _v3);						\
+  _HA(_hp, f4, _v4);						\
+  _HA(_hp, f5, _v5);						\
+  _HA(_hp, f6, _v6);						\
+  _HA(_hp, f7, _v7);						\
+  _HA(_hp, f8, _v8);						\
+  _HA(_hp, f9, _v9);						\
+  _HA(_hp, f10, _v10);						\
+  _HA(_hp, f11, _v11);						\
+  _HA(_hp, f12, _v12);						\
+  _HA(_hp, f13, _v13);						\
+  _HA(_hp, f14, _v14);						\
+  _HA(_hp, f15, _v15);						\
 })
 
 #define LOCK_HANDLE_EXCURSION_1(handle1_expr, body)	\

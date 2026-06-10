@@ -35,14 +35,14 @@ P2(PUBLIC pascal trap, INTEGER, FindWindow, Point, p, HIDDEN_WindowPtr *, wpp)
 
     pointaslong = ((LONGINT)p.v << 16)|(unsigned short)p.h;
 
-    (*wpp).p = 0;
+    (*wpp).pp = 0;
     if (MBDFCALL(mbHit, 0, pointaslong) != -1)
       return inMenuBar;
-    for (wp = MR (WindowList); wp ; wp = WINDOW_NEXT_WINDOW (wp))
+    for (wp = GET_WindowList (); wp ; wp = WINDOW_NEXT_WINDOW (wp))
       {
 	if (WINDOW_VISIBLE_X (wp) && PtInRgn (p, WINDOW_STRUCT_REGION (wp)))
 	  {
-	    wpp->p = RM ((WindowPtr) wp);
+	    wpp->pp = RPP ((WindowPtr) wp);
 	    if (WINDOW_KIND (wp) < 0)
 	      {
 		retval = inSysWindow;
@@ -50,7 +50,7 @@ P2(PUBLIC pascal trap, INTEGER, FindWindow, Point, p, HIDDEN_WindowPtr *, wpp)
 	      }
 	    val = WINDCALL((WindowPtr) wp, wHit, pointaslong);
 	    if (val == wNoHit)
-	      retval = DeskHook ? inSysWindow : inDesk;
+	      retval = DragHook_H.pp ? inSysWindow : inDesk;
 	    else
 	      retval = val + 2; /* datadesk showed us that this is how it's
 				   done */
@@ -71,7 +71,7 @@ A3(PRIVATE, BOOLEAN, xTrackBox, WindowPtr, wp, Point, pt,
   THEPORT_SAVE_EXCURSION
     (MR (wmgr_port),
      {
-       SetClip(MR(GrayRgn));
+       SetClip(GET_GrayRgn ());
 
        WINDCALL(wp, wDraw, part);
        while (!GetOSEvent(mUpMask, &ev))

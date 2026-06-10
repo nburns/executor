@@ -68,7 +68,7 @@ typedef struct PACKED _ModifierStub {
 
 extern BOOLEAN C_snth5( SndChannelPtr, SndCommand *, ModifierStubPtr );
 
-#define SND_CHAN_FIRSTMOD(c) MR ((ModifierStubPtr)c->firstMod)
+#define SND_CHAN_FIRSTMOD(c) ((ModifierStubPtr) PPR (c->firstMod))
 #define SND_CHAN_CURRENT_START(c) (SND_CHAN_FIRSTMOD (c)->current_start)
 #define SND_CHAN_TIME(c) (SND_CHAN_FIRSTMOD (c)->time)
 #define SND_CHAN_PREV_SAMP(c) (SND_CHAN_FIRSTMOD (c)->prev_samp)

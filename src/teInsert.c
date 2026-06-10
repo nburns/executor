@@ -261,8 +261,8 @@ ROMlib_tesave (tesave *t, TEHandle teh)
   TEPtr tp;
     
   tp = STARH (teh);
-  t->_tport = thePortX;
-  thePortX = tp->inPort;
+  t->_tport.pp = thePortX;
+  thePortX = tp->inPort.pp;
     
   t->_tpvis = PORT_PEN_VIS_X (thePort);
   t->_tfont = PORT_TX_FONT_X (thePort);
@@ -290,10 +290,10 @@ ROMlib_tesave (tesave *t, TEHandle teh)
   
   PenPat (black);
   
-  t->_tsaveclip = PORT_CLIP_REGION_X (thePort);
-  PORT_CLIP_REGION_X (thePort) = RM (NewRgn ());
+  t->_tsaveclip.pp = PORT_CLIP_REGION_X (thePort).pp;
+  PACKED_ASSIGN (PORT_CLIP_REGION_X (thePort), NewRgn ());
   HxX (PORT_CLIP_REGION (thePort), rgnBBox) = HxX (teh, viewRect);
-  SectRgn (PORT_CLIP_REGION (thePort), MR (t->_tsaveclip),
+  SectRgn (PORT_CLIP_REGION (thePort), PPR (t->_tsaveclip),
 	   PORT_CLIP_REGION (thePort));
 }
 
@@ -303,7 +303,7 @@ ROMlib_terestore (tesave *t)
   SetPenState (&t->_tpstate);
   
   DisposeRgn (PORT_CLIP_REGION (thePort));
-  PORT_CLIP_REGION_X (thePort) = t->_tsaveclip;
+  PORT_CLIP_REGION_X (thePort).pp = t->_tsaveclip.pp;
 
   PORT_TX_FACE_X (thePort)  = t->_tstyle;
   PORT_TX_SIZE_X (thePort)  = t->_tsize;
@@ -320,7 +320,7 @@ ROMlib_terestore (tesave *t)
       CPORT_RGB_BK_COLOR (thePort) = t->rgb_bk_color;
     }
   
-  thePortX = t->_tport;
+  thePortX = t->_tport.pp;
 }
 
 P1 (PUBLIC pascal trap, void, TEIdle, TEHandle, teh)

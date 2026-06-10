@@ -35,7 +35,7 @@ is_window_ptr (WindowPeek w)
     retval = FALSE;
   else
     {
-      for (wp = MR (WindowList);
+      for (wp = GET_WindowList ();
 	   wp && wp != w; 
 	   wp = WINDOW_NEXT_WINDOW (wp))
 	;
@@ -82,7 +82,7 @@ P1(PUBLIC pascal trap, LONGINT, GetWRefCon, WindowPtr, w)
 P2(PUBLIC pascal trap, void, SetWindowPic, WindowPtr, w, PicHandle, p)
 {
   if (is_window_ptr ((WindowPeek) w))
-    WINDOW_PIC_X (w) = RM (p);
+    PACKED_ASSIGN (WINDOW_PIC_X (w), p);
 }
 
 P1(PUBLIC pascal trap, PicHandle, GetWindowPic, WindowPtr, w)
@@ -218,9 +218,9 @@ P1(PUBLIC pascal trap, void, ClipAbove, WindowPeek, w)
 {
     register WindowPeek wp;
 
-    SectRgn (PORT_CLIP_REGION (MR (wmgr_port)), MR (GrayRgn),
+    SectRgn (PORT_CLIP_REGION (MR (wmgr_port)), GET_GrayRgn (),
 	     PORT_CLIP_REGION (MR (wmgr_port)));
-    for (wp = MR (WindowList) ; wp != w ; wp = WINDOW_NEXT_WINDOW (wp))
+    for (wp = GET_WindowList () ; wp != w ; wp = WINDOW_NEXT_WINDOW (wp))
       if (WINDOW_VISIBLE_X (wp))
 	DiffRgn (PORT_CLIP_REGION (MR (wmgr_port)), WINDOW_STRUCT_REGION (wp),
 		 PORT_CLIP_REGION (MR (wmgr_port)));
@@ -231,7 +231,7 @@ P1(PUBLIC pascal trap, BOOLEAN, CheckUpdate, EventRecord *, ev)
     WindowPeek wp;
     Rect picr;
 
-    for (wp = MR (WindowList); wp ; wp = WINDOW_NEXT_WINDOW (wp))
+    for (wp = GET_WindowList (); wp ; wp = WINDOW_NEXT_WINDOW (wp))
       if (WINDOW_VISIBLE_X (wp) && !EmptyRgn (WINDOW_UPDATE_REGION (wp)))
 	{
 	  if (WINDOW_PIC (wp))
@@ -255,10 +255,10 @@ P1(PUBLIC pascal trap, BOOLEAN, CheckUpdate, EventRecord *, ev)
 
 P1(PUBLIC pascal trap, void, SaveOld, WindowPeek, w)
 {
-    OldStructure = RM (NewRgn());
-    OldContent = RM (NewRgn());
-    CopyRgn (WINDOW_STRUCT_REGION (w), MR (OldStructure));
-    CopyRgn (WINDOW_CONT_REGION (w), MR (OldContent));
+    SET_OldStructure (NewRgn ());
+    SET_OldContent (NewRgn ());
+    CopyRgn (WINDOW_STRUCT_REGION (w), GET_OldStructure ());
+    CopyRgn (WINDOW_CONT_REGION (w), GET_OldContent ());
 }
 
 P2(PUBLIC pascal trap, void, PaintOne, WindowPeek, w, RgnHandle, clobbered)
@@ -311,13 +311,13 @@ P2(PUBLIC pascal trap, void, PaintOne, WindowPeek, w, RgnHandle, clobbered)
 	 }
        else if (!EmptyRgn (PORT_CLIP_REGION (MR (wmgr_port))))
 	 {
-	   if (DeskHook)
+	   if (GET_DeskHook ())
 	     WINDCALLDESKHOOK();
-	   else 
+	   else
 	     {
 	       if ((USE_DESKCPAT_VAR & USE_DESKCPAT_BIT)
 		   && PIXMAP_PIXEL_SIZE (GD_PMAP (MR (MainDevice))) > 2)
-		 FillCRgn(clobbered, MR(DeskCPat));
+		 FillCRgn(clobbered, GET_DeskCPat ());
 	       else
 		 FillRgn (clobbered, DeskPattern);
 	     }
@@ -360,8 +360,8 @@ P1(PUBLIC pascal trap, void, CalcVis, WindowPeek, w)
 
     if (w && WINDOW_VISIBLE_X (w))
       {
-	SectRgn (MR (GrayRgn), WINDOW_CONT_REGION (w), PORT_VIS_REGION (w));
-        for (wp = MR (WindowList); wp != w; wp = WINDOW_NEXT_WINDOW (wp))
+	SectRgn (GET_GrayRgn (), WINDOW_CONT_REGION (w), PORT_VIS_REGION (w));
+        for (wp = GET_WindowList (); wp != w; wp = WINDOW_NEXT_WINDOW (wp))
 	  if (WINDOW_VISIBLE_X (wp))
 	    DiffRgn (PORT_VIS_REGION (w), WINDOW_STRUCT_REGION (wp),
 		     PORT_VIS_REGION (w));
@@ -383,7 +383,7 @@ P2(PUBLIC pascal trap, void, CalcVisBehind, WindowPeek, w,
     testrgn = NewRgn();
     CopyRgn(clobbered, rh);
     CalcVis((WindowPeek) w);
-    for (wp = MR(w->nextWindow); wp; wp = WINDOW_NEXT_WINDOW (wp))
+    for (wp = WINDOW_NEXT_WINDOW (w); wp; wp = WINDOW_NEXT_WINDOW (wp))
       {
         if (WINDOW_VISIBLE_X (wp))
 	  {
@@ -410,8 +410,8 @@ P2(PUBLIC pascal trap, void, DrawNew, WindowPeek, w, BOOLEAN, flag)
    * This works as IM describes, but I had to spend some time fiddling with
    * it so the code is still suspect.
    */
-  XorRgn (WINDOW_STRUCT_REGION (w), MR(OldStructure), r1);
-  XorRgn(MR(OldContent), WINDOW_CONT_REGION (w), r2);
+  XorRgn (WINDOW_STRUCT_REGION (w), GET_OldStructure (), r1);
+  XorRgn(GET_OldContent (), WINDOW_CONT_REGION (w), r2);
   UnionRgn(r1, r2, r2);
   THEPORT_SAVE_EXCURSION
     (MR (wmgr_port),
@@ -433,7 +433,7 @@ P1(PUBLIC pascal trap, INTEGER, GetWVariant, WindowPtr, w)	/* IMV-208 */
     AuxWinHandle h;
     INTEGER retval;
 
-    for (h = MR(AuxWinHead); h != 0 && HxP(h, awOwner) != w; h = HxP(h, awNext))
+    for (h = GET_AuxWinHead (); h != 0 && HxP(h, awOwner) != w; h = HxP(h, awNext))
       ;
     retval = h != 0 ? (Hx (h, awFlags) >> 24) & 0xFF : 0;
     return retval;
@@ -443,7 +443,7 @@ P1(PUBLIC pascal trap, INTEGER, GetWVariant, WindowPtr, w)	/* IMV-208 */
 void
 CALLDRAGHOOK (void)
 {
-  if (DragHook) {
+  if (DragHook_H.pp) {
     LONGINT saved0, saved1, saved2, saved3,
     savea0, savea1, savea2, savea3;
 
@@ -458,7 +458,7 @@ CALLDRAGHOOK (void)
     savea2 = EM_A2;
     savea3 = EM_A3;
     EM_D0 = 0;
-    CALL_EMULATOR((syn68k_addr_t) CL((long)DragHook));
+    CALL_EMULATOR((syn68k_addr_t) CL((long)DragHook_H.pp));
     EM_D0 = saved0;
     EM_D1 = saved1;
     EM_D2 = saved2;
@@ -485,7 +485,7 @@ WINDCALLDESKHOOK (void)
   savea2 = EM_A2;
   savea3 = EM_A3;
   EM_D0 = 0;
-  CALL_EMULATOR((syn68k_addr_t) CL((long) DeskHook));
+  CALL_EMULATOR((syn68k_addr_t) CL((long) DeskHook_H.pp));
   EM_D0 = saved0;
   EM_D1 = saved1;
   EM_D2 = saved2;
@@ -509,7 +509,7 @@ ROMlib_windcall (WindowPtr wind, int16 mess, int32 param)
   Rect saverect;
   
   defproc = WINDOW_DEF_PROC (wind);
-  if (defproc->p == NULL)
+  if (defproc->pp == 0)
     LoadResource (defproc);
   
   switch (mess)

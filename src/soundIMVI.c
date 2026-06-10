@@ -128,7 +128,7 @@ clear_pending_sounds (void)
   call_back_info.busy = FALSE;
   if (sound_driver.sound_clear_pending)
     SOUND_CLEAR_PENDING ();
-  allchans.p = CLC (0);
+  allchans.pp = 0;
 }
 
 
@@ -161,8 +161,8 @@ start_playing (SndChannelPtr chanp, SndDoubleBufferHeaderPtr paramp,
 	  call_back_info.busy = TRUE;
 	  if (!task_inserted)
 	    {
-	      call_back_info.task.tmAddr
-		= RM ((ProcPtr) P_sound_timer_handler);
+	      PACKED_ASSIGN (call_back_info.task.tmAddr,
+			     (ProcPtr) P_sound_timer_handler);
 	      InsTime ((QElemPtr) &call_back_info.task);
 	      task_inserted = TRUE;
 	    }

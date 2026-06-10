@@ -21,10 +21,10 @@ A0(PUBLIC, OSErr, TEFromScrap)
 {
   int32 l, m;
     
-  m = GetScrap(MR (TEScrpHandle), TICK ("TEXT"), &l);
+  m = GetScrap(GET_TEScrpHandle (), TICK ("TEXT"), &l);
   if (m < 0)
     {
-      EmptyHandle (MR (TEScrpHandle));
+      EmptyHandle (GET_TEScrpHandle ());
       TEScrpLength = CWC (0);
     }
   else
@@ -37,17 +37,17 @@ A0 (PUBLIC, OSErr, TEToScrap)
   int32 m;
 
   LOCK_HANDLE_EXCURSION_1
-    (MR (TEScrpHandle),
+    (GET_TEScrpHandle (),
      {
        m = PutScrap (CW (TEScrpLength), TICK ("TEXT"),
-		     STARH (MR (TEScrpHandle)));
+		     STARH (GET_TEScrpHandle ()));
      });
   return m < 0 ? m : 0;
 }
 
 A0 (PUBLIC, Handle, TEScrapHandle)
 {
-  return MR (TEScrpHandle);
+  return GET_TEScrpHandle ();
 }
 
 A0 (PUBLIC, int32, TEGetScrapLen)

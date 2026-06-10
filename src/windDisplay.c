@@ -52,7 +52,7 @@ A1(PUBLIC, WindowPeek, ROMlib_firstvisible, WindowPtr, w)	/* INTERNAL */
 
     for (wp = (WindowPeek) w;
 	 wp && (!WINDOW_VISIBLE_X (wp)
-		|| wp == (WindowPeek) MR (GhostWindow));
+		|| wp == (WindowPeek) GET_GhostWindow ());
 	 wp = WINDOW_NEXT_WINDOW (wp))
       ;
     return wp;
@@ -62,7 +62,7 @@ P0(PUBLIC pascal trap, WindowPtr, FrontWindow)
 {
   WindowPtr retval;
 
-  retval = (WindowPtr) ROMlib_firstvisible ((WindowPtr) MR (WindowList));
+  retval = (WindowPtr) ROMlib_firstvisible ((WindowPtr) GET_WindowList ());
   return retval;
 }
 
@@ -93,20 +93,20 @@ P1(PUBLIC pascal trap, void, BringToFront, WindowPtr, w)
   WindowPeek wp;
   RgnHandle hidden;
   
-  if (MR (WindowList) != (WindowPeek) w)
+  if (GET_WindowList () != (WindowPeek) w)
     THEPORT_SAVE_EXCURSION
       (MR (wmgr_port),
        {
-	 SetClip (MR (GrayRgn));
-	 for (wp = MR (WindowList);
+	 SetClip (GET_GrayRgn ());
+	 for (wp = GET_WindowList ();
 	      wp && WINDOW_NEXT_WINDOW (wp) != (WindowPeek) w;
 	      wp = WINDOW_NEXT_WINDOW (wp))
 	   ;
 	 if (wp)
 	   {
-	     WINDOW_NEXT_WINDOW_X (wp) = WINDOW_NEXT_WINDOW_X (w);
-	     WINDOW_NEXT_WINDOW_X (w) = WindowList;
-	     WindowList = RM ((WindowPeek) w);
+	     WINDOW_NEXT_WINDOW_X (wp).pp = WINDOW_NEXT_WINDOW_X (w).pp;
+	     WINDOW_NEXT_WINDOW_X (w).pp = WindowList_H.pp;
+	     SET_WindowList ((WindowPeek) w);
 	     if (WINDOW_VISIBLE_X (w))
 	       {
 		 /* notify the palette manager that the `FrontWindow ()'
@@ -135,8 +135,8 @@ P1(PUBLIC pascal trap, void, SelectWindow, WindowPtr, w)
   if (cactive != w)
     {
       HiliteWindow (cactive, FALSE);
-      CurDeactive = RM (cactive);
-      CurActivate = RM (w);
+      SET_CurDeactive (cactive);
+      SET_CurActivate (w);
     }
   BringToFront (w);
   HiliteWindow (w, TRUE);
@@ -200,7 +200,7 @@ P2(PUBLIC pascal trap, void, ShowHide, WindowPtr, w, BOOLEAN, flag)
       THEPORT_SAVE_EXCURSION
 	(MR (wmgr_port),
 	 {
-	   SetClip (MR (GrayRgn));
+	   SetClip (GET_GrayRgn ());
 	   SetEmptyRgn (PORT_VIS_REGION (w));
 	   PaintBehind (WINDOW_NEXT_WINDOW (w), WINDOW_STRUCT_REGION (w));
 	   CalcVisBehind (WINDOW_NEXT_WINDOW (w), WINDOW_STRUCT_REGION (w));
@@ -222,7 +222,7 @@ P1(PUBLIC pascal trap, void, HideWindow, WindowPtr, w)
 	  if (nextvis)
 	    SelectWindow ((WindowPtr) nextvis);
 	  else
-	    CurDeactive = RM (w);
+	    SET_CurDeactive (w);
 	  WINDOW_HILITED_X (w) = FALSE;
 	}
       ShowHide(w, FALSE);
@@ -242,13 +242,13 @@ P1(PUBLIC pascal trap, void, ShowWindow, WindowPtr, w)
       if (FrontWindow () == w && !WINDOW_HILITED_X (w))
 	{
 	  HiliteWindow (w, TRUE);
-	  CurActivate = RM (w);
+	  SET_CurActivate (w);
 	  for (t = WINDOW_NEXT_WINDOW (w);
 	       t && !WINDOW_HILITED_X (t);
 	       t = WINDOW_NEXT_WINDOW (t))
 	    ;
 	  HiliteWindow ((WindowPtr) t, FALSE);
-	  CurDeactive = (WindowPtr) RM (t);
+	  SET_CurDeactive (t);
 	}
       TRAPEND();
     }
@@ -277,32 +277,32 @@ P2(PUBLIC pascal trap, void, SendBehind, WindowPtr, w, WindowPtr, behind)
   if ((!WINDOW_NEXT_WINDOW (w) && !behind)
       || WINDOW_NEXT_WINDOW (w) == (WindowPeek) w)
 /*-->*/ return;
-  for (wpp = (HIDDEN_WindowPeek *) &WindowList;
-       (*wpp).p && STARH(wpp) != (WindowPeek) w;
+  for (wpp = &WindowList_H;
+       (*wpp).pp && STARH(wpp) != (WindowPeek) w;
        wpp = (HIDDEN_WindowPeek *) &WINDOW_NEXT_WINDOW_X (STARH (wpp)))
     ;
-  if (! (*wpp).p)
+  if (! (*wpp).pp)
 /*-->*/	return;
-  (*wpp).p = WINDOW_NEXT_WINDOW_X (w);
+  (*wpp).pp = WINDOW_NEXT_WINDOW_X (w).pp;
   oldbehind = STARH (wpp);
   if (behind)
     {
-	WINDOW_NEXT_WINDOW_X (w) = WINDOW_NEXT_WINDOW_X (behind);
-	WINDOW_NEXT_WINDOW_X (behind) = (WindowPeek) RM (w);
+	WINDOW_NEXT_WINDOW_X (w).pp = WINDOW_NEXT_WINDOW_X (behind).pp;
+	PACKED_ASSIGN (WINDOW_NEXT_WINDOW_X (behind), w);
     }
   else
     {
 #define SEND_BEHIND
 #if defined (SEND_BEHIND)
-	if (!(*wpp).p) /* what if 'w' is the only window? */
-	  wpp = (HIDDEN_WindowPeek *) &WindowList;
-    	for (; WINDOW_NEXT_WINDOW_X (STARH (wpp));
+	if (!(*wpp).pp) /* what if 'w' is the only window? */
+	  wpp = &WindowList_H;
+    	for (; WINDOW_NEXT_WINDOW_X (STARH (wpp)).pp;
 	     wpp = (HIDDEN_WindowPeek *) &WINDOW_NEXT_WINDOW_X (STARH (wpp)))
 	  ;
-	if (STARH (wpp) != (WindowPeek) w) 
-	  WINDOW_NEXT_WINDOW_X (STARH (wpp)) = (WindowPeek) RM (w);
+	if (STARH (wpp) != (WindowPeek) w)
+	  PACKED_ASSIGN (WINDOW_NEXT_WINDOW_X (STARH (wpp)), w);
 #endif /* SEND_BEHIND */
-	WINDOW_NEXT_WINDOW_X (w) = 0;
+	PACKED_ASSIGN0 (WINDOW_NEXT_WINDOW_X (w));
       }
     CalcVis ((WindowPeek) w);
     temprgn = NewRgn ();
@@ -323,7 +323,7 @@ P2(PUBLIC pascal trap, void, SendBehind, WindowPtr, w, WindowPtr, behind)
 	HiliteWindow((WindowPtr) newfront, TRUE);
     }
 #else /* 0 */
-    if (oldfront == (WindowPeek) w && MR (WindowList) != (WindowPeek) w)
+    if (oldfront == (WindowPeek) w && GET_WindowList () != (WindowPeek) w)
       {
 	THEPORT_SAVE_EXCURSION
 	  (w,

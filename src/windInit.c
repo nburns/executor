@@ -64,15 +64,15 @@ P0 (PUBLIC pascal trap, void, InitWindows)
   PixPatHandle new_ph;
   RgnHandle mrgn, corners;
   
-  AuxWinHead = RM (default_aux_win);
-  SaveVisRgn = NULL;
+  SET_AuxWinHead (default_aux_win);
+  SET_SaveVisRgn (NULL);
   
   THEPORT_SAVE_EXCURSION
     (thePort,
      {
        /* FIXME: is this a memory leak, to just call InitPort () again? */
-       InitPort (MR (WMgrPort));
-       InitCPort (MR (WMgrCPort));
+       InitPort (GET_WMgrPort ());
+       InitCPort (GET_WMgrCPort ());
 
        ph = GetPattern(deskPatID);
        if (ph == NULL)
@@ -86,31 +86,31 @@ P0 (PUBLIC pascal trap, void, InitWindows)
 	 }
        new_ph = GetPixPat (deskPatID);
        if (new_ph)
-	 DeskCPat = RM(new_ph);
+	 SET_DeskCPat (new_ph);
        else
 	 USE_DESKCPAT_VAR &= ~USE_DESKCPAT_BIT;
        InitPalettes ();
        InitMenus ();
        PATASSIGN (DeskPattern, STARH(ph));
-       GrayRgn = RM (NewRgn ());
+       SET_GrayRgn (NewRgn ());
 
        OpenRgn ();
        if (ROMlib_creator && !(ROMlib_options & ROMLIB_RECT_SCREEN_BIT))
 	 FrameRoundRect (&GD_BOUNDS (MR (TheGDevice)), 16, 16);
        else
 	 FrameRect (&GD_BOUNDS (MR (TheGDevice)));
-       CloseRgn (MR (GrayRgn));
+       CloseRgn (GET_GrayRgn ());
        mrgn = NewRgn();
        SetRectRgn(mrgn, 0, 0, CW (GD_BOUNDS (MR (TheGDevice)).right),
 		  CW(MBarHeight));
-       SectRgn(MR(GrayRgn), mrgn, mrgn);
+       SectRgn(GET_GrayRgn (), mrgn, mrgn);
        corners = NewRgn();
        SetRectRgn(corners, 0, 0, CW (GD_BOUNDS (MR (TheGDevice)).right),
 		  CW (GD_BOUNDS (MR (TheGDevice)).bottom));
-       DiffRgn(corners, MR(GrayRgn), corners);
+       DiffRgn(corners, GET_GrayRgn (), corners);
        PaintRgn(corners);
-       CopyRgn (MR (GrayRgn), PORT_VIS_REGION (MR (wmgr_port)));
-       DiffRgn(MR(GrayRgn), mrgn, MR(GrayRgn));
+       CopyRgn (GET_GrayRgn (), PORT_VIS_REGION (MR (wmgr_port)));
+       DiffRgn(GET_GrayRgn (), mrgn, GET_GrayRgn ());
        PenPat(white);
        PaintRgn(mrgn);
        PenPat(black);
@@ -118,17 +118,17 @@ P0 (PUBLIC pascal trap, void, InitWindows)
        Line (CW (GD_BOUNDS (MR (TheGDevice)).right), 0);
        if ((USE_DESKCPAT_VAR & USE_DESKCPAT_BIT)
 	   && PIXMAP_PIXEL_SIZE (GD_PMAP (MR (MainDevice))) > 2)
-	 FillCRgn(MR(GrayRgn), MR(DeskCPat));
+	 FillCRgn(GET_GrayRgn (), GET_DeskCPat ());
        else
-	 FillRgn(MR(GrayRgn), DeskPattern);
+	 FillRgn(GET_GrayRgn (), DeskPattern);
        DisposeRgn(mrgn);
        DisposeRgn(corners);
-       CopyRgn (MR (GrayRgn), PORT_CLIP_REGION (MR (wmgr_port)));
-       WindowList = NULL;
+       CopyRgn (GET_GrayRgn (), PORT_CLIP_REGION (MR (wmgr_port)));
+       SET_WindowList (NULL);
        SaveUpdate = -1;
        PaintWhite = -1;
-       DeskHook = NULL;
-       GhostWindow = NULL;
+       SET_DeskHook (NULL);
+       SET_GhostWindow (NULL);
        PATASSIGN (DragPattern, gray);
      });
   
@@ -302,12 +302,12 @@ Executor may die without warning because of this mismatch", 0,
 
 P1 (PUBLIC pascal trap, void, GetWMgrPort, HIDDEN_GrafPtr *, wp)
 {
-  wp->p = WMgrPort;
+  wp->pp = WMgrPort_H.pp;
 }
 
 P1 (PUBLIC pascal trap, void, GetCWMgrPort, HIDDEN_CGrafPtr *, wp)
 {
-  wp->p = WMgrCPort;
+  wp->pp = WMgrCPort_H.pp;
 }
 
 P1(PUBLIC pascal trap, void, SetDeskCPat, PixPatHandle, ph)
@@ -316,7 +316,7 @@ P1(PUBLIC pascal trap, void, SetDeskCPat, PixPatHandle, ph)
 
   if (ph)
     {
-      DeskCPat = RM(ph);
+      SET_DeskCPat (ph);
       USE_DESKCPAT_VAR |= USE_DESKCPAT_BIT;
     }
   else
@@ -325,7 +325,7 @@ P1(PUBLIC pascal trap, void, SetDeskCPat, PixPatHandle, ph)
       PATASSIGN(DeskPattern, STARH(bw_ph));
       USE_DESKCPAT_VAR &= ~USE_DESKCPAT_BIT;
     }
-  PaintOne((WindowPeek) 0, MR(GrayRgn));
+  PaintOne((WindowPeek) 0, GET_GrayRgn ());
 }
 
 void
@@ -344,18 +344,18 @@ ROMlib_new_window_common (WindowPeek w,
     title = (StringPtr) "";	/* thank MS Word for pointing this out */
   if (!behind)
     {
-      WINDOW_NEXT_WINDOW_X (w) = CLC (0);
-      if (WindowList)
+      PACKED_ASSIGN0 (WINDOW_NEXT_WINDOW_X (w));
+      if (GET_WindowList ())
 	{
-	  for (t_w = MR (WindowList);
-	       WINDOW_NEXT_WINDOW_X (t_w);
+	  for (t_w = GET_WindowList ();
+	       WINDOW_NEXT_WINDOW_X (t_w).pp;
 	       t_w = WINDOW_NEXT_WINDOW (t_w))
 	    ;
-	  WINDOW_NEXT_WINDOW_X (t_w) = RM (w);
+	  PACKED_ASSIGN (WINDOW_NEXT_WINDOW_X (t_w), w);
 	}
       else
 	{
-	  WindowList = RM (w);
+	  SET_WindowList (w);
 	  if (visible_p)
 	    {
 	      /* notify the palette manager that the `FrontWindow ()'
@@ -366,8 +366,8 @@ ROMlib_new_window_common (WindowPeek w,
     }
   else if (behind == (WindowPtr) -1L)
     {
-      WINDOW_NEXT_WINDOW_X (w) = WindowList;
-      WindowList = (WindowPeek) RM (w);
+      WINDOW_NEXT_WINDOW_X (w).pp = WindowList_H.pp;
+      SET_WindowList (w);
       if (visible_p)
 	{
 	  /* notify the palette manager that the `FrontWindow ()' may have
@@ -377,19 +377,19 @@ ROMlib_new_window_common (WindowPeek w,
     }
   else
     {
-      WINDOW_NEXT_WINDOW_X (w) = WINDOW_NEXT_WINDOW_X (behind);
-      WINDOW_NEXT_WINDOW_X (behind) = (WindowPeek) RM (w);
+      WINDOW_NEXT_WINDOW_X (w).pp = WINDOW_NEXT_WINDOW_X (behind).pp;
+      PACKED_ASSIGN (WINDOW_NEXT_WINDOW_X (behind), w);
     }
   WINDOW_KIND_X (w) = CWC (userKind);
   WINDOW_VISIBLE_X (w) = visible_p;
-  for (t_w = MR (WindowList);
+  for (t_w = GET_WindowList ();
        t_w && !WINDOW_VISIBLE (t_w);
        t_w = WINDOW_NEXT_WINDOW (t_w))
     ;
   WINDOW_HILITED_X (w) = visible_p && (t_w == w);
   if (WINDOW_HILITED_X (w))
     {
-      CurActivate = (WindowPtr) RM (w);
+      SET_CurActivate (w);
       for (t_w = WINDOW_NEXT_WINDOW (t_w);
 	   t_w && !WINDOW_HILITED_X (t_w);
 	   t_w = WINDOW_NEXT_WINDOW (t_w))
@@ -399,15 +399,15 @@ ROMlib_new_window_common (WindowPeek w,
     t_w = 0;  /* t_w will be used later */
   WINDOW_GO_AWAY_FLAG_X (w) = go_away_flag;
   WINDOW_SPARE_FLAG_X (w) = 0;	/* will be used zoombox (wNew) */
-  WINDOW_DATA_X (w) = 0;
-  WINDOW_STRUCT_REGION_X (w) = RM (NewRgn ());
-  WINDOW_CONT_REGION_X (w) = RM (NewRgn ());
-  WINDOW_UPDATE_REGION_X (w) = RM (NewRgn ());
-  WINDOW_DEF_PROC_X (w) = RM (GetResource (TICK ("WDEF"), proc_id >> 4));
-  if (!WINDOW_DEF_PROC_X (w))
+  PACKED_ASSIGN0 (WINDOW_DATA_X (w));
+  PACKED_ASSIGN (WINDOW_STRUCT_REGION_X (w), NewRgn ());
+  PACKED_ASSIGN (WINDOW_CONT_REGION_X (w), NewRgn ());
+  PACKED_ASSIGN (WINDOW_UPDATE_REGION_X (w), NewRgn ());
+  PACKED_ASSIGN (WINDOW_DEF_PROC_X (w), GetResource (TICK ("WDEF"), proc_id >> 4));
+  if (!WINDOW_DEF_PROC_X (w).pp)
     {
-      WINDOW_DEF_PROC_X (w) = RM (GetResource (TICK ("WDEF"), 0));
-      if (!WINDOW_DEF_PROC_X (w))
+      PACKED_ASSIGN (WINDOW_DEF_PROC_X (w), GetResource (TICK ("WDEF"), 0));
+      if (!WINDOW_DEF_PROC_X (w).pp)
 	{
 	  if (allocated_p)
 	    DisposPtr ((Ptr) w);
@@ -417,20 +417,20 @@ ROMlib_new_window_common (WindowPeek w,
     }
   
   t_aux_w = (AuxWinHandle) NewHandle (sizeof (AuxWinRec));
-  HxX (t_aux_w, awNext)      = AuxWinHead;
-  HxX (t_aux_w, awOwner)     = (WindowPtr) RM (w);
-  HxX (t_aux_w, awCTable) = (CTabHandle) RM (GetResource (TICK("wctb"), 0));
-  HxX (t_aux_w, dialogCItem) = 0;
+  HxX (t_aux_w, awNext).pp    = AuxWinHead_H.pp;
+  PACKED_ASSIGN (HxX (t_aux_w, awOwner), w);
+  PACKED_ASSIGN (HxX (t_aux_w, awCTable), GetResource (TICK("wctb"), 0));
+  PACKED_ASSIGN0 (HxX (t_aux_w, dialogCItem));
   HxX (t_aux_w, awFlags)     = CL ((proc_id & 0xF) << 24);
-  HxX (t_aux_w, awReserved)  = 0;
+  PACKED_ASSIGN0 (HxX (t_aux_w, awReserved));
   HxX (t_aux_w, awRefCon)    = 0;
-  AuxWinHead = RM (t_aux_w);
+  SET_AuxWinHead (t_aux_w);
 
   {
     HIDDEN_Handle t;
 
     PtrToHand ((Ptr) title, &t, (LONGINT) title[0] + 1);
-    WINDOW_TITLE_X (w) = (StringHandle) RM (t.p);
+    PACKED_ASSIGN (WINDOW_TITLE_X (w), (StringHandle) PPR (t));
   }
 
   if (cwindow_p)
@@ -447,8 +447,8 @@ ROMlib_new_window_common (WindowPeek w,
      });
 
   TextFont (applFont);
-  WINDOW_CONTROL_LIST_X (w) = CWC (0);
-  WINDOW_PIC_X (w) = CWC (0);
+  PACKED_ASSIGN0 (WINDOW_CONTROL_LIST_X (w));
+  PACKED_ASSIGN0 (WINDOW_PIC_X (w));
   WINDOW_REF_CON_X (w) = CL (ref_con);
   WINDCALL ((WindowPtr) w, wNew, 0);
   if (WINDOW_VISIBLE_X (w))
@@ -464,7 +464,7 @@ ROMlib_new_window_common (WindowPeek w,
 	   CalcVis (w);
 	   EraseRgn (WINDOW_CONT_REGION (w));
 	   CopyRgn (WINDOW_CONT_REGION (w), WINDOW_UPDATE_REGION (w));
-	   if (WINDOW_NEXT_WINDOW_X (w))
+	   if (WINDOW_NEXT_WINDOW_X (w).pp)
 	     CalcVisBehind (WINDOW_NEXT_WINDOW (w), WINDOW_STRUCT_REGION (w));
 	 });
     }
@@ -473,7 +473,7 @@ ROMlib_new_window_common (WindowPeek w,
   if (t_w)
     {
       HiliteWindow ((WindowPtr) t_w, FALSE);
-      CurDeactive = (WindowPtr) RM (t_w);
+      SET_CurDeactive (t_w);
     }
 
   SetPort (save_port);
@@ -602,7 +602,7 @@ P3(PUBLIC pascal trap, WindowPtr, GetNewWindow, INTEGER, wid, Ptr, wst,
     wh = (windrestypehand) GetResource(TICK("WIND"), wid);
     if (!wh)
         return(0);
-    if (!(*wh).p)
+    if (!(*wh).pp)
 	LoadResource((Handle) wh);
     tp = NewWindow(wst, &(HxX(wh, _wrect)),
 	    (StringPtr) ((char *) &HxX(wh, _wrect) + 18),
@@ -632,20 +632,20 @@ P1(PUBLIC pascal trap, void, CloseWindow, WindowPtr, w)
 	if (wptmp)
 	  {
 	    HiliteWindow ((WindowPtr) wptmp, TRUE);
-	    CurActivate = (WindowPtr) RM (wptmp);
+	    SET_CurActivate (wptmp);
 	  }
       }
-    if (MR (WindowList) == (WindowPeek) w)
+    if (GET_WindowList () == (WindowPeek) w)
       {
-	WindowList = WINDOW_NEXT_WINDOW_X (w);
-	wptmp = MR(WindowList);
+	WindowList_H.pp = WINDOW_NEXT_WINDOW_X (w).pp;
+	wptmp = GET_WindowList ();
     } else {
-        for (wptmp = MR (WindowList);
+        for (wptmp = GET_WindowList ();
 	     wptmp && WINDOW_NEXT_WINDOW (wptmp) != (WindowPeek) w;
 	     wptmp = WINDOW_NEXT_WINDOW (wptmp))
 	  ;
 	if (wptmp)
-	  WINDOW_NEXT_WINDOW_X (wptmp) = WINDOW_NEXT_WINDOW_X (w);
+	  WINDOW_NEXT_WINDOW_X (wptmp).pp = WINDOW_NEXT_WINDOW_X (w).pp;
     }
     
     /* notify the palette manager this window has been deleted */
@@ -662,23 +662,23 @@ P1(PUBLIC pascal trap, void, CloseWindow, WindowPtr, w)
        odd behavior */
     savgp = thePort == (GrafPtr) w ? (GrafPtr) MR (wmgr_port) : thePort;
     SetPort (MR (wmgr_port));
-    SetClip (MR (GrayRgn));
+    SetClip (GET_GrayRgn ());
     PaintBehind (WINDOW_NEXT_WINDOW (w), WINDOW_STRUCT_REGION (w));
-    if (WINDOW_NEXT_WINDOW_X (w))
+    if (WINDOW_NEXT_WINDOW_X (w).pp)
       CalcVisBehind (WINDOW_NEXT_WINDOW (w), WINDOW_STRUCT_REGION (w));
     
     DisposeRgn (WINDOW_STRUCT_REGION (w));
     DisposeRgn (WINDOW_CONT_REGION (w));
     DisposeRgn (WINDOW_UPDATE_REGION (w));
     DisposHandle ((Handle) WINDOW_TITLE (w));
-    for (auxhp = (HIDDEN_AuxWinHandle *) &AuxWinHead;
-	 (*auxhp).p && STARH(STARH(auxhp))->awOwner != RM(w);
+    for (auxhp = &AuxWinHead_H;
+	 (*auxhp).pp && PPR(STARH(STARH(auxhp))->awOwner) != w;
 	 auxhp = (HIDDEN_AuxWinHandle *) &STARH(STARH(auxhp))->awNext)
 	;
-    if ((*auxhp).p)
+    if ((*auxhp).pp)
       {
 	saveauxh = STARH(auxhp);
-	(*auxhp).p = STARH(STARH(auxhp))->awNext;
+	(*auxhp).pp = STARH(STARH(auxhp))->awNext.pp;
 	DisposHandle((Handle) saveauxh);
       }
 
@@ -709,14 +709,14 @@ P1(PUBLIC pascal trap, void, CloseWindow, WindowPtr, w)
     KillControls(w);
 #endif /* 0 */
 
-    if (WINDOW_PIC_X (w))
+    if (WINDOW_PIC_X (w).pp)
       KillPicture (WINDOW_PIC (w));
     ClosePort ((GrafPtr) w);
     SetPort (savgp);
-    if (MR (CurActivate) == w)
-	CurActivate = 0;
-    if (MR (CurDeactive) == w)
-	CurDeactive = 0;
+    if (GET_CurActivate () == w)
+	CurActivate_H.pp = 0;
+    if (GET_CurDeactive () == w)
+	CurDeactive_H.pp = 0;
     WINDCALL((WindowPtr) w, wDispose, 0);
 }
 
