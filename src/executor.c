@@ -546,16 +546,16 @@ PUBLIC void executor_main( void )
 			   
     MCLKPCmiss2 = 0;	/* &MCLKPCmiss1 = 0x358 + 78 (MacLinkPC misses) */
     CLEAR_AuxCtlHead ();
-    CurDeactive = 0;
-    CurActivate = 0;
+    SET_CurDeactive(0);
+    SET_CurActivate(0);
     macfpstate[0] = 0;
     fondid = 0;
     PrintErr = 0;
     mouseoffset = 0;
-    heapcheck = 0;
+    SET_heapcheck(0);
     DefltStack = CLC(0x2000);	/* nobody really cares about these two */
     MinStack = CLC(0x400);		/* values ... */
-    IAZNotify = 0;
+    SET_IAZNotify(0);
     CurPitch = 0;
     JSwapFont = (ProcPtr) RM(P_FMSwapFont);
     JInitCrsr = (ProcPtr) RM(P_InitCursor);
@@ -575,7 +575,7 @@ PUBLIC void executor_main( void )
 #endif /* NEXT || SYN68K */
     UnitNtryCnt = 0;	/* how many units in the table */
 
-    TheZone = SysZone;
+    SET_TheZone(SysZone);
     VIA = RM(NewPtr(16 * 512));	/* IMIII-43 */
     memset(MR(VIA), 0, (LONGINT) 16 * 512);
     *(char *)MR(VIA) = 0x80;	/* Sound Off */

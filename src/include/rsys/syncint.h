@@ -19,8 +19,8 @@ extern boolean_t set_expect_slow_clock (boolean_t will_be_slow_p);
 #if defined (SDL)
 #define SDL_DEFINE_INIT_ONLY
 
-#include "SDL/SDL.h"
-#include "SDL/SDL_timer.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_timer.h>
 
 #undef SDL_DEFINE_INIT_ONLY
 #endif /* SDL */

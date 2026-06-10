@@ -23,33 +23,21 @@ char ROMlib_rcsid_sdlevents[] = "$Id: sdlevents.c 88 2005-05-25 03:59:37Z ctm $"
 #include "rsys/toolevent.h"
 #include "rsys/keyboard.h"
 
-#include "SDL/SDL.h"
+#include <SDL2/SDL.h>
 
 PRIVATE boolean_t use_scan_codes = FALSE;
 
 PUBLIC void
 ROMlib_set_use_scancodes (boolean_t val)
 {
-  use_scan_codes = val; 
+  use_scan_codes = val;
 }
-
-#if SDL_MAJOR_VERSION == 0 && SDL_MINOR_VERSION < 9
-
-#include "sdlk_to_mkv.h"
-
-PRIVATE void
-init_sdlk_to_mkv (void)
-{
-}
-#else
 
 enum { NOTAKEY = 0x89 };
 
-PRIVATE unsigned char sdlk_to_mkv[SDLK_LAST];
-
 typedef struct
 {
-  SDLKey sdlk;
+  SDL_Keycode sdlk;
   unsigned char mkv;
 }
 sdl_to_mkv_map_t;
@@ -79,16 +67,16 @@ PRIVATE sdl_to_mkv_map_t map[] =
   { SDLK_9, MKV_9, },
   { SDLK_SEMICOLON, MKV_SEMI, },
   { SDLK_EQUALS, MKV_EQUAL, },
-  { SDLK_KP0, MKV_NUM0, },
-  { SDLK_KP1, MKV_NUM1, },
-  { SDLK_KP2, MKV_NUM2, },
-  { SDLK_KP3, MKV_NUM3, },
-  { SDLK_KP4, MKV_NUM4, },
-  { SDLK_KP5, MKV_NUM5, },
-  { SDLK_KP6, MKV_NUM6, },
-  { SDLK_KP7, MKV_NUM7, },
-  { SDLK_KP8, MKV_NUM8, },
-  { SDLK_KP9, MKV_NUM9, },
+  { SDLK_KP_0, MKV_NUM0, },
+  { SDLK_KP_1, MKV_NUM1, },
+  { SDLK_KP_2, MKV_NUM2, },
+  { SDLK_KP_3, MKV_NUM3, },
+  { SDLK_KP_4, MKV_NUM4, },
+  { SDLK_KP_5, MKV_NUM5, },
+  { SDLK_KP_6, MKV_NUM6, },
+  { SDLK_KP_7, MKV_NUM7, },
+  { SDLK_KP_8, MKV_NUM8, },
+  { SDLK_KP_9, MKV_NUM9, },
   { SDLK_KP_PERIOD, MKV_NUMPOINT, },
   { SDLK_KP_DIVIDE, MKV_NUMDIVIDE, },
   { SDLK_KP_MULTIPLY, MKV_NUMMULTIPLY, },
@@ -142,7 +130,7 @@ PRIVATE sdl_to_mkv_map_t map[] =
   { SDLK_F14, MKV_F14, },
   { SDLK_F15, MKV_F15, },
   { SDLK_PAUSE, MKV_PAUSE, },
-  { SDLK_NUMLOCK, MKV_NUMCLEAR, },
+  { SDLK_NUMLOCKCLEAR, MKV_NUMCLEAR, },
   { SDLK_UP, MKV_UPARROW, },
   { SDLK_DOWN, MKV_DOWNARROW, },
   { SDLK_RIGHT, MKV_RIGHTARROW, },
@@ -153,48 +141,31 @@ PRIVATE sdl_to_mkv_map_t map[] =
   { SDLK_PAGEUP, MKV_PAGEUP, },
   { SDLK_PAGEDOWN, MKV_PAGEDOWN, },
   { SDLK_CAPSLOCK, MKV_CAPS, },
-  { SDLK_SCROLLOCK, MKV_SCROLL_LOCK, },
+  { SDLK_SCROLLLOCK, MKV_SCROLL_LOCK, },
   { SDLK_RSHIFT, MKV_RIGHTSHIFT, },
   { SDLK_LSHIFT, MKV_LEFTSHIFT, },
   { SDLK_RCTRL, MKV_RIGHTCNTL, },
   { SDLK_LCTRL, MKV_LEFTCNTL, },
   { SDLK_RALT, MKV_RIGHTOPTION, },
   { SDLK_LALT, MKV_CLOVER, },
-  { SDLK_RMETA, MKV_RIGHTOPTION, },
-  { SDLK_LMETA, MKV_CLOVER, },
+  { SDLK_RGUI, MKV_RIGHTOPTION, },
+  { SDLK_LGUI, MKV_CLOVER, },
   { SDLK_HELP, MKV_HELP, },
-  { SDLK_PRINT, MKV_PRINT_SCREEN, },
+  { SDLK_PRINTSCREEN, MKV_PRINT_SCREEN, },
   { SDLK_SYSREQ, NOTAKEY, },
   { SDLK_MENU, NOTAKEY, },
-  { SDLK_BREAK, NOTAKEY, },
 };
 
-PRIVATE void
-init_sdlk_to_mkv (void)
+/* Linear scan through map[] - SDL2 keycodes can exceed array bounds */
+PRIVATE unsigned char
+sdlk_to_mac_virt (SDL_Keycode sym)
 {
-  static boolean_t been_here = FALSE;
-
-  if (!been_here)
-    {
-      unsigned int i;
-
-      for (i = 0; i < NELEM (sdlk_to_mkv); ++i)
-	sdlk_to_mkv[i] = NOTAKEY;
-
-      for (i = 0; i < NELEM (map); ++i)
-	{
-	  SDLKey sdlk;
-	  unsigned char mkv;
-
-	  sdlk = map[i].sdlk;
-	  mkv  = map[i].mkv;
-	  sdlk_to_mkv[sdlk] = mkv;
-	}
-      been_here = TRUE;
-    }
+  unsigned int i;
+  for (i = 0; i < NELEM(map); i++)
+    if (map[i].sdlk == sym)
+      return map[i].mkv;
+  return NOTAKEY;
 }
-
-#endif
 
 #include "sdlevents.h"
 #include "sdlscrap.h"
@@ -235,7 +206,7 @@ static int modifier_p(unsigned char virt, uint16 *modstore)
     }
   return 1;
 }
- 
+
 syn68k_addr_t
 handle_sdl_mouse(syn68k_addr_t interrupt_addr, void *unused)
 {
@@ -253,21 +224,18 @@ handle_sdl_events(syn68k_addr_t interrupt_addr, void *unused)
     {
       switch (event.type)
 	{
-	case SDL_ACTIVEEVENT:
+	case SDL_WINDOWEVENT:
           {
-            if ( event.active.state & SDL_APPINPUTFOCUS )
+            if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
+              sendsuspendevent();
+            else if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
               {
-                if ( !event.active.gain )
-		  sendsuspendevent ();
-		else
+                if (!we_lost_clipboard())
+                  sendresumeevent(FALSE);
+                else
                   {
-                    if ( !we_lost_clipboard () )
-		      sendresumeevent (FALSE);
-		    else
-                      {
-                        ZeroScrap ();
-			sendresumeevent (TRUE);
-                      }
+                    ZeroScrap();
+                    sendresumeevent(TRUE);
                   }
               }
           }
@@ -336,13 +304,12 @@ key_down_or_key_up:
 	    int32 when;
 	    Point where;
 
-	    init_sdlk_to_mkv ();
 	    down_p = (event.key.state == SDL_PRESSED);
 
 	    if (use_scan_codes)
 	      mkvkey = ibm_virt_to_mac_virt[event.key.keysym.scancode];
 	    else
-	      mkvkey = sdlk_to_mkv[event.key.keysym.sym];
+	      mkvkey = sdlk_to_mac_virt(event.key.keysym.sym);
 	    mkvkey = ROMlib_right_to_left_key_map (mkvkey);
 	    if ( modifier_p(mkvkey, &mod) )
 	      {
@@ -374,8 +341,8 @@ key_down_or_key_up:
 }
 
 
-/* This function runs in a separate thread (usually) */
-int sdl_event_interrupt(const SDL_Event *event)
+/* Event filter - called from SDL's event thread */
+int sdl_event_interrupt(void *userdata, SDL_Event *event)
 {
   if ( event->type == SDL_MOUSEMOTION )
     {
@@ -414,7 +381,6 @@ void sdl_events_init(void)
   ROMlib_shouldbeawake_cond = SDL_CreateCond ();
   ROMlib_shouldbeawake_mutex = SDL_CreateMutex ();
 
-
   /* hook into syn68k synchronous interrupts */
   mouse_callback = callback_install (handle_sdl_mouse, NULL);
   *(syn68k_addr_t *) SYN68K_TO_US(M68K_MOUSE_MOVED_VECTOR * 4) = CL (mouse_callback);
@@ -422,6 +388,6 @@ void sdl_events_init(void)
   *(syn68k_addr_t *) SYN68K_TO_US(M68K_EVENT_VECTOR * 4) = CL (event_callback);
 
   /* then set up a filter that triggers the event interrupt */
-  SDL_SetEventFilter(sdl_event_interrupt);
+  SDL_SetEventFilter(sdl_event_interrupt, NULL);
   SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
 }

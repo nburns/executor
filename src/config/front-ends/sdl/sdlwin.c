@@ -14,18 +14,16 @@ char ROMlib_rcsid_sdlwin[] = "$Id: sdlwin.c 63 2004-12-24 18:19:43Z ctm $";
 #include "win_screen.h"
 #endif
 
-#include "SDL/SDL.h"
+#include <SDL2/SDL.h>
 
 #include "sdlevents.h"
 #include "syswm_map.h"
 
-#if defined (linux) && !defined (powerpc) && !defined (__ppc__)
-#define USE_SDL_EVENT_THREAD
-#include "sdlX.h"
-#endif
-
-/* This is our video display */
-static SDL_Surface *screen;
+/* SDL2 video objects */
+static SDL_Window   *window;
+static SDL_Renderer *renderer;
+static SDL_Texture  *texture;   /* 32bpp streaming texture for display */
+static SDL_Surface  *screen;    /* 8bpp software surface - our framebuffer */
 
 /* These variables are required by the vdriver interface. */
 uint8 *vdriver_fbuf;
@@ -35,9 +33,6 @@ int vdriver_height = 0;
 int vdriver_bpp = 8, vdriver_log2_bpp;
 int vdriver_max_bpp, vdriver_log2_max_bpp;
 vdriver_modes_t *vdriver_mode_list;
-
-/* Currently a private colormap is the default */
-static int video_flags = (SDL_SWSURFACE|SDL_HWPALETTE);
 
 /* The modes structure is just checked for error messages, fake it here */
 static vdriver_modes_t sdl_impotent_modes = { 0, 0 };
@@ -53,144 +48,113 @@ vdriver_opt_register (void)
 PUBLIC boolean_t ROMlib_fullscreen_p = FALSE;
 PUBLIC boolean_t ROMlib_hwsurface_p = FALSE;
 
+SDL_Window *
+sdl_get_window (void)
+{
+  return window;
+}
+
 boolean_t
 vdriver_init (int _max_width, int _max_height, int _max_bpp,
 	      boolean_t fixed_p, int *argc, char *argv[])
 {
-  int flags;
-
-  flags = SDL_INIT_VIDEO;
-#if defined (USE_SDL_EVENT_THREAD)
-  ROMlib_XInitThreads ();
-  flags |= SDL_INIT_EVENTTHREAD;
-#endif
-
-  if ( SDL_Init(flags) < 0 )
-    return(FALSE);
+  if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    return FALSE;
   sdl_events_init();
 
-#if 0
-  {
-    SDL_PixelFormat format;
-
-    /* Find out our "best" pixel depth */
-    SDL_GetDisplayFormat(&format);
-    vdriver_max_bpp = format.BitsPerPixel;
-  }
-#else
   vdriver_max_bpp = 8;
-#endif
   vdriver_log2_max_bpp = ROMlib_log2[vdriver_max_bpp];
   vdriver_mode_list = &sdl_impotent_modes;
 
-  /* Try for fullscreen on platforms that support it */
-  if ( getenv("SDL_FULLSCREEN") != NULL || ROMlib_fullscreen_p )
-    video_flags |= SDL_FULLSCREEN;
-
-  /* Allow unsafe fullscreen video memory access */
-  if ( getenv("SDL_HWSURFACE") != NULL || ROMlib_hwsurface_p )
-    video_flags |= SDL_HWSURFACE;
-
-  /* Clean up on exit */
   atexit(vdriver_shutdown);
-  return(TRUE);
+  return TRUE;
 }
 
 boolean_t
 vdriver_acceptable_mode_p (int width, int height, int bpp,
 			   boolean_t grayscale_p, boolean_t exact_match_p)
 {
-  boolean_t retval;
+  if (!width)  width  = vdriver_width;
+  if (!height) height = vdriver_height;
+  if (!bpp)    bpp    = vdriver_bpp;
 
-  if (!width)
-    width = vdriver_width;
-
-  if (!height)
-    height = vdriver_height;
-
-  if (!bpp)
-    bpp = vdriver_bpp;
-
-  if ( ! SDL_VideoModeOK(width, height, bpp, video_flags) )
-    retval = FALSE;
-  else if ( grayscale_p != vdriver_grayscale_p )
-    retval = FALSE;
-  else
-    retval = bpp <= 8;
-
-  return retval;
+  if (grayscale_p != vdriver_grayscale_p)
+    return FALSE;
+  return bpp <= 8;
 }
 
 boolean_t
 vdriver_set_mode (int width, int height, int bpp, boolean_t grayscale_p)
 {
-  /* Massage the width and height parameters */
-  if ( width == 0 )
-    {
-      width = vdriver_width;
-      if (width == 0)
-	{
-	  width = VDRIVER_DEFAULT_SCREEN_WIDTH;
-#if 1
-#warning "TODO: fixme so we can use fullscreen in Mac OS X"
-#else
-	  if (ROMlib_fullscreen_p)
-	    width = MAX (width, os_current_screen_width ());
-#endif
-	}
+  Uint32 window_flags;
+
+  if (!width) {
+    width = vdriver_width;
+    if (!width)
+      width = VDRIVER_DEFAULT_SCREEN_WIDTH;
+  }
+
+  if (!height) {
+    height = vdriver_height;
+    if (!height)
+      height = VDRIVER_DEFAULT_SCREEN_HEIGHT;
+  }
+
+  if (!bpp) bpp = vdriver_bpp;
+
+  if (!vdriver_acceptable_mode_p(width, height, bpp, grayscale_p, FALSE))
+    return FALSE;
+
+  window_flags = SDL_WINDOW_SHOWN;
+  if (getenv("SDL_FULLSCREEN") != NULL || ROMlib_fullscreen_p)
+    window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+
+  /* Free existing surface and texture before resizing */
+  if (screen)  { SDL_FreeSurface(screen);     screen  = NULL; }
+  if (texture) { SDL_DestroyTexture(texture); texture = NULL; }
+
+  if (!window) {
+    window = SDL_CreateWindow("Executor",
+                              SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              width, height, window_flags);
+    if (!window) return FALSE;
+
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer)
+      renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    if (!renderer) {
+      SDL_DestroyWindow(window);
+      window = NULL;
+      return FALSE;
     }
+  } else {
+    SDL_SetWindowSize(window, width, height);
+  }
 
-  if ( height == 0 )
-    {
-      height = vdriver_height;
-      if (height == 0)
-	{
-	  height = VDRIVER_DEFAULT_SCREEN_HEIGHT;
-#if 1
-#warning "TODO: fixme so we can use fullscreen in Mac OS X"
-#else
-	  if (ROMlib_fullscreen_p)
-	    height = MAX (height, os_current_screen_height ());
-#endif
-	}
-    }
+  /* 8bpp software surface - pixels written here by the emulator */
+  screen = SDL_CreateRGBSurface(0, width, height, 8, 0, 0, 0, 0);
+  if (!screen) return FALSE;
 
-  if ( bpp == 0 )
-    bpp = vdriver_bpp;
+  /* 32bpp streaming texture for GPU-accelerated display */
+  texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
+                              SDL_TEXTUREACCESS_STREAMING, width, height);
+  if (!texture) {
+    SDL_FreeSurface(screen);
+    screen = NULL;
+    return FALSE;
+  }
 
-  if ( ! vdriver_acceptable_mode_p(width, height, bpp, grayscale_p, FALSE) )
-    return(FALSE);
-
-  /* Set the video mode */
-  screen = SDL_SetVideoMode(width, height, bpp, video_flags);
-  if ( screen == NULL )
-    return(FALSE);
-
-  /* Fill the vdriver globals */
-  vdriver_width = screen->w;
-  vdriver_height = screen->h;
-  vdriver_bpp = screen->format->BitsPerPixel;
-  vdriver_log2_bpp = ROMlib_log2[vdriver_bpp];
+  vdriver_width     = width;
+  vdriver_height    = height;
+  vdriver_bpp       = 8;
+  vdriver_log2_bpp  = ROMlib_log2[8];
   vdriver_row_bytes = screen->pitch;
-  if ( SDL_MUSTLOCK(screen) )
-    {
-      /* WARNING!  This results in surface memory that is unsafe to access! */
-      if ( SDL_LockSurface(screen) < 0 )
-        return(FALSE);
-      vdriver_fbuf = (uint8 *)screen->pixels;
-      SDL_UnlockSurface(screen);
-      fprintf(stderr, "Warning: Executor performing unsafe video access\n");
-    }
-  else
-      vdriver_fbuf = (uint8 *)screen->pixels;
+  vdriver_fbuf      = (uint8 *)screen->pixels;
 
   sdl_syswm_init();
 
-#if defined(CYGWIN32)
-  ROMlib_recenter_window ();
-#endif
-
-  return(TRUE);
+  return TRUE;
 }
 
 void
@@ -199,14 +163,18 @@ vdriver_set_colors (int first_color, int num_colors, const ColorSpec *colors)
   int i;
   SDL_Color *sdl_cmap;
 
-  sdl_cmap = (SDL_Color *)alloca(num_colors*sizeof(SDL_Color));
-  for ( i=0; i<num_colors; ++i )
-    {
-      sdl_cmap[i].r = (CW (colors[i].rgb.red)   >> 8);
-      sdl_cmap[i].g = (CW (colors[i].rgb.green) >> 8);
-      sdl_cmap[i].b = (CW (colors[i].rgb.blue ) >> 8);
-    }
-  SDL_SetColors(screen, sdl_cmap, first_color, num_colors);
+  sdl_cmap = (SDL_Color *)alloca(num_colors * sizeof(SDL_Color));
+  for (i = 0; i < num_colors; ++i) {
+    sdl_cmap[i].r = (CW(colors[i].rgb.red)   >> 8);
+    sdl_cmap[i].g = (CW(colors[i].rgb.green) >> 8);
+    sdl_cmap[i].b = (CW(colors[i].rgb.blue)  >> 8);
+    sdl_cmap[i].a = 255;
+  }
+  if (screen && screen->format && screen->format->palette)
+    SDL_SetPaletteColors(screen->format->palette, sdl_cmap,
+                         first_color, num_colors);
+  /* Palette change requires a full screen redraw */
+  vdriver_update_screen(0, 0, vdriver_height, vdriver_width, FALSE);
 }
 
 void
@@ -215,48 +183,55 @@ vdriver_get_colors (int first_color, int num_colors, ColorSpec *colors)
   gui_fatal ("`!vdriver_fixed_clut_p' and `vdriver_get_colors ()' called");
 }
 
+/* Convert 8bpp indexed surface to 32bpp and upload/render to window */
+static void
+upload_and_render (int top, int left, int bottom, int right)
+{
+  SDL_Surface *conv;
+
+  if (!screen || !texture || !renderer)
+    return;
+
+  conv = SDL_ConvertSurfaceFormat(screen, SDL_PIXELFORMAT_ARGB8888, 0);
+  if (!conv)
+    return;
+
+  if (right > left && bottom > top) {
+    SDL_Rect rect;
+    uint8_t *src;
+
+    rect.x = left;  rect.y = top;
+    rect.w = right - left;  rect.h = bottom - top;
+    src = (uint8_t *)conv->pixels + top * conv->pitch + left * 4;
+    SDL_UpdateTexture(texture, &rect, src, conv->pitch);
+  }
+  SDL_FreeSurface(conv);
+
+  SDL_RenderClear(renderer);
+  SDL_RenderCopy(renderer, texture, NULL, NULL);
+  SDL_RenderPresent(renderer);
+}
+
 int
 vdriver_update_screen_rects (int num_rects, const vdriver_rect_t *r,
-                                                      boolean_t cursor_p)
+                             boolean_t cursor_p)
 {
-  SDL_Rect *rects;
-  int       i;
-
-  rects = (SDL_Rect *)alloca(num_rects*sizeof(SDL_Rect));
-  for ( i = 0; i < num_rects; ++i )
-    {
-      rects[i].x = r[i].left;
-      rects[i].w = r[i].right-r[i].left;
-      rects[i].y = r[i].top;
-      rects[i].h = r[i].bottom-r[i].top;
-    }
-  SDL_UpdateRects(screen, num_rects, rects);
-  return(0);
+  /* Upload the full screen once even if multiple rects requested */
+  upload_and_render(0, 0, vdriver_height, vdriver_width);
+  return 0;
 }
 
 int
 vdriver_update_screen (int top, int left, int bottom, int right,
 		       boolean_t cursor_p)
 {
-  SDL_Rect rect;
-  
-  if (top < 0)
-    top = 0;
-  if (left < 0)
-    left = 0;
-  
-  if (bottom > vdriver_height)
-    bottom = vdriver_height;
-  if (right > vdriver_width)
-    right = vdriver_width;
-  
-  rect.x = left;
-  rect.w = right-left;
-  rect.y = top;
-  rect.h = bottom-top;
-  SDL_UpdateRects(screen, 1, &rect);
+  if (top    < 0)              top    = 0;
+  if (left   < 0)              left   = 0;
+  if (bottom > vdriver_height) bottom = vdriver_height;
+  if (right  > vdriver_width)  right  = vdriver_width;
 
-  return(0);
+  upload_and_render(top, left, bottom, right);
+  return 0;
 }
 
 void
@@ -286,7 +261,7 @@ host_flush_shadow_screen (void)
   if (vdriver_shadow_fbuf == NULL)
     {
       vdriver_shadow_fbuf = malloc(vdriver_row_bytes * vdriver_height);
-      memcpy (vdriver_shadow_fbuf, vdriver_fbuf, 
+      memcpy (vdriver_shadow_fbuf, vdriver_fbuf,
                                  vdriver_row_bytes * vdriver_height);
       vdriver_update_screen (0, 0, vdriver_height, vdriver_width, FALSE);
     }

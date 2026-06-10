@@ -5,8 +5,8 @@
    recursive self-inclusion on case-insensitive filesystems. */
 #define SDL
 
-#include <SDL.h>
-#include <SDL_thread.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_thread.h>
 
 /* We need this for the syn68k_addr_t definition */
 #include <syn68k_public.h>

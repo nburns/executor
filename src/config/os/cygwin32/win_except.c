@@ -20,7 +20,7 @@ char ROMlib_rcsid_win_except[] = "$Id: win_except.c 63 2004-12-24 18:19:43Z ctm 
 #include <signal.h>
 
 #if defined (SDL)
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
 #include "rsys/segment.h"
 #include "rsys/launch.h"
 #endif

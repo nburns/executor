@@ -310,7 +310,7 @@ P1(PUBLIC pascal, void, SysError, short, errorcode)
     /* 4. Allocate and re-initialize QuickDraw */
 #if defined (BINCOMPAT)
     a5 = (LONGINT) (long) US_TO_SYN68K (&tmpa5);
-    CurrentA5 = (Ptr) (long) CL(a5);
+    SET_CurrentA5((Ptr) (long) CL(a5));
 #endif /* BINCOMPAT */
     InitGraf((Ptr) quickbytes + sizeof(quickbytes) - 4);
     ROMlib_initport(&alertport);

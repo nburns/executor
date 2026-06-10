@@ -67,6 +67,10 @@ extern Byte 	SysResName[20];
 # define GET_SysMapHndl()     ((Handle) PPR(SysMapHndl_H))
 # define SET_SysMapHndl(v)    (SysMapHndl_H.pp = RPP(v))
 # define GET_ResErrProc()     ((ProcPtr) PPR(ResErrProc_H))
+# define SET_ResErrProc(v)    (ResErrProc_H.pp = RPP(v))
+# define TopMapHndl            GET_TopMapHndl()
+# define SysMapHndl            GET_SysMapHndl()
+# define ResErrProc            GET_ResErrProc()
 #endif
 
 extern BOOLEAN ROMlib_InstallxDEF( ProcPtr thedef, ResType typ, 

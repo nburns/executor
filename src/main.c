@@ -1837,19 +1837,19 @@ A2 (PUBLIC, int, main, int, argc, char **, argv)
   memset (&VCBQHdr,    0, sizeof (VCBQHdr));
   memset (&FSQHdr,     0, sizeof (FSQHdr));
   TESysJust   = 0;
-  SysZone     = saveSysZone;
-  ApplZone    = saveApplZone;
-  ApplLimit   = saveApplLimit;
+  SET_SysZone(saveSysZone);
+  SET_ApplZone(saveApplZone);
+  SET_ApplLimit(saveApplLimit);
   BootDrive   = 0;
-  DefVCBPtr   = 0;
+  SET_DefVCBPtr(0);
   CurMap      = 0;
-  TopMapHndl  = 0;
+  SET_TopMapHndl(0);
   DSAlertTab  = 0;
-  ResumeProc  = 0;
+  SET_ResumeProc(0);
   SFSaveDisk  = 0;
-  GZRootHnd   = 0;
+  SET_GZRootHnd(0);
   ANumber     = 0;
-  ResErrProc  = 0;
+  SET_ResErrProc(0);
   FractEnable = 0;
   SEvtEnb     = 0;
   MenuList    = 0;
@@ -1859,8 +1859,8 @@ A2 (PUBLIC, int, main, int, argc, char **, argv)
   MBarHook    = 0;
   MenuHook    = 0;
   MenuCInfo   = NULL;
-  HeapEnd     = 0;
-  ApplLimit   = 0;
+  SET_HeapEnd(0);
+  SET_ApplLimit(0);
   SoundActive = soundactiveoff;
   PortBUse    = 2;			/* configured for Serial driver */
   memset (KeyMap, 0, sizeof_KeyMap);
@@ -1890,9 +1890,9 @@ A2 (PUBLIC, int, main, int, argc, char **, argv)
 
   OneOne     = CLC (0x00010001);
   Lo3Bytes   = CLC (0xFFFFFF);
-  DragHook   = 0;
-  TopMapHndl = 0;
-  SysMapHndl = 0;
+  SET_DragHook(0);
+  SET_TopMapHndl(0);
+  SET_SysMapHndl(0);
   MBDFHndl   = 0;
   MenuList   = 0;
   MBSaveLoc  = 0;
@@ -1934,12 +1934,12 @@ A2 (PUBLIC, int, main, int, argc, char **, argv)
   ROMlib_checkadb ();
 #endif /* NEXT */
 
-  TheZone = SysZone;
+  SET_TheZone(SysZone);
   UTableBase =
     (DCtlHandlePtr) (long) RM (NewPtr (sizeof (UTableBase[0].p) * NDEVICES));
   memset (MR (UTableBase), 0, sizeof (UTableBase[0].p) * NDEVICES);
   UnitNtryCnt = CW (NDEVICES);
-  TheZone = ApplZone;
+  SET_TheZone(ApplZone);
 
   if (graphics_p)
     {

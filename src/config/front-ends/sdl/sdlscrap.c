@@ -14,7 +14,7 @@ char ROMlib_rcsid_sdlscrap[] = "$Id: sdlscrap.c 88 2005-05-25 03:59:37Z ctm $";
 #include <stdio.h>
 #include <limits.h>
 
-#include "syswm_vars.h"
+#include "syswm_vars.h"  /* includes SDL.h */
 #include "sdl_mem.h"
 
 #define USE_WINDOWS_NOT_MAC_TYPEDEFS_AND_DEFINES
@@ -428,11 +428,11 @@ we_lost_clipboard(void)
 {
 #if defined(X11_SCRAP)
 /* * */
-	return ( XGetSelectionOwner(SDL_Display, XA_PRIMARY) != SDL_Window );
+	return ( XGetSelectionOwner(SDL_Display, XA_PRIMARY) != sdl_x11_window );
 
 #elif defined(WIN_SCRAP)
 /* * */
-	return ( GetClipboardOwner() != SDL_Window );
+	return ( GetClipboardOwner() != sdl_win32_hwnd );
 
 #endif /* scrap type */
 }
@@ -457,7 +457,7 @@ put_scrap(int type, int srclen, char *src)
 		      XA_CUT_BUFFER0, format, 8, PropModeReplace,
 		      (unsigned char *) dst, dstlen);
       if ( we_lost_clipboard() )
-        XSetSelectionOwner(SDL_Display, XA_PRIMARY, SDL_Window, CurrentTime);
+        XSetSelectionOwner(SDL_Display, XA_PRIMARY, sdl_x11_window, CurrentTime);
     }
 
 #elif defined(WIN_SCRAP)
@@ -643,21 +643,57 @@ void PutScrapX(LONGINT type, LONGINT length, char *p, int scrap_count)
 #endif
 
 #if defined (MACOSX)
-#warning "Need to support clipboard"
 
 PUBLIC boolean_t
 we_lost_clipboard(void)
 {
-  return false; /* TODO */
+  return FALSE;  /* SDL2 does not expose clipboard ownership queries */
 }
 
 LONGINT GetScrapX(LONGINT type, char **h)
 {
-  return -1;  /* TODO */
+  char *text;
+  LONGINT len;
+  char *mem;
+  LONGINT i;
+
+  if (type != T('T', 'E', 'X', 'T'))
+    return -1;
+  if (!SDL_HasClipboardText())
+    return -1;
+  text = SDL_GetClipboardText();
+  if (!text)
+    return -1;
+  len = strlen(text);
+  if (len == 0) {
+    SDL_free(text);
+    return -1;
+  }
+  mem = sdl_ReallocHandle(h, len);
+  if (!mem) {
+    SDL_free(text);
+    return -1;
+  }
+  /* Convert Unix \n back to Mac \r */
+  for (i = 0; i < len; i++)
+    mem[i] = (text[i] == '\n') ? '\r' : text[i];
+  SDL_free(text);
+  return len;
 }
+
 void PutScrapX(LONGINT type, LONGINT length, char *p, int scrap_count)
 {
-  /* TODO */
+  char *buf;
+  LONGINT i;
+
+  if (type != T('T', 'E', 'X', 'T'))
+    return;
+  /* Convert Mac \r to Unix \n */
+  buf = (char *)alloca(length + 1);
+  for (i = 0; i < length; i++)
+    buf[i] = (p[i] == '\r') ? '\n' : p[i];
+  buf[length] = '\0';
+  SDL_SetClipboardText(buf);
 }
 
 #endif

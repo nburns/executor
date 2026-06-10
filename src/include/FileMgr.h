@@ -443,6 +443,9 @@ extern INTEGER 	FSFCBLen;
 # define SET_DefVCBPtr(v) (DefVCBPtr_H.pp = RPP(v))
 # define GET_WDCBsPtr()   ((Ptr) PPR(WDCBsPtr_H))
 # define SET_WDCBsPtr(v)  (WDCBsPtr_H.pp = RPP(v))
+# define FCBSPtr           GET_FCBSPtr()
+# define DefVCBPtr         GET_DefVCBPtr()
+# define WDCBsPtr          GET_WDCBsPtr()
 #endif
 
 extern OSErr FSOpen( StringPtr filen, INTEGER vrn, INTEGER *rn ); 

@@ -303,20 +303,15 @@ sound_sdl_init (sound_driver_t *s)
   if (sdl_audio_driver_name)
     {
       char *sanity_check_name;
-      int sanity_len;
       boolean_t success;
 
-      /* we add 3 below due to ambiguity in the documentation for
-	 SDL_AudioDriverName.  It doesn't hurt to add 3 here. */
-
-      sanity_len = strlen (sdl_audio_driver_name) + 3;
-      sanity_check_name = alloca (sanity_len);
-      SDL_AudioDriverName (sanity_check_name, sanity_len);
-      success = strcmp (sdl_audio_driver_name, sanity_check_name) == 0;
+      sanity_check_name = (char *)SDL_GetCurrentAudioDriver ();
+      success = sanity_check_name &&
+                strcmp (sdl_audio_driver_name, sanity_check_name) == 0;
       if (!success)
 	{
 	  fprintf (stderr, "Wanted '%s', got '%s'", sdl_audio_driver_name,
-		   sanity_check_name);
+		   sanity_check_name ? sanity_check_name : "(none)");
 	  return FALSE;
 	}
     }

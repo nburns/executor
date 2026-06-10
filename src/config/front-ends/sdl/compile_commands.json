@@ -1,0 +1,27 @@
+[
+  {
+    "directory": "/Users/nick/code/executor/src/config/front-ends/sdl",
+    "command": "clang -x c -std=gnu11 -DMACOSX -DSDL -D_THREAD_SAFE -DOMIT_RCSID_STRINGS -I/opt/homebrew/include -I/Users/nick/code/executor/src -I/Users/nick/code/executor/src/include -I/Users/nick/code/executor/build -I/Users/nick/code/executor/syn68k/include -iquote /Users/nick/code/executor/src/config/front-ends/sdl sdlwin.c",
+    "file": "sdlwin.c"
+  },
+  {
+    "directory": "/Users/nick/code/executor/src/config/front-ends/sdl",
+    "command": "clang -x c -std=gnu11 -DMACOSX -DSDL -D_THREAD_SAFE -DOMIT_RCSID_STRINGS -I/opt/homebrew/include -I/Users/nick/code/executor/src -I/Users/nick/code/executor/src/include -I/Users/nick/code/executor/build -I/Users/nick/code/executor/syn68k/include -iquote /Users/nick/code/executor/src/config/front-ends/sdl sdlevents.c",
+    "file": "sdlevents.c"
+  },
+  {
+    "directory": "/Users/nick/code/executor/src/config/front-ends/sdl",
+    "command": "clang -x c -std=gnu11 -DMACOSX -DSDL -D_THREAD_SAFE -DOMIT_RCSID_STRINGS -I/opt/homebrew/include -I/Users/nick/code/executor/src -I/Users/nick/code/executor/src/include -I/Users/nick/code/executor/build -I/Users/nick/code/executor/syn68k/include -iquote /Users/nick/code/executor/src/config/front-ends/sdl sdlwm.c",
+    "file": "sdlwm.c"
+  },
+  {
+    "directory": "/Users/nick/code/executor/src/config/front-ends/sdl",
+    "command": "clang -x c -std=gnu11 -DMACOSX -DSDL -D_THREAD_SAFE -DOMIT_RCSID_STRINGS -I/opt/homebrew/include -I/Users/nick/code/executor/src -I/Users/nick/code/executor/src/include -I/Users/nick/code/executor/build -I/Users/nick/code/executor/syn68k/include -iquote /Users/nick/code/executor/src/config/front-ends/sdl sdlscrap.c",
+    "file": "sdlscrap.c"
+  },
+  {
+    "directory": "/Users/nick/code/executor/src/config/front-ends/sdl",
+    "command": "clang -x c -std=gnu11 -DMACOSX -DSDL -D_THREAD_SAFE -DOMIT_RCSID_STRINGS -I/opt/homebrew/include -I/Users/nick/code/executor/src -I/Users/nick/code/executor/src/include -I/Users/nick/code/executor/build -I/Users/nick/code/executor/syn68k/include -iquote /Users/nick/code/executor/src/config/front-ends/sdl syswm_map.c",
+    "file": "syswm_map.c"
+  }
+]

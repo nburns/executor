@@ -47,7 +47,7 @@ mman_heap_death (const char *func, const char *where)
        * may crash or try to recurse here.  But at least we got the
        * warning_unexpected out.
        */
-      TheZone = SysZone;
+      SET_TheZone(SysZone);
       system_error (err_msg, 0, "Exit", NULL, NULL, NULL, NULL, NULL);
     }
 

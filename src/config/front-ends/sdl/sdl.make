@@ -1,4 +1,6 @@
-INCLUDES += -I/usr/include/SDL
+# Use parent include dir so headers are accessed as <SDL2/SDL.h>,
+# avoiding name collision with executor's local sdl.h on case-insensitive FS
+INCLUDES += $(shell sdl2-config --cflags | sed 's|-I\([^ ]*\)/SDL2|-I\1|g')
 
 SDL_SRC = sdlwin.c sdlevents.c sdlwm.c sdlscrap.c sdlquit.c \
           syswm_map.c sdl_mem.c SDL_bmp.c
@@ -23,14 +25,8 @@ ifneq (,$(SDL_LIB_DIR))
   FRONT_END_LIBS += -L$(SDL_LIB_DIR)
 endif
 
-# I'm not sure when the need for -lSDLmain went away, but it's not needed
-# with the version of SDL on Fedora 9 (SDL 1.2.13)
+FRONT_END_LIBS += $(shell sdl2-config --libs)
 
-# FRONT_END_LIBS += -lSDLmain -lSDL
-ifeq (,$(findstring macosx,$(HOST)))
-  FRONT_END_LIBS += -lSDL
-endif
-#
 ifneq (,$(findstring linux,$(HOST)))
   FRONT_END_LIBS += -ldl -L/usr/X11R6/lib -lX11 -lpthread
   INCLUDES += -I/usr/X11R6/include
@@ -38,7 +34,7 @@ ifneq (,$(findstring linux,$(HOST)))
 endif
 
 ifneq (,$(findstring macosx,$(HOST)))
-  FRONT_END_LIBS += -framework SDL -framework Cocoa
+  FRONT_END_LIBS += -framework Cocoa
   CFLAGS += -D_REENTRANT
 endif
 

@@ -17,7 +17,7 @@ char ROMlib_rcsid_win_clip[] = "$Id: win_clip_text_forced.c 63 2004-12-24 18:19:
 #include <rsys/scrap.h>
 #include <rsys/error.h>
 
-#include "SDL/SDL.h"
+#include <SDL2/SDL.h>
 #include "SDL_bmp.h"
 #include "SDL_syswm.h"
 

@@ -7,7 +7,9 @@ char ROMlib_rcsid_sdlwm[] = "$Id: sdlwm.c 88 2005-05-25 03:59:37Z ctm $";
 #endif
 
 #include <stdio.h>
-#include "SDL/SDL.h"
+#include <SDL2/SDL.h>
+
+extern SDL_Window *sdl_get_window(void);
 
 /* Globals */
 int host_cursor_depth = 1;
@@ -17,16 +19,16 @@ int host_cursor_depth = 1;
 void
 ROMlib_SetTitle (char *title)
 {
-  SDL_WM_SetCaption(title, "executor");
+  SDL_Window *w = sdl_get_window();
+  if (w)
+    SDL_SetWindowTitle(w, title);
 }
 
 char *
 ROMlib_GetTitle (void)
 {
-  char *retval;
-
-  SDL_WM_GetCaption(&retval, (char **)0);
-  return retval;
+  SDL_Window *w = sdl_get_window();
+  return w ? (char *)SDL_GetWindowTitle(w) : NULL;
 }
 
 void

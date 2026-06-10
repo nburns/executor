@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 1998 by Abacus Research and
  * Development, Inc.  All rights reserved.
  */
@@ -10,18 +10,18 @@
 #define WIN32
 #endif
 
-#include "SDL/SDL.h"
-#include "SDL/SDL_syswm.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_syswm.h>
 
 /* System dependent variables */
-#if defined(__unix__) || defined (MACOSX)
+#if defined(__unix__)
 /* * */
 extern Display *SDL_Display;
-extern Window SDL_Window;
+extern Window sdl_x11_window;  /* renamed: SDL_Window is a type in SDL2 */
 
 #elif defined(_WIN32)
 /* * */
-extern HWND SDL_Window;
+extern HWND sdl_win32_hwnd;
 
 #endif /* OS */
 

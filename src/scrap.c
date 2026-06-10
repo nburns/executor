@@ -333,7 +333,7 @@ P3(PUBLIC pascal trap, LONGINT, GetScrap, Handle, h, ResType, rest,
 
 #if defined (CYGWIN32) && defined (SDL)
 
-#include "SDL/SDL.h"
+#include <SDL2/SDL.h>
 
 PRIVATE int
 SDL_Surface_depth (const SDL_Surface *surfp)

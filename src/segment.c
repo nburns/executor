@@ -525,10 +525,10 @@ A2(PUBLIC, void, ROMlib_seginit, LONGINT, argc, char **, argv)	/* INTERNAL */
 	CurApName[0] = 0;
     }
     saveZone = TheZone;
-    TheZone = SysZone;
+    SET_TheZone(SysZone);
     fh = (finderinfohand)
 		        NewHandle((Size) sizeof(finderinfo) - sizeof(AppFile));
-    TheZone = saveZone;
+    SET_TheZone(saveZone);
 
     AppParmHandle = (Handle) RM(fh);
     HxX(fh, count)   = 0;

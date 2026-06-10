@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 1998 by Abacus Research and
  * Development, Inc.  All rights reserved.
  */
@@ -20,11 +20,13 @@ char ROMlib_rcsid_syswm_map[] = "$Id: syswm_map.c 63 2004-12-24 18:19:43Z ctm $"
 #include "win_clip.h"
 #endif
 
+extern SDL_Window *sdl_get_window(void);
+
 /* System dependent variables */
 #if defined(__unix__)
 /* * */
 Display *SDL_Display;
-Window SDL_Window;
+Window sdl_x11_window;
 
 static int screen_width;
 static int screen_height;
@@ -45,9 +47,7 @@ os_current_screen_height (void)
 
 #include "win_screen.h"
 
-HWND SDL_Window;
-
-
+HWND sdl_win32_hwnd;
 
 #endif /* OS */
 
@@ -60,17 +60,13 @@ sdl_syswm_init(void)
 
   /* Grab the window manager specific information */
   SDL_VERSION(&info.version);
-  if ( SDL_GetWMInfo(&info) >= 0 )
+  if ( SDL_GetWindowWMInfo(sdl_get_window(), &info) == SDL_TRUE )
     {
 #if defined(__unix__)
 /* * */
-#if SDL_MAJOR_VERSION == 0 && SDL_MINOR_VERSION < 9
-      SDL_Display = info.display;
-      SDL_Window = info.window;
-#else
       SDL_Display = info.info.x11.display;
-      SDL_Window = info.info.x11.window;
-#endif
+      sdl_x11_window = info.info.x11.window;
+
       {
 	Screen *screen;
 
@@ -81,7 +77,7 @@ sdl_syswm_init(void)
 
 #elif defined(_WIN32)
 /* * */
-      SDL_Window = info.window;
+      sdl_win32_hwnd = info.info.win.window;
 
 #endif /* OS */
       retval = 0;
@@ -101,11 +97,7 @@ sdl_syswm_event(const SDL_Event *event)
 {
   int retval;
 
-#if SDL_MAJOR_VERSION == 0 && SDL_MINOR_VERSION < 9
-  switch (event->syswm.msg->xevent.type)
-#else
-  switch (event->syswm.msg->event.xevent.type)
-#endif
+  switch (event->syswm.msg->msg.x11.event.type)
     {
     case SelectionRequest:
       export_scrap(event);
@@ -127,19 +119,19 @@ sdl_syswm_event(const SDL_Event *event)
   int retval;
 
   retval = 0;
-  switch (event->syswm.msg->msg)
+  switch (event->syswm.msg->msg.win.msg)
     {
     case WM_SYSCOMMAND:
-      if (event->syswm.msg->wParam == SC_MAXIMIZE)
+      if (event->syswm.msg->msg.win.wParam == SC_MAXIMIZE)
 	{
 	  ROMlib_recenter_window ();
 	  retval = 1;
 	}
       break;
     case WM_RENDERFORMAT:
-      if (event->syswm.msg->wParam == CF_DIB)
+      if (event->syswm.msg->msg.win.wParam == CF_DIB)
 	write_pict_as_dib_to_clipboard ();
-      else if (event->syswm.msg->wParam ==
+      else if (event->syswm.msg->msg.win.wParam ==
 	       ROMlib_executor_format (TICK ("PICT")))
 	write_pict_as_pict_to_clipboard ();
       break;
@@ -166,4 +158,3 @@ sdl_syswm_event(const SDL_Event *event)
   return retval;
 }
 #endif
-

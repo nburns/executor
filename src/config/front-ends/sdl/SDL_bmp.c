@@ -91,10 +91,10 @@ static char rcsid =
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "SDL/SDL_error.h"
-#include "SDL/SDL_video.h"
-#include "SDL/SDL_endian.h"
-#include "SDL/SDL_version.h"
+#include <SDL2/SDL_error.h>
+#include <SDL2/SDL_video.h>
+#include <SDL2/SDL_endian.h>
+#include <SDL2/SDL_version.h>
 
 #include "rsys/error.h"
 

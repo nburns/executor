@@ -134,8 +134,12 @@ extern INTEGER 	DlgFont;
 # define GET_DABeeper()		MR (DABeeper_H.p)
 # define GET_ResumeProc()	MR (ResumeProc_H.p)
 #else
-# define GET_DABeeper()		PPR (DABeeper_H)
-# define GET_ResumeProc()	PPR (ResumeProc_H)
+# define GET_DABeeper()		((ProcPtr) PPR (DABeeper_H))
+# define SET_DABeeper(v)	(DABeeper_H.pp = RPP(v))
+# define GET_ResumeProc()	((ProcPtr) PPR (ResumeProc_H))
+# define SET_ResumeProc(v)	(ResumeProc_H.pp = RPP(v))
+# define ResumeProc             GET_ResumeProc()
+# define DABeeper               GET_DABeeper()
 #endif
 
 extern pascal trap INTEGER C_Alert( INTEGER id, 

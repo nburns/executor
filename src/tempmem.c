@@ -72,7 +72,7 @@ P2 (PUBLIC pascal trap, Handle, TempNewHandle,
       (ApplZone,
        {
 	 if (FreeMemSys () >= FreeMem ())
-	   TheZone = SysZone;
+	   SET_TheZone(SysZone);
 	 
 	 retval = NewHandle (logical_size);
 	 if (result_code)

@@ -689,7 +689,7 @@ PRIVATE void launchchain(StringPtr fName, INTEGER vRefNum, BOOLEAN resetmemory,
 	lp = 0; /* just to shut GCC up */
 	jumplen = jumpoff = 0; /* just to shut GCC up */
 	a5 = (LONGINT) (long) US_TO_SYN68K (&tmpa5);
-	CurrentA5 = (Ptr) CL (a5);
+	SET_CurrentA5((Ptr) CL (a5));
 	InitGraf ((Ptr) quickbytes + grafSize - 4);
       }
     else
@@ -710,24 +710,24 @@ PRIVATE void launchchain(StringPtr fName, INTEGER vRefNum, BOOLEAN resetmemory,
 
 #if defined(SYN68K)
 	EM_A7 -= abovea5 + belowa5;
-	CurStackBase = (Ptr) CL(EM_A7);
+	SET_CurStackBase((Ptr) CL(EM_A7));
 #else /* !defined(SYN68K) */
 	ROMlib_foolgcc = alloca(abovea5 + belowa5);
 	CurStackBase
 	  = CL(MAC_STACK_START + MAC_STACK_SIZE - (abovea5 + belowa5));
 #endif /* !defined(SYN68K) */
 
-	CurrentA5 = RM(MR(CurStackBase) + belowa5); /* set CurrentA5 */
-	BufPtr = RM(MR(CurrentA5) + abovea5);
+	SET_CurrentA5(RM(MR(CurStackBase) + belowa5)); /* set CurrentA5 */
+	SET_BufPtr(RM(MR(CurrentA5) + abovea5));
 	CurJTOffset = CW(jumpoff);
 	a5 = CL((LONGINT) CurrentA5);
       }
 
     GetDateTime((LONGINT *) &Time);
-    ROMBase = RM((Ptr) ROMlib_phoneyrom);
+    SET_ROMBase(RM((Ptr) ROMlib_phoneyrom));
     dodusesit = ROMBase;
     QDExist = WWExist = EXIST_NO;
-    TheZone = ApplZone;
+    SET_TheZone(ApplZone);
     ROMlib_memnomove_p = TRUE;
 
 #if  defined(NEXTSTEP)

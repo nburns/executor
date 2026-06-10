@@ -38,12 +38,12 @@ P0(PUBLIC pascal trap, void, InitFonts)	/* IMI-222 */
 
     if (!beenhere) {
 	saveZone = TheZone;
-	TheZone = SysZone;
+	SET_TheZone(SysZone);
 	SetResLoad(TRUE);
 	ROMFont0 = RM(GetResource(TICK("FONT"), FONTRESID(systemFont, 12)));
 	WidthListHand = RM(NewHandle(MAXTABLES * sizeof(HIDDEN_Handle)));
 	memset(STARH(MR(WidthListHand)), 0, MAXTABLES * sizeof(HIDDEN_Handle));
-	TheZone = saveZone;
+	SET_TheZone(saveZone);
 	beenhere = TRUE;
     }
     ApFontID = CW(Cx(SPFont) + 1);
