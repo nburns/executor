@@ -17,12 +17,12 @@ char ROMlib_rcsid_resMisc[] =
 A1(PUBLIC, INTEGER, ROMlib_setreserr, INTEGER, reserr)	/* INTERNAL */
 {
     ResErr = CW(reserr);
-    if (ResErr != noErr && ResErrProc) {
+    if (ResErr != noErr && GET_ResErrProc ()) {
 	ROMlib_hook(res_reserrprocnumber);
 
 	EM_D0 = (unsigned short) reserr;	/* TODO: is unsigned short
 							 correct? */
-	CALL_EMULATOR((syn68k_addr_t)  CL((long) ResErrProc));
+	CALL_EMULATOR((syn68k_addr_t)  CL((long) GET_ResErrProc ()));
     }
     return CW(ResErr);
 }

@@ -315,7 +315,7 @@ P1(PUBLIC pascal trap, void, StdLine, Point, p)
     px = CW (PORT_PEN_SIZE (thePort).h);
     py = CW (PORT_PEN_SIZE (thePort).v);
 
-    if (PORT_POLY_SAVE_X (thePort) && (x1 != x2 || y1 != y2)) {
+    if (PORT_POLY_SAVE (thePort) && (x1 != x2 || y1 != y2)) {
 	ph = (PolyHandle) PORT_POLY_SAVE (thePort);
         psize = GetHandleSize((Handle) ph);
         if (psize == SMALLPOLY) {
@@ -363,7 +363,8 @@ P1(PUBLIC pascal trap, void, StdLine, Point, p)
 	    StdRect(paint, &r);
 	    RESUMERECORDING;
 	}
-	if (PORT_REGION_SAVE_X (thePort) && y1 == y2 && x1 != x2) {
+	if (PORT_REGION_SAVE (thePort) && y1 == y2 && x1 != x2) {
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
 	    rp.p = (RgnPtr) ALLOCA(SMALLRGN + 5 * sizeof(INTEGER));
 	    (rp.p)->rgnBBox.top    = CW(y1);
 	    (rp.p)->rgnBBox.left   = CW(x1);
@@ -377,6 +378,23 @@ P1(PUBLIC pascal trap, void, StdLine, Point, p)
 	    *oip++ = RGNSTOPX;
 	    *oip++ = RGNSTOPX;
 	    rp.p = RM(rp.p);
+#else
+	    {
+		RgnPtr native_rp = (RgnPtr) ALLOCA(SMALLRGN + 5 * sizeof(INTEGER));
+		native_rp->rgnBBox.top    = CW(y1);
+		native_rp->rgnBBox.left   = CW(x1);
+		native_rp->rgnBBox.bottom = CW(y2);
+		native_rp->rgnBBox.right  = CW(x1);
+		native_rp->rgnSize = CWC(SMALLRGN + 5 * sizeof(INTEGER));
+		oip = (INTEGER *) ((char *)native_rp + SMALLRGN);
+		*oip++ = CW(y1);
+		*oip++ = CW(x1);
+		*oip++ = CW(x2);
+		*oip++ = RGNSTOPX;
+		*oip++ = RGNSTOPX;
+		rp.pp = RPP(native_rp);
+	    }
+#endif
 	    XorRgn (&rp,
 		    (RgnHandle) PORT_REGION_SAVE (thePort),
 		    (RgnHandle) PORT_REGION_SAVE (thePort));
@@ -391,8 +409,9 @@ P1(PUBLIC pascal trap, void, StdLine, Point, p)
     dy = y2 - y1;
     dx = ABS(x2 - x1);
 
-    if (PORT_REGION_SAVE_X (thePort)) {
+    if (PORT_REGION_SAVE (thePort)) {
 	/* size allocated below is overkill */
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
 	rp.p = (RgnPtr) ALLOCA(SMALLRGN + (dy + 1) * sizeof(INTEGER) * 6 +
 							      sizeof(INTEGER));
 	(rp.p)->rgnBBox.top    = CW(y1);
@@ -413,6 +432,30 @@ P1(PUBLIC pascal trap, void, StdLine, Point, p)
 	*op++ = RGNSTOPX;
 	(rp.p)->rgnSize = CW((char *) op - (char *) rp.p);
 	rp.p = RM(rp.p);
+#else
+	{
+	    RgnPtr native_rp = (RgnPtr) ALLOCA(SMALLRGN + (dy + 1) * sizeof(INTEGER) * 6 +
+							      sizeof(INTEGER));
+	    native_rp->rgnBBox.top    = CW(y1);
+	    native_rp->rgnBBox.left   = CW(MIN(x1, x2));
+	    native_rp->rgnBBox.bottom = CW(y2);
+	    native_rp->rgnBBox.right  = CW(MAX(x1, x2));
+
+	    if (dy >= dx)
+		if (x2 > x1)
+		    op = scrdydxx2x1(y1, x1,   dy, dx, (INTEGER *)native_rp + 5);
+		else
+		    op = scrdydxx1x2(y1, x1,   dy, dx, (INTEGER *)native_rp + 5);
+	    else
+		if (x2 > x1)
+		    op = scrdxdyx2x1(y1, x1,   dy, dx, (INTEGER *)native_rp + 5);
+		else
+		    op = scrdxdyx1x2(y1, x1+1, dy, dx, (INTEGER *)native_rp + 5);
+	    *op++ = RGNSTOPX;
+	    native_rp->rgnSize = CW((char *) op - (char *) native_rp);
+	    rp.pp = RPP(native_rp);
+	}
+#endif
 	XorRgn (&rp,
 		(RgnHandle) PORT_REGION_SAVE (thePort),
 		(RgnHandle) PORT_REGION_SAVE (thePort));
@@ -423,13 +466,23 @@ P1(PUBLIC pascal trap, void, StdLine, Point, p)
 /*-->*/	return;
     }
 
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
     rp.p = (RgnPtr) ALLOCA(SMALLRGN + (dy + py + 1) * sizeof(LONGINT) * 4 +
 						      3 * 2 * sizeof(LONGINT));
-    /* Cx(rp->rgnSize) gets filled in later */
+    /* rgnSize gets filled in later */
     (rp.p)->rgnBBox.top    = CW(y1);
     (rp.p)->rgnBBox.left   = CW(MIN(x1, x2));
     (rp.p)->rgnBBox.bottom = CW(y2 + py);
     (rp.p)->rgnBBox.right  = CW(MAX(x1, x2) + px);
+#else
+    RgnPtr native_rp = (RgnPtr) ALLOCA(SMALLRGN + (dy + py + 1) * sizeof(LONGINT) * 4 +
+						      3 * 2 * sizeof(LONGINT));
+    /* rgnSize gets filled in later */
+    native_rp->rgnBBox.top    = CW(y1);
+    native_rp->rgnBBox.left   = CW(MIN(x1, x2));
+    native_rp->rgnBBox.bottom = CW(y2 + py);
+    native_rp->rgnBBox.right  = CW(MAX(x1, x2) + px);
+#endif
     op  = destpoints   = (INTEGER *) ALLOCA(MAXNPOINTS(dy) * sizeof(INTEGER));
     op2 = destpoints2  = (INTEGER *) ALLOCA(MAXNPOINTS(dy) * sizeof(INTEGER));
 
@@ -492,14 +545,22 @@ P1(PUBLIC pascal trap, void, StdLine, Point, p)
     }
     gui_assert((op  - destpoints  + 1)  <=  ((dy+3)*2 + 1));
     gui_assert((op2 - destpoints2 + 1)  <=  ((dy+3)*2 + 1));
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
     regionify1(destpoints, destpoints2, rp.p);
+#else
+    regionify1(destpoints, destpoints2, native_rp);
+#endif
 
     rh = NewRgn ();
     SectRect (&PORT_BOUNDS (thePort), &PORT_RECT (thePort), &r);
     RectRgn (rh, &r);
     SectRgn (rh, PORT_VIS_REGION (thePort),  rh);
     SectRgn (rh, PORT_CLIP_REGION (thePort), rh);
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
     rp.p = RM (rp.p);
+#else
+    rp.pp = RPP (native_rp);
+#endif
     SectRgn (&rp, rh, rh);
 
     if (GWorld_p (thePort))

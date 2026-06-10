@@ -348,7 +348,7 @@ PRIVATE Handle
 LMGetTopMapHndl (void)
 {
   warning_trace_info (NULL_STRING);
-  return MR (TopMapHndl);
+  return GET_TopMapHndl();
 }
 
 PRIVATE INTEGER
@@ -729,7 +729,7 @@ PRIVATE void
 LMSetTopMapHndl (Handle val)
 {
   warning_trace_info (NULL_STRING);
-  TopMapHndl = RM (val);
+  SET_TopMapHndl(val);
 }
 
 PRIVATE void

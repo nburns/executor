@@ -340,11 +340,11 @@ P6 (PUBLIC pascal trap, OSErr, GetPixMapInfo,
 	  palette = NewPalette (colors_requested, color_table,
 				/* #### verify correct default values */
 				pmTolerant, 0);
-	  pict_info->thePalette = RM (palette);
+	  PACKED_ASSIGN (pict_info->thePalette, palette);
 	}
-      
+
       if (verb & returnColorTable)
-	pict_info->theColorTable = RM (color_table);
+	PACKED_ASSIGN (pict_info->theColorTable, color_table);
       else
 	DisposHandle ((Handle) color_table);
     }

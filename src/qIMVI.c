@@ -91,7 +91,7 @@ P2 (PUBLIC pascal trap, OSErr, BitMapToRegion, RgnHandle, rh,
   memset (zeroline, 0, linelen);
 
   line0p = zeroline;
-  line1p = (unsigned char *) MR (bmp->baseAddr);
+  line1p = (unsigned char *) PPR (bmp->baseAddr);
   for (y = top; y <= bottom; ++y)
     {
       if (y == bottom)

@@ -885,8 +885,8 @@ PRIVATE void reset_low_globals(void)
 	memcpy(saveCurApName, CurApName, sizeof(CurApName));
 	saveCurApRefNum   = CurApRefNum;
 	saveCurMap	  = CurMap;
-	saveTopMapHndl    = TopMapHndl;
-	saveSysMapHndl    = SysMapHndl;
+	saveTopMapHndl    = GET_TopMapHndl ();
+	saveSysMapHndl    = GET_SysMapHndl ();
 	saveSysMap        = SysMap;
 	saveScrapSize     = ScrapSize;
 	saveScrapHandle   = ScrapHandle;
@@ -992,8 +992,8 @@ PRIVATE void reset_low_globals(void)
 	ScrapHandle   = saveScrapHandle;
 	ScrapSize     = saveScrapSize;
 	SysMap        = saveSysMap;
-	SysMapHndl    = saveSysMapHndl;
-	TopMapHndl    = saveTopMapHndl;
+	SET_SysMapHndl (saveSysMapHndl);
+	SET_TopMapHndl (saveTopMapHndl);
 	CurMap	      = saveCurMap;
 	CurApRefNum   = saveCurApRefNum;
 	memcpy(CurApName, saveCurApName, sizeof(CurApName));
@@ -1242,7 +1242,7 @@ PRIVATE void reinitialize_things(void)
     ROMlib_clock = 0;	/* CLOCKOFF */
 
     special_fn = 0;
-    for (map = (resmaphand) MR(TopMapHndl); map; map = nextmap) {
+    for (map = (resmaphand) GET_TopMapHndl(); map; map = nextmap) {
 	nextmap = (resmaphand) HxP(map, nextmap);
 	if (HxX(map, resfn) == SysMap)
 	  UpdateResFile (Hx (map, resfn));
@@ -1274,7 +1274,7 @@ PRIVATE void reinitialize_things(void)
 	  FSClose((char *) fcbp - (char *) MR(FCBSPtr));
       }
 
-    CurMap = STARH((resmaphand)MR(TopMapHndl))->resfn;
+    CurMap = STARH((resmaphand)GET_TopMapHndl())->resfn;
 
     /* TODO replace the code in main.c with this stuff */
 #if !defined(MSDOS)

@@ -84,7 +84,7 @@ P1(PUBLIC pascal trap, void, ChangedResource, Handle, res)
     HxX(map, resfatr) |= CWC(mapChanged);
     if (rr->doff[0] != 0xff || rr->doff[1] != 0xff || rr->doff[2] != 0xff) {
 	oldsize = ROMlib_SizeResource(res, FALSE);
-	newsize = GetHandleSize((Handle) MR(rr->rhand));
+	newsize = GetHandleSize((Handle) PPR(rr->rhand));
 	if (newsize > oldsize) {
 	    HxX(map, resfatr) |= CWC(mapCompact);
 	    rr->doff[0] = rr->doff[1] = rr->doff[2] = 0xff;
@@ -167,7 +167,7 @@ P4(PUBLIC pascal trap, void, AddResource, Handle, data, ResType, typ,
     r.ratr = CB(resChanged);
     r.doff[0] = r.doff[1] = r.doff[2] = 0xff;
     HxX(map, resfatr) |= CWC(mapChanged);
-    r.rhand = RM(data);
+    PACKED_ASSIGN (r.rhand, data);
     HSetRBit (data);
     tr = (typref *)((char *)STARH(map) + toff);
 #if 1
@@ -297,7 +297,7 @@ A2(PUBLIC, void, ROMlib_wr, resmaphand, map, resref *, rr)	/* INTERNAL */
     LONGINT rsize, newloc, lc, swappedrsize;
     Handle res;
 
-    res = (Handle) MR(rr->rhand);
+    res = (Handle) PPR(rr->rhand);
     if ((rr->ratr & resChanged) && res) {
         rsize = GetHandleSize(res);
         if (rr->doff[0] == 0xFF && rr->doff[1] == 0xFF &&
@@ -421,7 +421,7 @@ A4(PRIVATE, LONGINT, walkst, res_sorttype_t *, sp, res_sorttype_t *, sep, INTEGE
 #else
         if (sp->rrptr->ratr & resChanged)
 	  {
-            putdat(fn, datoff, &doff, (Handle) MR(sp->rrptr->rhand));
+            putdat(fn, datoff, &doff, (Handle) PPR(sp->rrptr->rhand));
 	    sp->rrptr->ratr &= ~resChanged;
 	  }
         else if (doff == sp->diskoff) {

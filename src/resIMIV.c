@@ -26,7 +26,7 @@ P1(PUBLIC pascal trap, LONGINT, MaxSizeRsrc, Handle, h)  /* IMIV-16 */
     ROMlib_setreserr(ROMlib_findres(h, &map, &tr, &rr));
     if (ResErr != noErr)
         return(-1);
-    if (!rr->rhand || !(*(Handle) MR(rr->rhand)).p) {	/* STARH is overkill */
+    if (!rr->rhand.pp || !HPTR_VAL (PPR (rr->rhand))) {	/* STARH is overkill */
         dl = B3TOLONG(rr->doff);
         mdl = Hx(map, rh.datlen);
         WALKTANDR(map, i, tr, j, rr)
@@ -35,7 +35,7 @@ P1(PUBLIC pascal trap, LONGINT, MaxSizeRsrc, Handle, h)  /* IMIV-16 */
         EWALKTANDR(tr, rr)
         return(mdl - dl);
     } else
-        return(GetHandleSize((Handle) MR(rr->rhand)));
+        return(GetHandleSize((Handle) PPR (rr->rhand)));
 }
 
 P1(PUBLIC pascal trap, LONGINT, RsrcMapEntry, Handle, h) /* IMIV-16 */

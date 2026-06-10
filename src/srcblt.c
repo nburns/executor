@@ -107,7 +107,7 @@ srcblt_rgn (RgnHandle rh, int mode, int log2_bpp,
       else
 	{
 	  srcblt_src_row_bytes = CW (src->rowBytes) & ROWBYTES_VALUE_BITS;
-	  src_baseaddr = (char *) MR (src->baseAddr);
+	  src_baseaddr = (char *) PPR(src->baseAddr);
 #if defined (VGA_SCREEN_NEEDS_FAR_PTR)
 	  asm ("movw %%ds,%0" : "=m" (srcblt_src_selector));
 #endif
@@ -133,7 +133,7 @@ srcblt_rgn (RgnHandle rh, int mode, int log2_bpp,
       else
 	{
 	  srcblt_dst_row_bytes = CW (dst->rowBytes) & ROWBYTES_VALUE_BITS;
-	  dst_baseaddr = (char *) MR (dst->baseAddr);
+	  dst_baseaddr = (char *) PPR(dst->baseAddr);
 #if defined (VGA_SCREEN_NEEDS_FAR_PTR)
 	  asm ("movw %%ds,%0" : "=m" (srcblt_dst_selector));
 #endif
@@ -145,8 +145,8 @@ srcblt_rgn (RgnHandle rh, int mode, int log2_bpp,
       /* Default to values for non-screen blit. */
       srcblt_src_row_bytes = CW (src->rowBytes) & ROWBYTES_VALUE_BITS;
       srcblt_dst_row_bytes = CW (dst->rowBytes) & ROWBYTES_VALUE_BITS;
-      src_baseaddr = (char *) MR (src->baseAddr);
-      dst_baseaddr = (char *) MR (dst->baseAddr);
+      src_baseaddr = (char *) PPR(src->baseAddr);
+      dst_baseaddr = (char *) PPR(dst->baseAddr);
 #if defined (VGA_SCREEN_NEEDS_FAR_PTR)
       asm ("movw %%ds,%0\n\t"
 	   "movw %%ds,%1"

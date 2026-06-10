@@ -228,9 +228,9 @@ PRIVATE void ROMlib_init_xdefs( void )
     long timeout;
     LONGINT *ROMlib_defs;
 
-    save_zone = TheZone;
+    save_zone = GET_TheZone ();
 
-    TheZone = SysZone;
+    SET_TheZone (GET_SysZone ());
     newhandle = 0;
     timeout = 64000;
     do {
@@ -238,7 +238,7 @@ PRIVATE void ROMlib_init_xdefs( void )
       newhandle = NewHandle(NUM_ROMLIB_DEFS * sizeof(ROMlib_defs[0]));
       if (oldhandle)
 	DisposHandle(oldhandle);
-    } while (!acceptable((unsigned long) newhandle->p) && --timeout);
+    } while (!acceptable((unsigned long) STARH(newhandle)) && --timeout);
 #if !defined(NDEBUG)
     if (!timeout)
       warning_unexpected("Maelstrom hack didn't work");
@@ -255,8 +255,8 @@ PRIVATE void ROMlib_init_xdefs( void )
     ROMlib_defs[7]  = RM((long) P_snth5);
     ROMlib_defs[8]  = RM((long) P_unixmount);
     ROMlib_defs[9]  = RM((long) P_cdef1008);
-    *(LONGINT *)SYN68K_TO_US(0x58) = (LONGINT) newhandle->p;
-    TheZone = save_zone;
+    *(LONGINT *)SYN68K_TO_US(0x58) = (LONGINT) RM(STARH(newhandle));
+    SET_TheZone (save_zone);
 #endif
 }
 
@@ -463,14 +463,14 @@ P1 (PUBLIC pascal trap, void, LoadResource, Handle volatile, res)
       return;
     }
 
-  if (res->p)
+  if (HPTR_VAL (res))
     {
       ROMlib_setreserr (noErr);
     }
   else
     {
       savemap = CurMap;
-      CurMap = ((resmap *) STARH (MR (TopMapHndl)))->resfn;
+      CurMap = ((resmap *) STARH (GET_TopMapHndl()))->resfn;
       ROMlib_setreserr (ROMlib_findres (res, &map, &tr, &rr));
       CurMap = savemap;
       if (ResErr == CWC (noErr))
@@ -500,13 +500,13 @@ P1(PUBLIC pascal trap, void, ReleaseResource, Handle, res)
 /*-->*/ return;
     if (Cx(rr->ratr) & resChanged)
 	ROMlib_wr(map, rr);
-    if (ResErr != CWC (noErr) || !rr->rhand)
+    if (ResErr != CWC (noErr) || !rr->rhand.pp)
         return;
-    h = MR (rr->rhand);
-    if ((*h).p)
+    h = PPR (rr->rhand);
+    if (STARH (h))
       HClrRBit(h);
     DisposHandle(h);
-    rr->rhand = 0;
+    PACKED_ASSIGN0 (rr->rhand);
 }
 
 P1(PUBLIC pascal trap, void, DetachResource, Handle, res)
@@ -518,13 +518,13 @@ P1(PUBLIC pascal trap, void, DetachResource, Handle, res)
 
     if (ROMlib_setreserr(ROMlib_findres(res, &map, &tr, &rr)))
 /*-->*/ return;
-    if (ResErr != noErr || !(h = (Handle) MR(rr->rhand)))
+    if (ResErr != noErr || !(h = PPR (rr->rhand)))
         return;
     if (Cx(rr->ratr) & resChanged) {
         ROMlib_setreserr(resAttrErr);    /* IV-18 */
         return;
     }
-    rr->rhand = 0;
-    if ((*h).p)
+    PACKED_ASSIGN0 (rr->rhand);
+    if (STARH (h))
       HClrRBit(h);
 }

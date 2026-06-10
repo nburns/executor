@@ -39,8 +39,8 @@ ROMlib_CALLTEXT (INTEGER bc, Ptr bufp, Point num, Point den)
 
   if (text_is_enabled_p)
     {
-      if ((gp = MR (thePort->grafProcs))
-	  && (pp = MR (gp->textProc)) != P_StdText)
+      if ((gp = PPR (thePort->grafProcs))
+	  && (pp = PPR (gp->textProc)) != P_StdText)
 	{
 	  ROMlib_hook (q_textprocnumber);
 	  HOOKSAVEREGS ();
@@ -59,8 +59,8 @@ ROMlib_CALLLINE (Point p)
   QDProcsPtr gp;
   pascal trap void (*pp) (Point);
 
-  if ((gp = MR (thePort->grafProcs))
-      && (pp = MR (gp->lineProc)) != P_StdLine)
+  if ((gp = PPR (thePort->grafProcs))
+      && (pp = PPR (gp->lineProc)) != P_StdLine)
     {
       ROMlib_hook (q_lineprocnumber);
       HOOKSAVEREGS ();
@@ -78,8 +78,8 @@ ROMlib_CALLRECT (GrafVerb v, Rect * rp)
   QDProcsPtr gp;
   pascal trap void (*pp) (GrafVerb, Rect *);
 
-  if ((gp = MR (thePort->grafProcs))
-      && (pp = MR (gp->rectProc)) != P_StdRect)
+  if ((gp = PPR (thePort->grafProcs))
+      && (pp = PPR (gp->rectProc)) != P_StdRect)
     {
       ROMlib_hook (q_rectprocnumber);
       HOOKSAVEREGS ();
@@ -97,8 +97,8 @@ ROMlib_CALLOVAL (GrafVerb v, Rect * rp)
   QDProcsPtr gp;
   pascal trap void (*pp) (GrafVerb, Rect *);
 
-  if ((gp = MR (thePort->grafProcs))
-      && (pp = MR (gp->ovalProc)) != P_StdOval)
+  if ((gp = PPR (thePort->grafProcs))
+      && (pp = PPR (gp->ovalProc)) != P_StdOval)
     {
       ROMlib_hook (q_ovalprocnumber);
       HOOKSAVEREGS ();
@@ -116,8 +116,8 @@ ROMlib_CALLRRECT (GrafVerb v, Rect * rp, INTEGER ow, INTEGER oh)
   QDProcsPtr gp;
   pascal trap void (*pp) (GrafVerb, Rect *, INTEGER, INTEGER);
 
-  if ((gp = MR (thePort->grafProcs))
-      && (pp = MR (gp->rRectProc)) != P_StdRRect)
+  if ((gp = PPR (thePort->grafProcs))
+      && (pp = PPR (gp->rRectProc)) != P_StdRRect)
     {
       ROMlib_hook (q_rrectprocnumber);
       HOOKSAVEREGS ();
@@ -135,8 +135,8 @@ ROMlib_CALLARC (GrafVerb v, Rect * rp, INTEGER starta, INTEGER arca)
   QDProcsPtr gp;
   pascal trap void (*pp) (GrafVerb, Rect *, INTEGER, INTEGER);
 
-  if ((gp = MR (thePort->grafProcs))
-      && (pp = MR (gp->arcProc)) != P_StdArc)
+  if ((gp = PPR (thePort->grafProcs))
+      && (pp = PPR (gp->arcProc)) != P_StdArc)
     {
       ROMlib_hook (q_arcprocnumber);
       HOOKSAVEREGS ();
@@ -155,8 +155,8 @@ ROMlib_CALLRGN (GrafVerb v, RgnHandle rh)
   QDProcsPtr gp;
   pascal trap void (*pp) (GrafVerb, RgnHandle);
 
-  if ((gp = MR (thePort->grafProcs))
-      && (pp = MR (gp->rgnProc)) != P_StdRgn)
+  if ((gp = PPR (thePort->grafProcs))
+      && (pp = PPR (gp->rgnProc)) != P_StdRgn)
     {
       ROMlib_hook (q_rgnprocnumber);
       HOOKSAVEREGS ();
@@ -174,8 +174,8 @@ ROMlib_CALLPOLY (GrafVerb v, PolyHandle rh)
   QDProcsPtr gp;
   pascal trap void (*pp) (GrafVerb, PolyHandle);
 
-  if ((gp = MR (thePort->grafProcs))
-      && (pp = MR (gp->polyProc)) != P_StdPoly)
+  if ((gp = PPR (thePort->grafProcs))
+      && (pp = PPR (gp->polyProc)) != P_StdPoly)
     {
       ROMlib_hook (q_polyprocnumber);
       HOOKSAVEREGS ();
@@ -194,8 +194,8 @@ ROMlib_CALLBITS (BitMap * bmp, const Rect *srcrp, const Rect *dstrp,
   QDProcsPtr gp;
   pascal trap void (*pp) (BitMap *, Rect *, Rect *, INTEGER, RgnHandle);
 
-  if ((gp = MR (thePort->grafProcs))
-      && (pp = MR (gp->bitsProc)) != P_StdBits)
+  if ((gp = PPR (thePort->grafProcs))
+      && (pp = PPR (gp->bitsProc)) != P_StdBits)
     {
       ROMlib_hook (q_bitsprocnumber);
       HOOKSAVEREGS ();
@@ -213,8 +213,8 @@ ROMlib_CALLCOMMENT (INTEGER kind, INTEGER size, Handle datah)
   QDProcsPtr gp;
   pascal trap void (*pp) (INTEGER, INTEGER, Handle);
 
-  if ((gp = MR (thePort->grafProcs))
-      && (pp = MR (gp->commentProc)) != P_StdComment)
+  if ((gp = PPR (thePort->grafProcs))
+      && (pp = PPR (gp->commentProc)) != P_StdComment)
     {
       ROMlib_hook (q_commentprocnumber);
       HOOKSAVEREGS ();
@@ -234,8 +234,8 @@ ROMlib_CALLTXMEAS (INTEGER bc, Ptr bufp, Point * nump, Point * denp,
   pascal trap INTEGER (*pp) (INTEGER, Ptr, Point *, Point *, FontInfo *);
   INTEGER retval;
 
-  if ((gp = MR (thePort->grafProcs))
-      && (pp = MR (gp->txMeasProc)) != P_StdTxMeas)
+  if ((gp = PPR (thePort->grafProcs))
+      && (pp = PPR (gp->txMeasProc)) != P_StdTxMeas)
     {
       ROMlib_hook (q_txmeasprocnumber);
       HOOKSAVEREGS ();
@@ -255,8 +255,8 @@ ROMlib_PICWRITE (Ptr addr, INTEGER count)
   QDProcsPtr gp;
   pascal trap void (*pp) (Ptr, INTEGER);
 
-  if ((gp = MR (thePort->grafProcs))
-      && (pp = MR (gp->putPicProc)) != P_StdPutPic)
+  if ((gp = PPR (thePort->grafProcs))
+      && (pp = PPR (gp->putPicProc)) != P_StdPutPic)
     {
       ROMlib_hook (q_putpicprocnumber);
       HOOKSAVEREGS ();

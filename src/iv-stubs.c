@@ -192,7 +192,7 @@ dump_image (BitMap *bogo_bitmap, Rect *rect)
   send_image (width, height,
 	      map_row_bytes, row_bytes,
 	      _base_addr,
-	      MR (pixmap->pmTable));
+	      PPR(pixmap->pmTable));
   
   canonicalize_bogo_map_cleanup ((BitMap *) &pixmap, &cleanup);
 }

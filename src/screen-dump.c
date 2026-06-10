@@ -154,7 +154,7 @@ dump_indirect_pm (PixMap *pm)
       TEMP_ALLOC_ALLOCATE (fbuf, temp_fbuf_bits, fbuf_size);
       row_bytes = (width * bpp + 31) / 32 * 4;
       
-      tiff_pm->baseAddr = RM (fbuf);
+      PACKED_ASSIGN(tiff_pm->baseAddr, fbuf);
       tiff_pm->rowBytes = CW (row_bytes | PIXMAP_DEFAULT_ROW_BYTES);
       tiff_pm->bounds   = pm->bounds;
       
@@ -239,8 +239,8 @@ dump_indirect_pm (PixMap *pm)
     
     memset (color_map, 0xFF, color_map_size);
     
-    color_table_size = CTAB_SIZE (MR (tiff_pm->pmTable));
-    color_table = CTAB_TABLE (MR (tiff_pm->pmTable));
+    color_table_size = CTAB_SIZE (PPR(tiff_pm->pmTable));
+    color_table = CTAB_TABLE (PPR(tiff_pm->pmTable));
     
     for (i = 0; i <= color_table_size; i ++)
       {

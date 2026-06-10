@@ -75,9 +75,9 @@ ROMlib_blt_rgn_update_dirty_rect
 	  row_bytes = BITMAP_ROWBYTES (new_src_pm);
 	  baseaddr_size = row_bytes * height;
 	  TEMP_ALLOC_ALLOCATE (new_bits, temp_alloc_space, baseaddr_size);
-	  new_src_pm->baseAddr = (Ptr) RM (new_bits);
+	  PACKED_ASSIGN (new_src_pm->baseAddr, new_bits);
 
-	  s = (uint8 *) MR (src_pm->baseAddr);
+	  s = (uint8 *) PPR (src_pm->baseAddr);
 	  d = new_bits;
 	  for (y = 0; y < height; y++)
 	    {
@@ -133,11 +133,11 @@ ROMlib_blt_rgn_update_dirty_rect
       new_src_pm->rowBytes = CW (row_bytes);
       TEMP_ALLOC_ALLOCATE (new_bits, temp_alloc_space,
 			   row_bytes * bbox_height);
-      new_src_pm->baseAddr = (Ptr) RM (new_bits);
-      
+      PACKED_ASSIGN (new_src_pm->baseAddr, new_bits);
+
       pixmap_set_pixel_fields (new_src_pm, bpp);
 
-      new_src_pm->pmTable = RM (ROMlib_dont_depthconv_ctab);
+      PACKED_ASSIGN (new_src_pm->pmTable, ROMlib_dont_depthconv_ctab);
       
       top  = (CW (src_rect->top)
 	      + (CW (bbox.top) - CW (dst_rect->top)));
@@ -343,9 +343,9 @@ blt_pattern_to_bitmap_simple_mode (RgnHandle rh, INTEGER mode,
   else
     {
       dst_pixmap.pixelSize = CWC (1);
-      dst_pixmap.baseAddr  = dst->baseAddr;
+      PACKED_ASSIGN (dst_pixmap.baseAddr, PPR (dst->baseAddr));
       dst_pixmap.rowBytes  = dst->rowBytes | PIXMAP_DEFAULT_ROWBYTES_X;
-      dst_pixmap.pmTable   = RM (ROMlib_bw_ctab);
+      PACKED_ASSIGN (dst_pixmap.pmTable, ROMlib_bw_ctab);
       
       ROMlib_fg_bk (&fg_pixel, &bk_pixel, NULL, NULL, NULL, FALSE, FALSE);
     }
@@ -415,13 +415,13 @@ blt_pixpat_to_pixmap_simple_mode (RgnHandle rh, INTEGER mode,
 	   boolean_t handle_size_wrong_p;
 	   xdata_handle_t xh;
 
-	   xh = (xdata_handle_t) MR (src->patXData);
+	   xh = (xdata_handle_t) PPR (src->patXData);
 	   if (!xh)
 	     {
 	       warning_unexpected ("xdata handle NULL_STRING");
 	       xh = (xdata_handle_t) NewHandle (sizeof (xdata_t));
 	       HxX (xh, raw_pat_bits_mem) = RM (NULL);
-	       src->patXData = (Handle) RM (xh);
+	       PACKED_ASSIGN (src->patXData, xh);
 	       xdata_valid_p = FALSE;
 	       handle_size_wrong_p = FALSE;
 	     }
@@ -546,12 +546,12 @@ blt_fancy_pat_mode_to_pixmap (RgnHandle rh, int mode,
   pattern_pm.bounds.right  = CW ((x->row_bytes << (5 - x->log2_bpp)) >> 2);
   pattern_pm.rowBytes = CW (x->row_bytes);
   if (x->pat_bits)
-    pattern_pm.baseAddr = (Ptr) RM (x->pat_bits);
+    PACKED_ASSIGN (pattern_pm.baseAddr, x->pat_bits);
   else
-    pattern_pm.baseAddr = (Ptr) RM (&x->pat_value);
-  
+    PACKED_ASSIGN (pattern_pm.baseAddr, &x->pat_value);
+
   pixmap_set_pixel_fields (&pattern_pm, 1 << x->log2_bpp);
-  pattern_pm.pmTable = RM (ROMlib_dont_depthconv_ctab);
+  PACKED_ASSIGN (pattern_pm.pmTable, ROMlib_dont_depthconv_ctab);
   
   /* When dealing with an old-style pattern, we need to apply fg/bk colors. */
   if (apply_fg_bk_p)
@@ -569,7 +569,7 @@ blt_fancy_pat_mode_to_pixmap (RgnHandle rh, int mode,
 			 * ROMlib_pixel_tile_scale[log2_bpp]);
 
       /* Note that we don't care if we clobber the bits of this temp xdata. */
-      p = (uint32 *) MR (pattern_pm.baseAddr);
+      p = (uint32 *) PPR (pattern_pm.baseAddr);
       end = (uint32 *) ((char *) p + x->byte_size);
       for (; p != end; p++)
 	{
@@ -586,10 +586,10 @@ blt_fancy_pat_mode_to_pixmap (RgnHandle rh, int mode,
   converted_pm.rowBytes = CW (row_bytes);
   TEMP_ALLOC_ALLOCATE (new_bits, temp_alloc_space,
 		       row_bytes * RECT_HEIGHT (&bbox));
-  converted_pm.baseAddr = (Ptr) RM (new_bits);
+  PACKED_ASSIGN (converted_pm.baseAddr, new_bits);
 
   pixmap_set_pixel_fields (&converted_pm, 1 << log2_bpp);
-  converted_pm.pmTable = RM (ROMlib_dont_depthconv_ctab);
+  PACKED_ASSIGN (converted_pm.pmTable, ROMlib_dont_depthconv_ctab);
 
   if (mode == transparent || mode == hilite)
     {

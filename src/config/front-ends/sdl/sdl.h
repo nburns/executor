@@ -1,11 +1,12 @@
 /* define `SDL' the Simple DirectMedia Layer front-end */
 #if !defined (SDL)
 
+/* Define the front end before including SDL headers to prevent
+   recursive self-inclusion on case-insensitive filesystems. */
+#define SDL
+
 #include <SDL.h>
 #include <SDL_thread.h>
-
-/* Define the front end */
-#define SDL
 
 /* We need this for the syn68k_addr_t definition */
 #include <syn68k_public.h>

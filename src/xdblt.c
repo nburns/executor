@@ -165,7 +165,7 @@ setup_dst_bitmap (int log2_bpp, PixMap *dst_pixmap)
 #endif /* VDRIVER_SUPPORTS_REAL_SCREEN_BLITS */
     {
       row_bytes = BITMAP_ROWBYTES (dst_pixmap);
-      dst = (char *) MR (dst_pixmap->baseAddr);
+      dst = (char *) PPR (dst_pixmap->baseAddr);
 #if defined (VGA_SCREEN_NEEDS_FAR_PTR)
       asm ("movw %%ds,%0" : "=m" (xdblt_dst_selector));
 #endif

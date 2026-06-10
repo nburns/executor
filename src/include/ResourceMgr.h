@@ -52,9 +52,22 @@ extern INTEGER 	ResErr;
 extern Byte 	SysResName[20];
 #endif
 
-#define TopMapHndl	(TopMapHndl_H.p)
-#define SysMapHndl	(SysMapHndl_H.p)
-#define ResErrProc	(ResErrProc_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define TopMapHndl           (TopMapHndl_H.p)
+# define GET_TopMapHndl()     MR(TopMapHndl_H.p)
+# define SET_TopMapHndl(v)    (TopMapHndl_H.p = RM(v))
+# define SysMapHndl           (SysMapHndl_H.p)
+# define GET_SysMapHndl()     MR(SysMapHndl_H.p)
+# define SET_SysMapHndl(v)    (SysMapHndl_H.p = RM(v))
+# define ResErrProc           (ResErrProc_H.p)
+# define GET_ResErrProc()     MR(ResErrProc_H.p)
+#else
+# define GET_TopMapHndl()     ((Handle) PPR(TopMapHndl_H))
+# define SET_TopMapHndl(v)    (TopMapHndl_H.pp = RPP(v))
+# define GET_SysMapHndl()     ((Handle) PPR(SysMapHndl_H))
+# define SET_SysMapHndl(v)    (SysMapHndl_H.pp = RPP(v))
+# define GET_ResErrProc()     ((ProcPtr) PPR(ResErrProc_H))
+#endif
 
 extern BOOLEAN ROMlib_InstallxDEF( ProcPtr thedef, ResType typ, 
  INTEGER id ); 

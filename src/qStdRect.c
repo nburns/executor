@@ -25,7 +25,7 @@ P2(PUBLIC pascal trap, void, StdRect, GrafVerb, v, Rect *, rp)
     
 #define MOREINSANECOMPATIBILITY
 #if defined (MOREINSANECOMPATIBILITY)
-    if (v == frame && PORT_REGION_SAVE_X (thePort)) {
+    if (v == frame && PORT_REGION_SAVE (thePort)) {
 	if (CW(rp->left) > CW(rp->right)) {
 	    patcheduprect = *rp;
 	    patcheduprect.left  = rp->right;
@@ -68,7 +68,7 @@ P2(PUBLIC pascal trap, void, StdRect, GrafVerb, v, Rect *, rp)
     RectRgn(rh, rp);
     switch (v) {
     case frame:
-        if (PORT_REGION_SAVE_X (thePort))
+        if (PORT_REGION_SAVE (thePort))
 	    XorRgn (rh,
 		    (RgnHandle) PORT_REGION_SAVE (thePort),
 		    (RgnHandle) PORT_REGION_SAVE (thePort));

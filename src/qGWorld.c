@@ -135,7 +135,11 @@ P6 (PUBLIC pascal trap, QDErr, NewGWorld,
 {
   PixMapHandle gw_pixmap, gd_pixmap;
   GWorldPtr graphics_world;
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
   GrafPtr save_portX;
+#else
+  uint32_t save_portX;
+#endif
   int gd_allocated_p = FALSE;
 
   save_portX = thePortX;
@@ -194,7 +198,7 @@ P6 (PUBLIC pascal trap, QDErr, NewGWorld,
       if (MemError () != noErr)
 	return MemError ();
       
-      PIXMAP_BASEADDR_X (gd_pixmap) = (Ptr) RM (gd_pixmap_baseaddr);
+      PACKED_ASSIGN (PIXMAP_BASEADDR_X (gd_pixmap), gd_pixmap_baseaddr);
       
       PIXMAP_BOUNDS (gd_pixmap) = *bounds;
       if (depth > 8)
@@ -280,8 +284,7 @@ P6 (PUBLIC pascal trap, QDErr, NewGWorld,
 	     /* ### err, i'm not sure what the mac does when this
 		allocation fails */
 	     gw_pixmap_baseaddr = NewHandle (0);
-	   PIXMAP_BASEADDR_X (gw_pixmap)
-	     = (Ptr) RM (gw_pixmap_baseaddr);
+	   PACKED_ASSIGN (PIXMAP_BASEADDR_X (gw_pixmap), gw_pixmap_baseaddr);
 	   
 	   PORT_RECT (graphics_world) = PIXMAP_BOUNDS (gw_pixmap) = *bounds;
 	 }
@@ -323,7 +326,7 @@ P1 (PUBLIC pascal trap, Boolean, LockPixels,
       pixels_baseaddr_h = (Handle) PIXMAP_BASEADDR (pixels);
       /* lock the baseaddr handle memory */
       HSetState (pixels_baseaddr_h, HGetState (pixels_baseaddr_h) | LOCKBIT);
-      PIXMAP_BASEADDR_X (pixels) = pixels_baseaddr_h->p;
+      PACKED_ASSIGN (PIXMAP_BASEADDR_X (pixels), STARH (pixels_baseaddr_h));
       
       HSetState ((Handle) pixels, HGetState ((Handle) pixels) | LOCKBIT);
     }
@@ -357,7 +360,7 @@ P1 (PUBLIC pascal trap, void, UnlockPixels,
 	  pixels_baseaddr_h = RecoverHandle (pixels_baseaddr);
 	  HSetState (pixels_baseaddr_h,
 		     HGetState (pixels_baseaddr_h) & ~LOCKBIT);
-	  PIXMAP_BASEADDR_X (pixels) = (Ptr) RM (pixels_baseaddr_h);
+	  PACKED_ASSIGN (PIXMAP_BASEADDR_X (pixels), pixels_baseaddr_h);
 
 	  HSetState ((Handle) pixels, HGetState ((Handle) pixels) & ~LOCKBIT);
 	}
@@ -512,7 +515,13 @@ P1 (PUBLIC pascal trap, void, DisposeGWorld,
   gw_info_t *gw_info;
   
   if ((GrafPtr) graphics_world == thePort)
-    thePortX = WMgrPort;
+    {
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+      thePortX = WMgrPort;
+#else
+      thePortX = RPP (GET_WMgrPort ());
+#endif
+    }
   /* FIXME: set the gdevice to something sane as well? */
   
   gw_info = lookup_gw_info_by_gw (graphics_world);
@@ -551,7 +560,11 @@ P2 (PUBLIC pascal trap, void, GetGWorld,
     CGrafPtr *, port,
     GDHandle *, graphics_device)
 {
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
   *port = theCPortX;
+#else
+  *port = (CGrafPtr) MR (theCPortX);
+#endif
   *graphics_device = TheGDevice;
 }
 
@@ -567,25 +580,31 @@ P2 (PUBLIC pascal trap, void, SetGWorld,
       gw_info = lookup_gw_info_by_gw ((GWorldPtr) port);
       gui_assert (gw_info);
       
-      TheGDevice = RM (gw_info->gw_gd);
+      SET_TheGDevice (gw_info->gw_gd);
     }
   else
     {
       if (graphics_device)
-	TheGDevice = RM (graphics_device);
+	SET_TheGDevice (graphics_device);
       else
 	{
 	  PixMapHandle gd_pixmap;
-	  
-	  gd_pixmap = GD_PMAP (MR (MainDevice));
-	  
+
+	  gd_pixmap = GD_PMAP (GET_MainDevice ());
+
 	  if (port
-	      && (PIXMAP_BASEADDR_X (gd_pixmap) == PORT_BASEADDR_X (port)))
-	    TheGDevice = MainDevice;
+	      && (PIXMAP_BASEADDR_X (gd_pixmap).pp
+		  == (CGrafPort_p (port)
+		      ? PIXMAP_BASEADDR_X (CPORT_PIXMAP ((CGrafPtr) port)).pp
+		      : PORT_BITS ((GrafPtr) port).baseAddr.pp)))
+	    SET_TheGDevice (MainDevice);
 	}
     }
-  
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
   theCPortX = RM (port);
+#else
+  theCPortX = RPP (port);
+#endif
 }
 
 
@@ -740,7 +759,7 @@ P4 (PUBLIC pascal trap, QDErr, NewScreenBuffer,
     AllowPurgePixels (pixels);
   else
     NoPurgePixels (pixels);
-  PIXMAP_BASEADDR_X (pixels) = p;
+  PACKED_ASSIGN (PIXMAP_BASEADDR_X (pixels), p);
   
   *graphics_device = RM (max_graphics_device);
   *offscreen_pixmap = RM (pixels);

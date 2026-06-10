@@ -109,7 +109,7 @@ P0(PUBLIC pascal trap, INTEGER, InitResources)
 	   exit(1);
 	 }
 
-       SysMapHndl = TopMapHndl;
+       SET_SysMapHndl (GET_TopMapHndl ());
        ROMlib_invalar ();
        SetResLoad (TRUE);
        versh = GetResource (TICK ("vers"), 1);

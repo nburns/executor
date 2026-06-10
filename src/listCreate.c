@@ -92,7 +92,7 @@ check_lists (void)
 
       gp = HxP((*pp)->list, port);
       if (gp != (*pp)->orig_port)
-	(*pp)->lastTextProc = MR(gp->grafProcs)->textProc;
+	(*pp)->lastTextProc = PPR(gp->grafProcs)->textProc;
     }
 }
 #endif

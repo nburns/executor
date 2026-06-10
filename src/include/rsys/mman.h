@@ -122,7 +122,7 @@ enum { TRAP_MASK = 0xF9FF };
 /* Use __builtin_memcpy for field assignment so PACKED_MEMBER union fields
    (4-byte unions storing 32-bit Mac addresses) accept pointer-sized values:
    on little-endian, the low 4 bytes of the pointer are the Mac address. */
-#define _HA(hp, f, v) __builtin_memcpy(&((hp)->f), &(v), sizeof((hp)->f))
+#define _HA(hp, f, v) __builtin_memcpy((char *)&((hp)->f), (const char *)&(v), sizeof((hp)->f))
 
 #define HASSIGN_1(h, f1, v1)			\
 ({						\

@@ -78,9 +78,9 @@ P2 (PUBLIC pascal trap, TEHandle, TENew, Rect *, dst, Rect *, view)
   tehlinestarts[0] = 0;
   tehlinestarts[1] = 0;  /* this one is only for mix & match w/mac */
   
-  temptehiddenh = RM ((tehiddenh) NewHandle(sizeof(tehidden)));
+  temptehiddenh = (tehiddenh) NewHandle (sizeof (tehidden));
   /* don't merge with line above */
-  TEHIDDENHX (teh) = temptehiddenh;
+  SET_TEHIDDENHX (teh, temptehiddenh);
   memset (STARH (TEHIDDENH (teh)), 0, sizeof (tehidden));
   
   TE_SLAM (teh);

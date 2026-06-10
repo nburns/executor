@@ -9,7 +9,11 @@ MAKE_HIDDEN(HIDDEN_CGrafPtr_Ptr);
 
 
 #define theCPort	(STARH (STARH ((HIDDEN_HIDDEN_CGrafPtr_Ptr *) SYN68K_TO_US(a5))))
-#define theCPortX	((*STARH ((HIDDEN_HIDDEN_CGrafPtr_Ptr *) SYN68K_TO_US(a5))).p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define theCPortX	((*STARH ((HIDDEN_HIDDEN_CGrafPtr_Ptr *) SYN68K_TO_US(a5))).p)
+#else
+# define theCPortX	((*STARH ((HIDDEN_HIDDEN_CGrafPtr_Ptr *) SYN68K_TO_US(a5))).pp)
+#endif
 
 #define minSeed 1024
 
@@ -458,14 +462,22 @@ extern HIDDEN_GDHandle	DeviceList_H;
 #if SIZEOF_CHAR_P == 4 && !FORCE_EXPERIMENTAL_PACKED_MACROS
 
 #  define TheGDevice	(TheGDevice_H.p)
+#  define SET_TheGDevice(v)	(TheGDevice_H.p = RM(v))
 #  define MainDevice	(MainDevice_H.p)
+#  define GET_MainDevice()	MR(MainDevice_H.p)
+#  define SET_MainDevice(v)	(MainDevice_H.p = RM(v))
 #  define DeviceList	(DeviceList_H.p)
+#  define SET_DeviceList(v)	(DeviceList_H.p = RM(v))
 
 #else
 
 #  define TheGDevice	PPR(TheGDevice_H)
+#  define SET_TheGDevice(v)	(TheGDevice_H.pp = RPP(v))
 #  define MainDevice	PPR(MainDevice_H)
+#  define GET_MainDevice()	((GDHandle) PPR(MainDevice_H))
+#  define SET_MainDevice(v)	(MainDevice_H.pp = RPP(v))
 #  define DeviceList	PPR(DeviceList_H)
+#  define SET_DeviceList(v)	(DeviceList_H.pp = RPP(v))
 
 #endif
 

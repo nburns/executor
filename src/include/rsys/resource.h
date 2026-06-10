@@ -111,7 +111,7 @@ extern Handle ROMlib_mgetres2(resmaphand map, resref *rr);
 					map = (resmaphand)HxP(map, nextmap)) {
 
 #define WALKMAPTOP(map) \
-	for (map = (resmaphand)MR(TopMapHndl); map; \
+	for (map = (resmaphand)FROM_HIDDEN(TopMapHndl_H); map; \
 					map = (resmaphand)HxP(map, nextmap)) {
 
 #define EWALKMAP() \

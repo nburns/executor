@@ -27,7 +27,7 @@ P1(PUBLIC pascal trap, INTEGER, UniqueID, ResType, typ)
     resref *rr;
     
     curmap = CurMap;
-    CurMap = ((resmap *) STARH(MR(TopMapHndl)))->resfn;
+    CurMap = ((resmap *) STARH(GET_TopMapHndl()))->resfn;
     while (ROMlib_typidtop(typ, ++startid, &map, &rr) != resNotFound)
         ;
     CurMap = curmap;
@@ -111,7 +111,7 @@ A2(PUBLIC, LONGINT, ROMlib_SizeResource, Handle, res, BOOLEAN, usehandle)
     if (ResErr != noErr)
 /*-->*/ return -1;
 
-    if (usehandle && (*res).p)	/* STARH is overkill */
+    if (usehandle && HPTR_VAL (res))	/* STARH is overkill */
 	retval = GetHandleSize(res);
     else {
 	loc = Hx(map, rh.rdatoff) + B3TOLONG(rr->doff);

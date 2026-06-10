@@ -100,7 +100,7 @@ P0(PUBLIC pascal trap, void, OpenRgn)
   /* sentinel */
   (RGN_DATA (rh))[0] = RGN_STOP_X;
   
-  PORT_REGION_SAVE_X (thePort) = (Handle) RM (rh);
+  PACKED_ASSIGN (PORT_REGION_SAVE_X (thePort), rh);
   HidePen();
 }
 
@@ -212,7 +212,7 @@ P1(PUBLIC pascal trap, void, CloseRgn, RgnHandle, rh)
   
   ROMlib_installhandle (PORT_REGION_SAVE (thePort), (Handle) rh);
   SetHandleSize ((Handle) rh, RGN_SIZE (rh));
-  PORT_REGION_SAVE_X (thePort) = RM (NULL);
+  PACKED_ASSIGN0 (PORT_REGION_SAVE_X (thePort));
   ShowPen ();
 }
 
@@ -1216,12 +1216,9 @@ P3(PUBLIC pascal trap, void, XorRgn, RgnHandle, s1, RgnHandle, s2,
     }
 
     if (RGN_SMALL_P (s1)) {
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
 	temp2.p = (RgnPtr) ALLOCA( RGN_SMALL_SIZE + 9 * sizeof(INTEGER) );
-#if 0
-	BlockMove(CL(*(Ptr *) s1), (Ptr) temp2.p, RGN_SMALL_SIZE);
-#else
 	memcpy((Ptr) temp2.p, MR(*(Ptr *) s1), RGN_SMALL_SIZE);
-#endif
 	op = (INTEGER *) ((char *)temp2.p + RGN_SMALL_SIZE);
 	*op++ = HxX(s1, rgnBBox.top);
 	*op++ = HxX(s1, rgnBBox.left);
@@ -1234,16 +1231,31 @@ P3(PUBLIC pascal trap, void, XorRgn, RgnHandle, s1, RgnHandle, s2,
 	*op++ = RGN_STOP_X;
 	ASSERT_SAFE (temp2.p);
 	temp2.p = RM(temp2.p);
+#else
+	{
+	    RgnPtr native2 = (RgnPtr) ALLOCA( RGN_SMALL_SIZE + 9 * sizeof(INTEGER) );
+	    memcpy((Ptr) native2, STARH (s1), RGN_SMALL_SIZE);
+	    op = (INTEGER *) ((char *) native2 + RGN_SMALL_SIZE);
+	    *op++ = HxX(s1, rgnBBox.top);
+	    *op++ = HxX(s1, rgnBBox.left);
+	    *op++ = HxX(s1, rgnBBox.right);
+	    *op++ = RGN_STOP_X;
+	    *op++ = HxX(s1, rgnBBox.bottom);
+	    *op++ = HxX(s1, rgnBBox.left);
+	    *op++ = HxX(s1, rgnBBox.right);
+	    *op++ = RGN_STOP_X;
+	    *op++ = RGN_STOP_X;
+	    ASSERT_SAFE (native2);
+	    temp2.pp = RPP (native2);
+	}
+#endif
 	s1 = &temp2;
     }
 
     if (RGN_SMALL_P (s2)) {
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
 	temp3.p = (RgnPtr) ALLOCA (RGN_SMALL_SIZE + 9 * sizeof (INTEGER));
-#if 0
-	BlockMove(CL(*(Ptr *) s2), (Ptr) temp3.p, RGN_SMALL_SIZE);
-#else
 	memcpy((Ptr) temp3.p, STARH (s2), RGN_SMALL_SIZE);
-#endif
 	op = (INTEGER *) ((char *)temp3.p + RGN_SMALL_SIZE);
 	*op++ = HxX(s2, rgnBBox.top);
 	*op++ = HxX(s2, rgnBBox.left);
@@ -1254,8 +1266,26 @@ P3(PUBLIC pascal trap, void, XorRgn, RgnHandle, s1, RgnHandle, s2,
 	*op++ = HxX(s2, rgnBBox.right);
 	*op++ = RGN_STOP_X;
 	*op++ = RGN_STOP_X;
-	ASSERT_SAFE (temp3.p);	
+	ASSERT_SAFE (temp3.p);
 	temp3.p = RM(temp3.p);
+#else
+	{
+	    RgnPtr native3 = (RgnPtr) ALLOCA (RGN_SMALL_SIZE + 9 * sizeof (INTEGER));
+	    memcpy((Ptr) native3, STARH (s2), RGN_SMALL_SIZE);
+	    op = (INTEGER *) ((char *) native3 + RGN_SMALL_SIZE);
+	    *op++ = HxX(s2, rgnBBox.top);
+	    *op++ = HxX(s2, rgnBBox.left);
+	    *op++ = HxX(s2, rgnBBox.right);
+	    *op++ = RGN_STOP_X;
+	    *op++ = HxX(s2, rgnBBox.bottom);
+	    *op++ = HxX(s2, rgnBBox.left);
+	    *op++ = HxX(s2, rgnBBox.right);
+	    *op++ = RGN_STOP_X;
+	    *op++ = RGN_STOP_X;
+	    ASSERT_SAFE (native3);
+	    temp3.pp = RPP (native3);
+	}
+#endif
 	s2 = &temp3;
     }
 

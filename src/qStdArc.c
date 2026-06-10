@@ -170,11 +170,11 @@ P4 (PUBLIC pascal trap, void, StdArc, GrafVerb, verb, Rect *, r,
   rh = NewRgn();
   CloseRgn (rh);
   PORT_PEN_VIS_X (thePort) = tmpvis;
-  saveclip = PORT_CLIP_REGION_X (thePort);
-  SectRgn (MR (saveclip), rh, rh);
-  PORT_CLIP_REGION_X (thePort) = RM (rh);
+  saveclip = PORT_CLIP_REGION (thePort);
+  SectRgn (saveclip, rh, rh);
+  PACKED_ASSIGN (PORT_CLIP_REGION_X (thePort), rh);
   StdOval (verb, r);
-  PORT_CLIP_REGION_X (thePort) = saveclip;
+  PACKED_ASSIGN (PORT_CLIP_REGION_X (thePort), saveclip);
   DisposeRgn (rh);
   RESUMERECORDING;
   PORT_PEN_LOC (thePort) = saveloc;

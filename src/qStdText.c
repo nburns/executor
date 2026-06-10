@@ -82,10 +82,10 @@ A5(PRIVATE, void, charblit, BitMap *, fbmp, BitMap *, tbmp,	/* INTERNAL */
  * I had a reason for this, but I don't currently remember it.
  */
     firstfromword = (unsigned short *)
-		    (MR(fbmp->baseAddr) + BITMAP_ROWBYTES (fbmp) *
+		    (PPR(fbmp->baseAddr) + BITMAP_ROWBYTES (fbmp) *
 		(CW(srect->top) - CW(fbmp->bounds.top) - 1)) + firstfrom / 16;
 
-    firsttoword = (unsigned short *) (MR(tbmp->baseAddr) + BITMAP_ROWBYTES (tbmp) *
+    firsttoword = (unsigned short *) (PPR(tbmp->baseAddr) + BITMAP_ROWBYTES (tbmp) *
 		   (CW(drect->top) - CW(tbmp->bounds.top) - 1)) + firstto / 16;
 /*
  * Calculate the number of words to be taken from one bitmap and the
@@ -357,10 +357,10 @@ text_helper (LONGINT n, Ptr textbufp, Point *nump, Point *denp,
     descent = Cx(fmop->descent);
 
   PAUSERECORDING;
-  fmopstate = HGetState((Handle) MR(fmop->fontHandle));
-  HLock(MR(fmop->fontHandle));
-  fp = (FontRec *) STARH(MR(fmop->fontHandle));
-  fmap.baseAddr = RM((Ptr) (&fp->rowWords + 1));
+  fmopstate = HGetState((Handle) PPR(fmop->fontHandle));
+  HLock(PPR(fmop->fontHandle));
+  fp = (FontRec *) STARH(PPR(fmop->fontHandle));
+  PACKED_ASSIGN(fmap.baseAddr, (Ptr) (&fp->rowWords + 1));
   fmap.rowBytes = CW(CW(fp->rowWords) * 2);
   fmap.bounds.left = fmap.bounds.top = 0;
   fmap.bounds.right = CW(CW(fp->rowWords) * 16);
@@ -442,8 +442,8 @@ text_helper (LONGINT n, Ptr textbufp, Point *nump, Point *denp,
 	stylemap.bounds.left = CW(CW(stylemap.bounds.left) - 1);
       nbytes = ((CW(stylemap.bounds.bottom) - CW(stylemap.bounds.top)) *
 		CW(stylemap.rowBytes));
-      stylemap.baseAddr = RM((Ptr) ALLOCA(nbytes));
-      memset(MR(stylemap.baseAddr), 0, nbytes);
+      PACKED_ASSIGN(stylemap.baseAddr, ALLOCA(nbytes));
+      memset(PPR(stylemap.baseAddr), 0, nbytes);
       bmp = &stylemap;
     }
 #if !defined(LETGCCWAIL)
@@ -475,7 +475,7 @@ text_helper (LONGINT n, Ptr textbufp, Point *nump, Point *denp,
   WIDTHPTR->tabData[' '] = CL (spacewidth);
   WIDTHPTR->sExtra = CL (space_extra);
   if (action == text_helper_draw)
-    ASSERT_SAFE(MR(stylemap.baseAddr));
+    ASSERT_SAFE(PPR(stylemap.baseAddr));
   for (ep = p + n; p != ep; p++)
     {
       if (charlocp)
@@ -492,7 +492,7 @@ text_helper (LONGINT n, Ptr textbufp, Point *nump, Point *denp,
 	  if (action == text_helper_draw)
 	    {
 	      charblit(&fmap, bmp, &misrect, &drect, TRUE);
-	      ASSERT_SAFE(MR(stylemap.baseAddr));
+	      ASSERT_SAFE(PPR(stylemap.baseAddr));
 	    }
 	  if (FractEnable)
 	    left += width;
@@ -511,7 +511,7 @@ text_helper (LONGINT n, Ptr textbufp, Point *nump, Point *denp,
 	  if (action == text_helper_draw)
 	    {
 	      charblit(&fmap, bmp, &srect, &drect, TRUE);
-	      ASSERT_SAFE(MR(stylemap.baseAddr));
+	      ASSERT_SAFE(PPR(stylemap.baseAddr));
 	    }
 	  if (FractEnable)
 	    left += width;
@@ -532,36 +532,36 @@ text_helper (LONGINT n, Ptr textbufp, Point *nump, Point *denp,
     }
   else
     {
-      ASSERT_SAFE(MR(stylemap.baseAddr));
+      ASSERT_SAFE(PPR(stylemap.baseAddr));
       stylemap.bounds.right = CW((left >> 16) + rightitalicoffset); 
       if (PORT_TX_FACE (thePort) & (int) bold)
 	{
 	  stylemap2 = stylemap;
-	  stylemap2.baseAddr = RM((Ptr) ALLOCA(nbytes));
-	  ASSERT_SAFE(MR(stylemap.baseAddr));
+	  PACKED_ASSIGN(stylemap2.baseAddr, ALLOCA(nbytes));
+	  ASSERT_SAFE(PPR(stylemap.baseAddr));
 #if 0
 	  BlockMove(MR(stylemap.baseAddr), MR(stylemap2.baseAddr), (Size) nbytes);
 #else
-	  memcpy(MR(stylemap2.baseAddr), MR(stylemap.baseAddr), (Size) nbytes);
+	  memcpy(PPR(stylemap2.baseAddr), PPR(stylemap.baseAddr), (Size) nbytes);
 #endif
 	  srect = stylemap.bounds;
 	  drect = srect;
       
-	  ASSERT_SAFE(MR(stylemap.baseAddr));
+	  ASSERT_SAFE(PPR(stylemap.baseAddr));
 	  for (i = 0; i++ < Cx(fmop->bold);)
 	    {
 	      drect.left = CW(CW(drect.left) + 1);
 	      srect.right = CW(CW(srect.right) - 1);
 	      charblit(&stylemap2, bmp, &srect, &drect, FALSE);
-	      ASSERT_SAFE(MR(stylemap.baseAddr));
+	      ASSERT_SAFE(PPR(stylemap.baseAddr));
 	    }
-	  ASSERT_SAFE(MR(stylemap.baseAddr));
+	  ASSERT_SAFE(PPR(stylemap.baseAddr));
 	}
       
-      ASSERT_SAFE(MR(stylemap.baseAddr));
+      ASSERT_SAFE(PPR(stylemap.baseAddr));
       if (PORT_TX_FACE (thePort) & (int) underline)
 	{
-	  p = ((unsigned char *) MR(bmp->baseAddr) + BITMAP_ROWBYTES (bmp) *
+	  p = ((unsigned char *) PPR(bmp->baseAddr) + BITMAP_ROWBYTES (bmp) *
 	       (CB(fmop->ascent)+1));
 	  for (i = 0; i++ < Cx(fmop->ulThick) ;)
 	    {
@@ -589,29 +589,29 @@ text_helper (LONGINT n, Ptr textbufp, Point *nump, Point *denp,
 		}
 	    }
 	}
-      ASSERT_SAFE(MR(stylemap.baseAddr));
+      ASSERT_SAFE(PPR(stylemap.baseAddr));
       
       if (PORT_TX_FACE (thePort) & (int) (outline|shadow))
 	{
 	  stylemap2 = stylemap;
 	  stylemap3 = stylemap;
-	  stylemap2.baseAddr = stylemap.baseAddr;
-	  stylemap3.baseAddr = RM((Ptr) ALLOCA(nbytes));
+	  PACKED_ASSIGN(stylemap2.baseAddr, PPR(stylemap.baseAddr));
+	  PACKED_ASSIGN(stylemap3.baseAddr, ALLOCA(nbytes));
 #if 0
 	  BlockMove(MR(stylemap2.baseAddr), MR(stylemap3.baseAddr),	(Size) nbytes);
 #else
-	  memcpy(MR(stylemap3.baseAddr), MR(stylemap2.baseAddr), (Size) nbytes);
+	  memcpy(PPR(stylemap3.baseAddr), PPR(stylemap2.baseAddr), (Size) nbytes);
 #endif
-	  stylemap.baseAddr = RM((Ptr) ALLOCA(nbytes));
+	  PACKED_ASSIGN(stylemap.baseAddr, ALLOCA(nbytes));
 
 	  srect = stylemap.bounds;
 	  drect = srect;
 
 	  srect.left = CW(CW(srect.left) + 1);
 	  drect.right = CW(CW(drect.right) - 1);
-	  ASSERT_SAFE(MR(stylemap.baseAddr));
+	  ASSERT_SAFE(PPR(stylemap.baseAddr));
 	  charblit(&stylemap2, &stylemap3, &srect, &drect, FALSE);
-	  ASSERT_SAFE(MR(stylemap.baseAddr));
+	  ASSERT_SAFE(PPR(stylemap.baseAddr));
 	  srect.left = CW(CW(srect.left) - 1); /* restore */
 	  drect.right = CW(CW(drect.right) + 1);
 	  for (i = 0; i++ < Cx(fmop->shadow); )
@@ -620,23 +620,23 @@ text_helper (LONGINT n, Ptr textbufp, Point *nump, Point *denp,
 	      srect.right = CW(CW(srect.right) - 1);
 	      charblit(&stylemap2, &stylemap3, &srect, &drect, FALSE);
 	    }
-	  ASSERT_SAFE(MR(stylemap.baseAddr));
+	  ASSERT_SAFE(PPR(stylemap.baseAddr));
 	  drect.left  = CW(CW(drect.left)  - Cx(fmop->shadow));	/* restore */
 	  srect.right = CW(CW(srect.right) + Cx(fmop->shadow));
 
 #if 0
-	  BlockMove(MR(stylemap3.baseAddr), MR(bmp->baseAddr), (Size) nbytes);
+	  BlockMove(MR(stylemap3.baseAddr), PPR(bmp->baseAddr), (Size) nbytes);
 #else
-	  memcpy(MR(bmp->baseAddr), MR(stylemap3.baseAddr), (Size) nbytes);
+	  memcpy(PPR(bmp->baseAddr), PPR(stylemap3.baseAddr), (Size) nbytes);
 #endif
 
 	  srect.top = CW(CW(srect.top) + 1);
 	  drect.bottom = CW(CW(drect.bottom) - 1);
-	  ASSERT_SAFE(MR(stylemap.baseAddr));
+	  ASSERT_SAFE(PPR(stylemap.baseAddr));
 	  charblit(&stylemap3, bmp, &srect, &drect, FALSE);
 	  srect.top = CW(CW(srect.top) - 1); /* restore */
 	  drect.bottom = CW(CW(drect.bottom) + 1);
-	  ASSERT_SAFE(MR(stylemap.baseAddr));
+	  ASSERT_SAFE(PPR(stylemap.baseAddr));
 	  for (i = 0; i++ < Cx(fmop->shadow); )
 	    {
 	      drect.top = CW(CW(drect.top) + 1);
@@ -646,8 +646,8 @@ text_helper (LONGINT n, Ptr textbufp, Point *nump, Point *denp,
 	  drect.top  = CW(CW(drect.top) - Cx(fmop->shadow)); /* restore */
 	  srect.bottom = CW(CW(srect.bottom) + Cx(fmop->shadow));
 
-	  ASSERT_SAFE(MR(stylemap3.baseAddr));
-	  ASSERT_SAFE(MR(stylemap.baseAddr));
+	  ASSERT_SAFE(PPR(stylemap3.baseAddr));
+	  ASSERT_SAFE(PPR(stylemap.baseAddr));
 	}
       
       drect.top    = CW(CW(bmp->bounds.top)
@@ -664,23 +664,23 @@ text_helper (LONGINT n, Ptr textbufp, Point *nump, Point *denp,
 				(Fixed) hOutput << 8) >> 16));
       srect = bmp->bounds;
       srect.left = CW(leftmost);
-      ASSERT_SAFE(MR(stylemap.baseAddr));
+      ASSERT_SAFE(PPR(stylemap.baseAddr));
       StdBits(bmp, &srect, &drect, PORT_TX_MODE (thePort) & 0x37, (RgnHandle)0);
-      ASSERT_SAFE(MR(stylemap.baseAddr));
+      ASSERT_SAFE(PPR(stylemap.baseAddr));
       if (PORT_TX_FACE (thePort) & (int) (outline|shadow))
 	{
-	  ASSERT_SAFE(MR(stylemap.baseAddr));
+	  ASSERT_SAFE(PPR(stylemap.baseAddr));
 	  StdBits(&stylemap2, &srect, &drect, srcXor, (RgnHandle)0);
-	  ASSERT_SAFE(MR(stylemap.baseAddr));
-	  ASSERT_SAFE (MR (stylemap2.baseAddr));
+	  ASSERT_SAFE(PPR(stylemap.baseAddr));
+	  ASSERT_SAFE (PPR (stylemap2.baseAddr));
 	}
       
       PORT_PEN_LOC (thePort).h = CW(CW(drect.right) - 
 				    (FixMul((LONGINT) rightitalicoffset << 16,
 					    (Fixed) hOutput << 8) >> 16));
-      ASSERT_SAFE(MR(stylemap.baseAddr));
+      ASSERT_SAFE(PPR(stylemap.baseAddr));
     }
-  HSetState(MR(fmop->fontHandle), fmopstate);
+  HSetState(PPR(fmop->fontHandle), fmopstate);
   HSetState((Handle) MR(WidthTabHandle), widthstate);
   RESUMERECORDING;
   ALLOCAEND

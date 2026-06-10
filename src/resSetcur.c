@@ -30,7 +30,7 @@ A4(PUBLIC, OSErr, ROMlib_findmapres, resmaphand, map, Handle, r,	/* INTERNAL */
     resref *rr;
 
     WALKTANDR(map, i, tr, j, rr)
-        if ((Handle) MR(rr->rhand) == r) {
+        if (PPR(rr->rhand) == r) {
             *trp = tr;
             *rrp = rr;
             return(noErr);

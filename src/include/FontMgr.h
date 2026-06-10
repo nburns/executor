@@ -180,12 +180,12 @@ extern INTEGER 	fondid;
 extern Byte 	FractEnable;
 #endif
 
-#define JSwapFont	(JSwapFont_H.p)
-#define WidthListHand	(WidthListHand_H.p)
-#define ROMFont0	(ROMFont0_H.p)
-#define WidthPtr	(WidthPtr_H.p)
-#define WidthTabHandle	(WidthTabHandle_H.p)
-#define LastFOND	(LastFOND_H.p)
+#define JSwapFont	HIDDEN_VAL(JSwapFont_H)
+#define WidthListHand	HIDDEN_VAL(WidthListHand_H)
+#define ROMFont0	HIDDEN_VAL(ROMFont0_H)
+#define WidthPtr	HIDDEN_VAL(WidthPtr_H)
+#define WidthTabHandle	HIDDEN_VAL(WidthTabHandle_H)
+#define LastFOND	HIDDEN_VAL(LastFOND_H)
 
 extern pascal trap void C_InitFonts( void  ); extern pascal trap void P_InitFonts( void ); 
 extern pascal trap void C_GetFontName( INTEGER fnum, 

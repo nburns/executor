@@ -38,7 +38,7 @@ P2(PUBLIC pascal trap, void, StdOval, GrafVerb, v, Rect *, rp)
 	    rh = ROMlib_circrgn(rp);
 	    switch (v) {
 	    case frame:
-		if (PORT_REGION_SAVE_X (thePort))
+		if (PORT_REGION_SAVE (thePort))
 		    XorRgn (rh,
 			    (RgnHandle) PORT_REGION_SAVE (thePort),
 			    (RgnHandle) PORT_REGION_SAVE (thePort));

@@ -21,17 +21,17 @@ char ROMlib_rcsid_qStandard[] =
 
 P1(PUBLIC pascal trap, void, SetStdProcs, QDProcs *, procs)
 {
-    procs->textProc = RM(PTRCAST P_StdText);
-    procs->lineProc = RM(PTRCAST P_StdLine);
-    procs->rectProc = RM(PTRCAST P_StdRect);
-    procs->rRectProc = RM(PTRCAST P_StdRRect);
-    procs->ovalProc = RM(PTRCAST P_StdOval);
-    procs->arcProc = RM(PTRCAST P_StdArc);
-    procs->polyProc = RM(PTRCAST P_StdPoly);
-    procs->rgnProc = RM(PTRCAST P_StdRgn);
-    procs->bitsProc = RM(PTRCAST P_StdBits);
-    procs->commentProc = RM(PTRCAST P_StdComment);
-    procs->txMeasProc = RM(PTRCAST P_StdTxMeas);
-    procs->getPicProc = RM(PTRCAST P_StdGetPic);
-    procs->putPicProc = RM(PTRCAST P_StdPutPic);
+    PACKED_ASSIGN(procs->textProc, PTRCAST P_StdText);
+    PACKED_ASSIGN(procs->lineProc, PTRCAST P_StdLine);
+    PACKED_ASSIGN(procs->rectProc, PTRCAST P_StdRect);
+    PACKED_ASSIGN(procs->rRectProc, PTRCAST P_StdRRect);
+    PACKED_ASSIGN(procs->ovalProc, PTRCAST P_StdOval);
+    PACKED_ASSIGN(procs->arcProc, PTRCAST P_StdArc);
+    PACKED_ASSIGN(procs->polyProc, PTRCAST P_StdPoly);
+    PACKED_ASSIGN(procs->rgnProc, PTRCAST P_StdRgn);
+    PACKED_ASSIGN(procs->bitsProc, PTRCAST P_StdBits);
+    PACKED_ASSIGN(procs->commentProc, PTRCAST P_StdComment);
+    PACKED_ASSIGN(procs->txMeasProc, PTRCAST P_StdTxMeas);
+    PACKED_ASSIGN(procs->getPicProc, PTRCAST P_StdGetPic);
+    PACKED_ASSIGN(procs->putPicProc, PTRCAST P_StdPutPic);
 }

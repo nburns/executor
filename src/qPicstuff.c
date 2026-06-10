@@ -1301,7 +1301,7 @@ A2(PRIVATE, void, eatbitdata, register BitMap *, bp, BOOLEAN, packed)
 	HLock(h);
 #if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
 	bp->baseAddr = (*h).p;	/* can't use STARH */
-	for (dp.p = MR(bp->baseAddr), ep = dp.p + datasize; dp.p < ep; ) {
+	for (dp.p = PPR(bp->baseAddr), ep = dp.p + datasize; dp.p < ep; ) {
 	    length = rowb > 250 ? eatINTEGER() : eatByte();
 	    if (procp) {
 		temph = NewHandle(length);

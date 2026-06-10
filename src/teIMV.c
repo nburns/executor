@@ -482,21 +482,21 @@ P2 (PUBLIC pascal trap, TEHandle, TEStylNew, Rect *, dst, Rect *, view)
      stHeight, CW (font_height),
      stAscent, font_info.ascent);
   
-  TE_STYLE_STYLE_TABLE_X (te_style) = RM (style_table);
+  SETP (te_style, styleTab, style_table);
   
   lh_table = (LHHandle) NewHandle (sizeof (LHElement));
   lh = STARH (lh_table);
   LH_HEIGHT_X (lh) = font_height;
   LH_ASCENT_X (lh) = font_info.ascent;
   
-  TE_STYLE_LH_TABLE_X (te_style) = RM (lh_table);
+  SETP (te_style, lhTab, lh_table);
   
   HxX(te_style, teRefCon) = 0;
   
   tempnullsth = (NullSTHandle) NewHandle(sizeof(NullSTRec));
-  HxX (te_style, nullStyle) = RM(tempnullsth);
+  SETP (te_style, nullStyle, tempnullsth);
   stsh = (StScrpHandle) NewHandle(sizeof(StScrpRec));
-  HxX (tempnullsth, nullScrap) = (StScrpHandle) RM(stsh);
+  SETP (tempnullsth, nullScrap, stsh);
   HxX (tempnullsth, TEReserved) = CLC(0);
   HxX (stsh, scrpNStyles) = CWC(0);
 
@@ -672,7 +672,7 @@ P3 (PUBLIC pascal trap, int32, TEGetHeight,
       
       te_style = TE_GET_STYLE (teh);
       
-      l = STARH (MR (STARH (te_style)->lhTab)) + startLine;
+      l = STARH (PPR (STARH (te_style)->lhTab)) + startLine;
       le = l + endLine - startLine;
       for ( ; l <= le ; l++)
 	retval += CW (l->lhHeight);

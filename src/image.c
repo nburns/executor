@@ -42,7 +42,7 @@ image_init (pixel_image_desc_t *image_desc)
 	   IMAGE_X_BITS (retval, i) = x_bits = NewPixMap ();
 	   IMAGE_X_BITS_VALID (retval, i) = -1;
 	   
-	   PIXMAP_BASEADDR_X (bits) = (Ptr) RM (image_desc->bits[i].raw_bits);
+	   PACKED_ASSIGN(PIXMAP_BASEADDR_X(bits), image_desc->bits[i].raw_bits);
 	   PIXMAP_SET_ROWBYTES_X (bits, CW (image_desc->bits[i].row_bytes));
 	   bounds.top    = CW (image_desc->bounds.top);
 	   bounds.left   = CW (image_desc->bounds.left);
@@ -86,7 +86,7 @@ image_init (pixel_image_desc_t *image_desc)
 	     x_row_bytes = MAX_ROWBYTES_FOR_WIDTH (width);
 	     p = NewPtr (x_row_bytes * height);
 	     memset (p, 0, x_row_bytes * height);
-	     PIXMAP_BASEADDR_X (x_bits) = RM (p);
+	     PACKED_ASSIGN(PIXMAP_BASEADDR_X(x_bits), p);
 	     PIXMAP_SET_ROWBYTES_X (x_bits, CW (x_row_bytes));
 	   }
 	 }

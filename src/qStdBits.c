@@ -99,7 +99,7 @@ canonicalize_bogo_map (BitMap *bogo_map, PixMap **canonical_addr,
 	PixMapHandle gd_pmap;
 	PixMap *canonical = *canonical_addr;
 	
-	canonical->baseAddr = bogo_map->baseAddr;
+	PACKED_ASSIGN (canonical->baseAddr, PPR (bogo_map->baseAddr));
 	canonical->bounds = bogo_map->bounds;
 	
 	canonical->pmVersion = CWC (0);
@@ -111,12 +111,12 @@ canonicalize_bogo_map (BitMap *bogo_map, PixMap **canonical_addr,
 	canonical->vRes = canonical->hRes = CWC (72);
 	
 	gd_pmap = GD_PMAP (MR (TheGDevice));
-	if (canonical->baseAddr == PIXMAP_BASEADDR_X (gd_pmap))
+	if (PPR (canonical->baseAddr) == PIXMAP_BASEADDR (gd_pmap))
 	  {
 	    pixmap_set_pixel_fields (canonical, PIXMAP_PIXEL_SIZE (gd_pmap));
 	    canonical->rowBytes = (PIXMAP_ROWBYTES_X (gd_pmap)
 				   | PIXMAP_DEFAULT_ROW_BYTES_X);
-	    canonical->pmTable = PIXMAP_TABLE_X (gd_pmap);
+	    PACKED_ASSIGN (canonical->pmTable, PIXMAP_TABLE (gd_pmap));
 
 	    info->cleanup_type = cleanup_none;
 	  }
@@ -127,7 +127,7 @@ canonicalize_bogo_map (BitMap *bogo_map, PixMap **canonical_addr,
 	    canonical->rowBytes = (bogo_map->rowBytes
 				   | PIXMAP_DEFAULT_ROW_BYTES_X);
 	    info->cleanup_type = cleanup_none;
-	    canonical->pmTable = RM (validate_relative_bw_ctab ());
+	    PACKED_ASSIGN (canonical->pmTable, validate_relative_bw_ctab ());
 	  }
 	canonical->planeBytes = CWC (0);
 
@@ -236,7 +236,7 @@ write_copybits_picdata (PixMap *src, PixMap *dst,
       (ApplZone,
        {
 	 if (FreeMemSys () >= FreeMem ())
-	   TheZone = SysZone;
+	   SET_TheZone (GET_SysZone ());
 	 
 	 pixmap_copy (src, src_rect,
 		      _src, _src_rect);
@@ -296,11 +296,11 @@ write_copybits_picdata (PixMap *src, PixMap *dst,
   if (! direct_bits_p)
     {
       LOCK_HANDLE_EXCURSION_1
-	(MR (src->pmTable),
+	(PPR (src->pmTable),
 	 {
 	   CTabPtr ctab;
 	   
-	   ctab = STARH (MR (src->pmTable));
+	   ctab = STARH (PPR (src->pmTable));
 	   
 	   /* write out the src color table */
 	   PICWRITE (&zero, sizeof zero);
@@ -336,7 +336,7 @@ write_copybits_picdata (PixMap *src, PixMap *dst,
 	{
 	  uint8 *current, *end;
 	  
-	  current = (uint8 *) MR (src->baseAddr) + 1;
+	  current = (uint8 *) PPR (src->baseAddr) + 1;
 	  end = current + row_bytes * height;
 	  
 	  while (current < end)
@@ -348,7 +348,7 @@ write_copybits_picdata (PixMap *src, PixMap *dst,
 	    PICWRITE ("", 1);
 	}
       else
-	PICWRITE (MR (src->baseAddr), row_bytes * height);
+	PICWRITE (PPR (src->baseAddr), row_bytes * height);
     }
   else
     {
@@ -364,10 +364,9 @@ write_copybits_picdata (PixMap *src, PixMap *dst,
       
       /* #### why the extra 5 bytes? */
       packed_line = alloca (row_bytes + 5);
-      baseaddr = (uint8 *) MR (src->baseAddr);
-      ip.p = (Ptr) baseaddr;
+      baseaddr = (uint8 *) PPR (src->baseAddr);
       parity = 0;
-      
+
       if (row_bytes > 250)
 	{
 	  countloc = (int8 *) &swappedcount;
@@ -379,6 +378,8 @@ write_copybits_picdata (PixMap *src, PixMap *dst,
 	  countsize = 1;
 	}
 
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+      ip.p = (Ptr) baseaddr;
       for (i = 0; i < height; i ++)
 	{
 	  op.p = (Ptr) RM (packed_line);
@@ -388,6 +389,15 @@ write_copybits_picdata (PixMap *src, PixMap *dst,
 	  op.p = MR (op.p);
 	  ip.p = MR (ip.p);
 	  count = op.p - (Ptr) packed_line;
+#else
+      ip.pp = RPP (baseaddr);
+      for (i = 0; i < height; i ++)
+	{
+	  op.pp = RPP (packed_line);
+	  gui_assert ((uint8 *) PPR (ip) == &baseaddr[row_bytes * i]);
+	  PackBits (&ip, &op, row_bytes);
+	  count = (uint8 *) PPR (op) - packed_line;
+#endif
 	  parity += count + countsize;
 	  swappedcount = CW (count);
 	  PICWRITE (countloc, countsize);
@@ -571,13 +581,13 @@ ROMlib_real_copy_bits_helper (PixMap *src, PixMap *dst,
   /* if the source and dest differ in depths, perform a depth
      conversion on the src, so it matches that of the depth */
   if (src->pixelSize != dst->pixelSize
-      || (src->pmTable != dst->pmTable &&
+      || (PPR (src->pmTable) != PPR (dst->pmTable) &&
 	  (CW (src->pixelSize) < 16
-	   && (CTAB_SEED_X (MR (src->pmTable))
+	   && (CTAB_SEED_X (PPR (src->pmTable))
 	       /* we assume the destination has the same color table as
 		  the current graphics device */
 	       != CTAB_SEED_X (PIXMAP_TABLE (GD_PMAP (the_gd)))
-	       && CTAB_SEED_X (MR (src->pmTable)) != CLC (0)))))
+	       && CTAB_SEED_X (PPR (src->pmTable)) != CLC (0)))))
     {
       PixMap *new_src = (PixMap *) alloca (sizeof (PixMap));
       /* convert_pixmap expects the src rect to be aligned to byte
@@ -634,10 +644,10 @@ ROMlib_real_copy_bits_helper (PixMap *src, PixMap *dst,
 			    * (CW (src_rect->bottom) - CW (src_rect->top)));
 
       TEMP_ALLOC_ALLOCATE (new_src_bits, temp_depth_bits, n_bytes_needed);
-      new_src->baseAddr = RM (new_src_bits);
-      
+      PACKED_ASSIGN (new_src->baseAddr, new_src_bits);
+
       pixmap_set_pixel_fields (new_src, dst_depth);
-      new_src->pmTable = PIXMAP_TABLE_X (the_gd_pmap);
+      PACKED_ASSIGN (new_src->pmTable, PIXMAP_TABLE (the_gd_pmap));
       
       /* don't initialize the color table of new_src; we assume that
 	 it has the same color space as the current graphics device */
@@ -673,7 +683,7 @@ ROMlib_real_copy_bits_helper (PixMap *src, PixMap *dst,
       
       TEMP_ALLOC_ALLOCATE (scale_base, temp_scale_bits,
 			   new_src_row_bytes * RECT_HEIGHT (dst_rect));
-      new_src->baseAddr = (Ptr) RM (scale_base);
+      PACKED_ASSIGN (new_src->baseAddr, scale_base);
       
       pixmap_set_pixel_fields (new_src, dst_depth);
       
@@ -698,7 +708,7 @@ ROMlib_real_copy_bits_helper (PixMap *src, PixMap *dst,
   if (mask)
     SectRgn (mask, mask_region, mask_region);
   
-  if (src->baseAddr == dst->baseAddr
+  if (PPR (src->baseAddr) == PPR (dst->baseAddr)
       && (src_dst_overlap_and_dst_below_src_p
 	  (src_rect, dst_rect,
 	   CW (dst->bounds.left) - CW (src->bounds.left),
@@ -740,7 +750,7 @@ ROMlib_real_copy_bits_helper (PixMap *src, PixMap *dst,
       new_src->rowBytes      = src->rowBytes;
       TEMP_ALLOC_ALLOCATE (overlap_bits, temp_overlap_bits,
 			   height * BITMAP_ROWBYTES (src));
-      new_src->baseAddr      = (Ptr) RM (overlap_bits);
+      PACKED_ASSIGN (new_src->baseAddr, overlap_bits);
       new_src->bounds        = copy_rect;
       
       pixmap_set_pixel_fields (new_src, dst_depth);
@@ -849,7 +859,7 @@ ROMlib_real_copy_bits (PixMap *src, PixMap *dst,
       TEMP_ALLOC_ALLOCATE (temp_bits, temp_alloc_bits, temp_bytes_needed);
 
       *new_src = *src;
-      new_src->baseAddr = RM (temp_bits);
+      PACKED_ASSIGN (new_src->baseAddr, temp_bits);
       new_src->rowBytes = CW (temp_row_bytes | PIXMAP_DEFAULT_ROWBYTES);
       new_src->bounds = *dst_rect;
 

@@ -273,17 +273,17 @@ PRIVATE Handle mgetres_helper (resmaphand map, resref *rr, int32 dlen,
 	  uncompressed_size = dlen;
 	}
 
-      if (!rr->rhand)
+      if (!rr->rhand.pp)
 	{
-	  TheZone = ((rr->ratr & resSysHeap)
-		     ? SysZone
-		     : RM (HandleZone ((Handle) map)));
+	  SET_TheZone ((rr->ratr & resSysHeap)
+		       ? GET_SysZone ()
+		       : HandleZone ((Handle) map));
 	  retval = NewHandle (uncompressed_size + dcmp_offset);
-	  rr->rhand = RM (retval);
+	  PACKED_ASSIGN (rr->rhand, retval);
 	}
       else
 	{
-	  retval = MR (rr->rhand);
+	  retval = PPR (rr->rhand);
 	  ReallocHandle (retval, uncompressed_size + dcmp_offset);
 	}
       err = MemError ();
@@ -293,8 +293,8 @@ PRIVATE Handle mgetres_helper (resmaphand map, resref *rr, int32 dlen,
 	{
 	  if (dcmp_workspace)
 	    DisposPtr (dcmp_workspace);
-	  DisposHandle (MR (rr->rhand));
-	  rr->rhand = NULL;
+	  DisposHandle (PPR (rr->rhand));
+	  PACKED_ASSIGN0 (rr->rhand);
 	  retval = NULL;
 	}
       else
@@ -336,8 +336,8 @@ ROMlib_mgetres2 (resmaphand map, resref *rr)
 {
   Handle retval;
 
-  retval = MR (rr->rhand);
-  if (retval && retval->p)
+  retval = PPR (rr->rhand);
+  if (retval && HPTR_VAL (retval))
     ROMlib_setreserr (noErr);
   else
     {
@@ -345,7 +345,7 @@ ROMlib_mgetres2 (resmaphand map, resref *rr)
       SignedByte state;
       int32 loc;
 
-      savezone = TheZone;
+      savezone = GET_TheZone ();
       state = hlock_return_orig_state ((Handle) map);
       loc = Hx (map, rh.rdatoff) + B3TOLONG (rr->doff);
       ROMlib_setreserr (SetFPos (Hx (map, resfn), fsFromStart, loc));
@@ -367,19 +367,19 @@ ROMlib_mgetres2 (resmaphand map, resref *rr)
 	      dlen = CL (dlen);
 	      if (ResLoad)
 		retval = mgetres_helper (map, rr, dlen, retval);
-	      else if (!rr->rhand)
+	      else if (!rr->rhand.pp)
 		{
-		  TheZone = ((rr->ratr & resSysHeap)
-			     ? SysZone
-			     : RM (HandleZone ((Handle) map)));
+		  SET_TheZone ((rr->ratr & resSysHeap)
+			       ? GET_SysZone ()
+			       : HandleZone ((Handle) map));
 		  retval = NewEmptyHandle ();
-		  rr->rhand = RM (retval);
+		  PACKED_ASSIGN (rr->rhand, retval);
 		}
-  
+
 	      /* we can only set the state bits if the block pointer
 		 is non-nil */
 
-	      if (retval && retval->p)
+	      if (retval && HPTR_VAL (retval))
 		HSetState (retval,
 			   (RSRCBIT
 			    | ((rr->ratr & resLocked)    ? LOCKBIT  : 0)
@@ -388,7 +388,7 @@ ROMlib_mgetres2 (resmaphand map, resref *rr)
 	    }
 	}
       HSetState ((Handle) map, state);
-      TheZone = savezone;
+      SET_TheZone (savezone);
     }
   return retval;
 }
@@ -442,7 +442,7 @@ P1(PUBLIC pascal trap, void, CloseResFile, INTEGER, rn)
 
     ROMlib_invalar();
     if (rn == REF0) {
-	for (map = (resmaphand) MR(TopMapHndl); map; map = nextmap) {
+	for (map = (resmaphand) GET_TopMapHndl(); map; map = nextmap) {
 	    nextmap = (resmaphand) HxP(map, nextmap);
 	    CloseResFile(Hx(map, resfn));
         }
@@ -461,15 +461,15 @@ P1(PUBLIC pascal trap, void, CloseResFile, INTEGER, rn)
         
         /* update linked list */
         
-        if (map == (resmaphand)MR(TopMapHndl))
-            TopMapHndl = HxX(map, nextmap);
+        if (map == (resmaphand)GET_TopMapHndl())
+            SET_TopMapHndl (HxP (map, nextmap));
         else
             HxX(ph, nextmap) = HxX(map, nextmap);
 
 	if (Cx(CurMap) == rn)
 	  {
-	    if (TopMapHndl)
-		CurMap = STARH((resmaphand)MR(TopMapHndl))->resfn;
+	    if (GET_TopMapHndl ())
+		CurMap = STARH((resmaphand)GET_TopMapHndl())->resfn;
 	    else
 		CurMap = 0;
 	  }
@@ -480,11 +480,10 @@ P1(PUBLIC pascal trap, void, CloseResFile, INTEGER, rn)
 	  {
 	    Handle h;
 
-	    h = rr->rhand;
-            if (h)
+	    if (rr->rhand.pp)
 	      {
-		h = MR (h);
-		if ((*h).p)
+		h = PPR (rr->rhand);
+		if (HPTR_VAL (h))
 		  HClrRBit (h);
                 DisposHandle (h);
 	      }
@@ -544,7 +543,7 @@ P4 (PUBLIC pascal trap, INTEGER, HOpenResFile, INTEGER, vref, LONGINT, dirid,
       Str255 local_name;
 
       str255assign (local_name, fn);
-      pbr.volumeParam.ioNamePtr = (StringPtr) RM ((Ptr) local_name);
+      PACKED_ASSIGN (pbr.volumeParam.ioNamePtr, (StringPtr) local_name);
       pbr.volumeParam.ioVRefNum = CW (vref);
       pbr.volumeParam.ioVolIndex = CLC (-1);
       err = PBHGetVInfo (&pbr, FALSE);
@@ -554,7 +553,7 @@ P4 (PUBLIC pascal trap, INTEGER, HOpenResFile, INTEGER, vref, LONGINT, dirid,
 	  return -1;
 	}
 
-      cpb.hFileInfo.ioNamePtr = RM (fn);
+      PACKED_ASSIGN (cpb.hFileInfo.ioNamePtr, fn);
       cpb.hFileInfo.ioVRefNum = CW (vref);
       cpb.hFileInfo.ioFDirIndex = CWC (0);
       cpb.hFileInfo.ioDirID = CL (dirid);
@@ -577,7 +576,7 @@ P4 (PUBLIC pascal trap, INTEGER, HOpenResFile, INTEGER, vref, LONGINT, dirid,
 /*-->*/	return -1;
 
     ROMlib_invalar();
-    pbr.ioParam.ioNamePtr = RM (fn);
+    PACKED_ASSIGN (pbr.ioParam.ioNamePtr, fn);
     pbr.ioParam.ioVRefNum = CW (vref);
     pbr.fileParam.ioFDirIndex = CWC (0);
     pbr.ioParam.ioPermssn = CB (perm);
@@ -647,15 +646,15 @@ P4 (PUBLIC pascal trap, INTEGER, HOpenResFile, INTEGER, vref, LONGINT, dirid,
         return(-1);
     }
     
-    HxX(map, nextmap) = TopMapHndl;
+    SETP (map, nextmap, GET_TopMapHndl ());
     HxX(map, resfn) = CW(f);
-    TopMapHndl = RM((Handle) map);
+    SET_TopMapHndl((Handle) map);
     CurMap = CW(f);
 
     /* check for resprload bits */
 
     WALKTANDR(map, i, tr, j, rr)
-        rr->rhand = 0;
+        PACKED_ASSIGN0 (rr->rhand);
         rr->ratr &= ~resChanged;
         if (rr->ratr & resPreload)
             ROMlib_mgetres(map, rr);

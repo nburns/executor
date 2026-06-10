@@ -1397,7 +1397,7 @@ A1(PRIVATE, BOOLEAN, trackdirs, DialogPeek, dp)
 	 /* Allocate potentially large temporary pixmap space. */
 	 TEMP_ALLOC_ALLOCATE (save_bits_mem, temp_save_bits,
 			      CW (bounds->bottom) * row_bytes);
-	 PIXMAP_BASEADDR_X (save_bits) = RM (save_bits_mem);
+	 PACKED_ASSIGN(PIXMAP_BASEADDR_X(save_bits), save_bits_mem);
 	 WRAPPER_SET_PIXMAP_X (wrapper, RM (save_bits));
 	 
 	 CopyBits (PORT_BITS_FOR_COPY (thePort), wrapper,

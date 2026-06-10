@@ -600,7 +600,7 @@ P1 (PUBLIC pascal trap, void, TECopy, TEHandle, te)
   HLock (hText);
   Text = (char *) STARH (hText);
   
-  PtrToXHand ((Ptr) &Text[start], MR (TEScrpHandle), len);
+  PtrToXHand ((Ptr) &Text[start], GET_TEScrpHandle (), len);
   if (TE_STYLIZED_P (te))
     {
       TEStyleHandle te_style;
@@ -669,7 +669,7 @@ P1 (PUBLIC pascal trap, void, TECopy, TEHandle, te)
 #if defined(X) || defined(NEXTSTEP) || defined(SDL)
   /* ### should this lock `TEScrpHandle'? */
   PutScrapX (TICK("TEXT"), CW (TEScrpLength),
-	     (char *) STARH (MR (TEScrpHandle)), CW(ScrapCount));
+	     (char *) STARH (GET_TEScrpHandle()), CW(ScrapCount));
 #endif /* defined(X) */
 
   HSetState (hText, hText_flags);
@@ -686,14 +686,14 @@ P1(PUBLIC pascal trap, void, TEPaste, TEHandle, teh)
 #if defined(X) || defined(NEXTSTEP) || defined(SDL)
   Size s;
   
-  s = GetScrapX (TICK("TEXT"), (char **) MR (TEScrpHandle));
+  s = GetScrapX (TICK("TEXT"), (char **) GET_TEScrpHandle());
   if (s >= 0)
     TEScrpLength = CW (s);
 #endif /* defined(X) */
   LOCK_HANDLE_EXCURSION_1
-    (MR (TEScrpHandle),
+    (GET_TEScrpHandle(),
      {
-       ROMlib_tedoitall (teh, STARH (MR (TEScrpHandle)), CW (TEScrpLength),
+       ROMlib_tedoitall (teh, STARH (GET_TEScrpHandle()), CW (TEScrpLength),
 			 FALSE, NULL);
      });
 }

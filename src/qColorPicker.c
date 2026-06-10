@@ -42,7 +42,7 @@ char ROMlib_rcsid_qColorPicker[] =
     HIDDEN_ControlHandle bogo_c;		\
 						\
     retval = FindControl (arg0, arg1, &bogo_c);	\
-    *(arg2) = MR (bogo_c.p);			\
+    *(arg2) = FROM_HIDDEN (bogo_c);			\
 						\
     retval;					\
   })
@@ -557,7 +557,7 @@ text_box_miniarrow_update (struct text_box *box,
       break;
     }
   
-  miniarrow_bitmap.baseAddr = RM ((Ptr) bits);
+  PACKED_ASSIGN (miniarrow_bitmap.baseAddr, bits);
   miniarrow_bitmap.rowBytes = CWC (2);
   SetRect (&miniarrow_bitmap.bounds, 0, 0, 13, 22);
   
@@ -1123,11 +1123,10 @@ color_wheel_init (void)
   InsetRect (color_wheel_bounds, -8, -8);
   
   bpp = PIXMAP_PIXEL_SIZE (GD_PMAP (MR (MainDevice)));
-  color_wheel_pixmap.baseAddr = RM ((bpp == 8)
-				    ? (Ptr) color_wheel_bits_8
-				    : (bpp == 4
-				       ? (Ptr) color_wheel_bits_4
-				       : (gui_abort (), NULL)));
+  PACKED_ASSIGN (color_wheel_pixmap.baseAddr,
+		 (bpp == 8) ? (Ptr) color_wheel_bits_8
+		 : (bpp == 4 ? (Ptr) color_wheel_bits_4
+		    : (gui_abort (), (Ptr) NULL)));
   color_wheel_pixmap.rowBytes = CW ((bpp == 8)
 				    ? 0x80D0
 				    : (bpp == 4
@@ -1135,7 +1134,7 @@ color_wheel_init (void)
 				       : (gui_abort (), -1)));
   SetRect (&color_wheel_pixmap.bounds, 0, 0, 208, 208);
   pixmap_set_pixel_fields (&color_wheel_pixmap, bpp);
-  color_wheel_pixmap.pmTable = RM (no_stdbits_color_conversion_color_table);
+  PACKED_ASSIGN (color_wheel_pixmap.pmTable, no_stdbits_color_conversion_color_table);
   
   current_target_x = color_wheel_center_x;
   current_target_y = color_wheel_center_y;

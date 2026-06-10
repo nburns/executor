@@ -55,8 +55,8 @@ scale_blt_bitmap (const blt_bitmap_t *src_bitmap, blt_bitmap_t *dst_bitmap,
   dst_byte_width = ((new_width << log2_bits_per_pixel) + 7) / 8;
   dst_rowbytes = (dst_byte_width + 3) & ~3;  /* Divisible by 4. */
   src_rowbytes = BITMAP_ROWBYTES (src_bitmap);
-  dst_row_base = (uint8 *) MR (dst_bitmap->baseAddr);
-  src_base = (uint8 *) (MR (src_bitmap->baseAddr)
+  dst_row_base = (uint8 *) PPR (dst_bitmap->baseAddr);
+  src_base = (uint8 *) (PPR (src_bitmap->baseAddr)
 	      + ((CW (old_rect->top) - CW (src_bitmap->bounds.top)) * src_rowbytes));
   left_x = (CW (old_rect->left) - CW (src_bitmap->bounds.left)) << 16;
   old_v = -1;

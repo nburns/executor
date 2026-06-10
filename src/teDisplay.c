@@ -90,12 +90,12 @@ P3 (PUBLIC pascal trap, void, TEScroll, int16, dh, int16, dv, TEHandle, te)
   
   save_vis = PORT_VIS_REGION (thePort);
   SectRgn (rh, save_vis, rh);
-  PORT_VIS_REGION_X (thePort) = RM (rh);
-  
+  PACKED_ASSIGN (PORT_VIS_REGION_X (thePort), rh);
+
   vis_rgn_bbox = RGN_BBOX (PORT_VIS_REGION (thePort));
   TEUpdate (&vis_rgn_bbox, te);
-  
-  PORT_VIS_REGION_X (thePort) = RM (save_vis);
+
+  PACKED_ASSIGN (PORT_VIS_REGION_X (thePort), save_vis);
   DisposeRgn (rh);
   
   TRAPEND ();

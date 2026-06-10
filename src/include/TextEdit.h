@@ -426,7 +426,7 @@ extern void ROMlib_sledgehammer_te (TEHandle te);
 #define NULL_STYLE_NULL_SCRAP_X(null_style)	\
   (HxX ((null_style), nullScrap))
 #define NULL_STYLE_NULL_SCRAP(null_style)	\
-  (MR (NULL_STYLE_NULL_SCRAP_X (null_style)))
+  (PPR (NULL_STYLE_NULL_SCRAP_X (null_style)))
 
 #define SCRAP_N_STYLES_X(scrap)			\
   (HxX ((scrap), scrpNStyles))
@@ -507,8 +507,17 @@ extern HIDDEN_Handle 	TEScrpHandle_H;
 extern INTEGER 	TEScrpLength;
 #endif
 
-#define TEDoText	(TEDoText_H.p)
-#define TEScrpHandle	(TEScrpHandle_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define TEDoText	(TEDoText_H.p)
+# define TEScrpHandle	(TEScrpHandle_H.p)
+# define GET_TEScrpHandle()	MR(TEScrpHandle_H.p)
+# define SET_TEScrpHandle(v)	(TEScrpHandle_H.p = RM(v))
+# define SET_TEDoText(v)	(TEDoText_H.p = RM(v))
+#else
+# define GET_TEScrpHandle()	((Handle) PPR(TEScrpHandle_H))
+# define SET_TEScrpHandle(v)	(TEScrpHandle_H.pp = RPP(v))
+# define SET_TEDoText(v)	(TEDoText_H.pp = RPP(v))
+#endif
 
 extern pascal trap void C_TESetText( Ptr p, LONGINT ln, TEHandle teh ); extern pascal trap void P_TESetText( Ptr p, LONGINT ln, TEHandle teh); 
 extern pascal trap CharsHandle C_TEGetText( TEHandle teh ); extern pascal trap CharsHandle P_TEGetText( TEHandle teh); 

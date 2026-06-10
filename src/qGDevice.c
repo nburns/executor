@@ -71,7 +71,8 @@ gd_allocate_main_device (void)
  				     mode_from_bpp (vdriver_bpp));
 
        /* we are the main device, since there are currently no others */
-       TheGDevice = MainDevice = RM (graphics_device);
+       SET_TheGDevice (graphics_device);
+       SET_MainDevice (graphics_device);
 
        /* set gd flags reflective of the main device */
        GD_FLAGS_X (graphics_device) |= CWC (  (1 << mainScreen)
@@ -93,7 +94,7 @@ gd_allocate_main_device (void)
        
        gd_pixmap = GD_PMAP (graphics_device);
        PIXMAP_SET_ROWBYTES_X (gd_pixmap, CW (vdriver_row_bytes));
-       PIXMAP_BASEADDR_X (gd_pixmap) = (Ptr) RM (vdriver_fbuf);
+       PACKED_ASSIGN (PIXMAP_BASEADDR_X (gd_pixmap), vdriver_fbuf);
 
        gd_rect = &GD_RECT (graphics_device);
        gd_rect->top = gd_rect->left = CWC (0);
@@ -102,8 +103,8 @@ gd_allocate_main_device (void)
        PIXMAP_BOUNDS (gd_pixmap) = *gd_rect;
 
        /* add ourselves to the device list */
-       GD_NEXT_GD_X (graphics_device) = DeviceList;
-       DeviceList = RM (graphics_device);
+       PACKED_ASSIGN (GD_NEXT_GD_X (graphics_device), DeviceList);
+       SET_DeviceList (graphics_device);
        
        /* Assure that we're using the correct colors. */
        vdriver_set_colors (0, 1 << vdriver_bpp,
@@ -117,8 +118,6 @@ P2 (PUBLIC pascal trap, GDHandle, NewGDevice,
     LONGINT, mode)
 {
   GDHandle this;
-  Handle h;
-  PixMapHandle pmh;
   
   ZONE_SAVE_EXCURSION
     (SysZone,
@@ -136,38 +135,36 @@ P2 (PUBLIC pascal trap, GDHandle, NewGDevice,
        GD_TYPE_X (this) = CWC (clutType);
 
        /* how do i allocate a new inverse color table? */
-       h = RM (NewHandle (0));
-       GD_ITABLE_X (this) = (ITabHandle) h;
+       PACKED_ASSIGN (GD_ITABLE_X (this), (ITabHandle) NewHandle (0));
        GD_RES_PREF_X (this) = CWC (DEFAULT_ITABLE_RESOLUTION);
-  
-       GD_SEARCH_PROC_X (this) = RM (NULL);
-       GD_COMP_PROC_X (this) = RM (NULL);
+
+       PACKED_ASSIGN0 (GD_SEARCH_PROC_X (this));
+       PACKED_ASSIGN0 (GD_COMP_PROC_X (this));
 
        GD_FLAGS_X (this) = CWC (0);
        /* mode_from_bpp (1)  indicates b/w hardware */
        if (mode != mode_from_bpp (1))
 	 GD_FLAGS_X (this) |= CWC (1 << gdDevType);
-    
-       pmh = RM (NewPixMap ());
-       GD_PMAP_X (this) = pmh;
+
+       PACKED_ASSIGN (GD_PMAP_X (this), NewPixMap ());
        CTAB_FLAGS_X (PIXMAP_TABLE (GD_PMAP (this))) |= CTAB_GDEVICE_BIT_X;
-  
+
        GD_REF_CON_X (this) = CWC (0);  /* ??? */
        GD_REF_NUM_X (this) = CW (ref_num);  /* ??? */
        GD_MODE_X (this) = CL (mode);  /* ??? */
 
-       GD_NEXT_GD_X (this) = RM (NULL);
+       PACKED_ASSIGN0 (GD_NEXT_GD_X (this));
 
        GD_RECT (this).top = CWC (0);
        GD_RECT (this).left = CWC (0);
        GD_RECT (this).bottom = CWC (0);
        GD_RECT (this).right = CWC (0);
-  
+
        /* handle to cursor's expanded data/mask? */
        GD_CCBYTES_X (this) = CWC (0);
        GD_CCDEPTH_X (this) = CWC (0);
-       GD_CCXDATA_X (this) = RM (NULL);
-       GD_CCXMASK_X (this) = RM (NULL);
+       PACKED_ASSIGN0 (GD_CCXDATA_X (this));
+       PACKED_ASSIGN0 (GD_CCXMASK_X (this));
 
        GD_RESERVED_X (this) = CWC (0);
   
@@ -272,9 +269,9 @@ P3 (PUBLIC pascal trap, void, SetDeviceAttribute,
 P1 (PUBLIC pascal trap, void, SetGDevice,
     GDHandle, gdh)
 {
-  if (TheGDevice != RM (gdh))
+  if (TheGDevice != gdh)
     {
-      TheGDevice = RM (gdh);
+      SET_TheGDevice (gdh);
       ROMlib_invalidate_conversion_tables ();
     }
 }
@@ -344,7 +341,7 @@ P4 (PUBLIC pascal trap, void, DeviceLoop,
   RgnHandle save_vis_rgn_x;
   RgnHandle sect_rgn, gd_rect_rgn;
 
-  save_vis_rgn_x = PORT_VIS_REGION_X (thePort);
+  save_vis_rgn_x = PORT_VIS_REGION (thePort);
 
   sect_rgn = NewRgn ();
   gd_rect_rgn = NewRgn ();
@@ -379,7 +376,7 @@ P4 (PUBLIC pascal trap, void, DeviceLoop,
 	    SectRgn (sect_rgn, PORT_VIS_REGION (thePort), sect_rgn);
 
 	    /* Save it away in thePort. */
-	    PORT_VIS_REGION_X (thePort) = RM (sect_rgn);
+	    PACKED_ASSIGN (PORT_VIS_REGION_X (thePort), sect_rgn);
 	  }
 	
 	if ((flags & allDevices) || !EmptyRgn (sect_rgn))
@@ -390,7 +387,7 @@ P4 (PUBLIC pascal trap, void, DeviceLoop,
 	  }
       }
 
-  PORT_VIS_REGION_X (thePort) = save_vis_rgn_x;
+  PACKED_ASSIGN (PORT_VIS_REGION_X (thePort), save_vis_rgn_x);
 
   DisposeRgn (gd_rect_rgn);
   DisposeRgn (sect_rgn);
@@ -499,7 +496,7 @@ P4 (PUBLIC pascal trap, OSErr, SetDepth,
 
   if (WWExist == EXIST_YES)
     {
-      for (tw = MR (WindowList); tw; tw = WINDOW_NEXT_WINDOW (tw))
+      for (tw = GET_WindowList (); tw; tw = WINDOW_NEXT_WINDOW (tw))
 	{
 	  GrafPtr gp;
 
@@ -537,7 +534,7 @@ P4 (PUBLIC pascal trap, OSErr, SetDepth,
       {
 	PixMapHandle wmgr_cport_pixmap;
 
-	wmgr_cport_pixmap = CPORT_PIXMAP (MR (WMgrCPort));
+	wmgr_cport_pixmap = CPORT_PIXMAP (GET_WMgrCPort ());
 
 	PIXMAP_PIXEL_SIZE_X (wmgr_cport_pixmap)
 	  = PIXMAP_PIXEL_SIZE_X (gd_pixmap);
