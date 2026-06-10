@@ -69,7 +69,12 @@ extern RGBColor *validate_colors_for_window (GrafPtr w);
 
    of course, our definition files use only the WMgrCPort */
 
-#define wmgr_port ((GrafPtr) (WMgrCPort))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define wmgr_port ((GrafPtr)(WMgrCPort))
+#else
+/* On 64-bit, return the Mac address as a GrafPtr so MR(wmgr_port) works correctly */
+# define wmgr_port ((GrafPtr)(uintptr_t)(WMgrCPort_H.pp))
+#endif
 
 /* WindowPeek accessors;
    note these functions cast thier argument to type (WindowPeek),
@@ -105,16 +110,16 @@ extern RGBColor *validate_colors_for_window (GrafPtr w);
 #define WINDOW_GO_AWAY_FLAG(wp)		(Cx (WINDOW_GO_AWAY_FLAG_X (wp)))
 #define WINDOW_SPARE_FLAG(wp)		(Cx (WINDOW_SPARE_FLAG_X (wp)))
 
-#define WINDOW_STRUCT_REGION(wp)	(MR (WINDOW_STRUCT_REGION_X (wp)))
-#define WINDOW_CONT_REGION(wp)		(MR (WINDOW_CONT_REGION_X (wp)))
-#define WINDOW_UPDATE_REGION(wp)	(MR (WINDOW_UPDATE_REGION_X (wp)))
-#define WINDOW_DEF_PROC(wp)		(MR (WINDOW_DEF_PROC_X (wp)))
-#define WINDOW_DATA(wp)			(MR (WINDOW_DATA_X (wp)))
-#define WINDOW_TITLE(wp)		(MR (WINDOW_TITLE_X (wp)))
+#define WINDOW_STRUCT_REGION(wp)	(PPR (WINDOW_STRUCT_REGION_X (wp)))
+#define WINDOW_CONT_REGION(wp)		(PPR (WINDOW_CONT_REGION_X (wp)))
+#define WINDOW_UPDATE_REGION(wp)	(PPR (WINDOW_UPDATE_REGION_X (wp)))
+#define WINDOW_DEF_PROC(wp)		(PPR (WINDOW_DEF_PROC_X (wp)))
+#define WINDOW_DATA(wp)			(PPR (WINDOW_DATA_X (wp)))
+#define WINDOW_TITLE(wp)		(PPR (WINDOW_TITLE_X (wp)))
 #define WINDOW_TITLE_WIDTH(wp)		(Cx (WINDOW_TITLE_WIDTH_X (wp)))
-#define WINDOW_CONTROL_LIST(wp)		(MR (WINDOW_CONTROL_LIST_X (wp)))
-#define WINDOW_NEXT_WINDOW(wp)		(MR (WINDOW_NEXT_WINDOW_X (wp)))
-#define WINDOW_PIC(wp)			(MR (WINDOW_PIC_X (wp)))
+#define WINDOW_CONTROL_LIST(wp)		(PPR (WINDOW_CONTROL_LIST_X (wp)))
+#define WINDOW_NEXT_WINDOW(wp)		(PPR (WINDOW_NEXT_WINDOW_X (wp)))
+#define WINDOW_PIC(wp)			(PPR (WINDOW_PIC_X (wp)))
 #define WINDOW_REF_CON(wp)		(Cx (WINDOW_REF_CON_X (wp)))
 
 #endif /* !_WIND_H_ */

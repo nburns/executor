@@ -124,21 +124,22 @@ P9(PUBLIC pascal trap, ListHandle,  LNew, Rect *, rview,	/* IMIV-270 */
     if (!retval)
 /*-->*/	return 0;	/* couldn't allocate memory */
 
-    temph = RM(GetResource(TICK("LDEF"), proc));
-    if (!(HxX(retval, listDefProc) = temph)) {
+    temph = GetResource(TICK("LDEF"), proc);
+    PACKED_ASSIGN(HxX(retval, listDefProc), temph);
+    if (!HxX(retval, listDefProc).pp) {
 	DisposHandle((Handle) retval);
 /*-->*/	return 0;	/* spooey list definition proc */
     }
 
     TRAPBEGIN();
-    tempdatah = RM((DataHandle) NewHandle(0));
-    HxX(retval, cells) = tempdatah;
+    tempdatah = (DataHandle) NewHandle(0);
+    PACKED_ASSIGN(HxX(retval, cells), tempdatah);
     HLock((Handle) retval);
     lp = STARH(retval);
 
     lp->dataBounds  = *bounds;
     lp->rView       = *rview;
-    lp->port        = RM(wind);
+    PACKED_ASSIGN(lp->port, wind);
     lp->indent.h    = 0;
     lp->indent.v    = 0;
     lp->selFlags    = 0;
@@ -153,11 +154,11 @@ P9(PUBLIC pascal trap, ListHandle,  LNew, Rect *, rview,	/* IMIV-270 */
     lp->clikLoc.v   = CWC(-32768);
     lp->mouseLoc.h  = -1;
     lp->mouseLoc.v  = -1;
-    lp->lClikLoop   = 0;
+    PACKED_ASSIGN0(lp->lClikLoop);
     lp->lastClick.h = -1;
     lp->lastClick.v = -1;
     lp->refCon      = 0;
-    lp->userHandle  = (Handle) 0;
+    PACKED_ASSIGN0(lp->userHandle);
     lp->maxIndex    = -1;	/* What is this anyway? */
     ip = (INTEGER *) lp->cellArray;
     for (i = 0; i <= noffs; i++)
@@ -165,8 +166,8 @@ P9(PUBLIC pascal trap, ListHandle,  LNew, Rect *, rview,	/* IMIV-270 */
 
     lp->visible.top  = bounds->top;
     lp->visible.left = bounds->left;
-    lp->vScroll = 0;
-    lp->hScroll = 0;
+    PACKED_ASSIGN0(lp->vScroll);
+    PACKED_ASSIGN0(lp->hScroll);
     C_LCellSize(csize, retval);	/* sets cellSize and visible */
 
     lp->listFlags = draw ? DODRAW : 0;
@@ -177,9 +178,9 @@ P9(PUBLIC pascal trap, ListHandle,  LNew, Rect *, rview,	/* IMIV-270 */
 	r.right = CW(CW(r.right) + (16));
 	r.bottom = CW(CW(r.bottom) + 1);
 	ROMlib_vminmax(&min, &max, lp);
-	lp->vScroll = RM(NewControl((WindowPtr) wind, &r, (StringPtr) "",
+	PACKED_ASSIGN(lp->vScroll, NewControl((WindowPtr) wind, &r, (StringPtr) "",
 	       draw && lp->lActive, min, min, max, scrollBarProc, (LONGINT) 0));
-	STARH(MR(lp->vScroll))->contrlRfCon = RM((LONGINT) (long) retval);
+	STARH(PPR(lp->vScroll))->contrlRfCon = RM((LONGINT) (long) retval);
 	lp->listFlags |= lDoVAutoscroll;
     }
 
@@ -190,9 +191,9 @@ P9(PUBLIC pascal trap, ListHandle,  LNew, Rect *, rview,	/* IMIV-270 */
 	r.bottom = CW(CW(r.bottom) + (16));
 	r.right = CW(CW(r.right) + 1);
 	ROMlib_hminmax(&min, &max, lp);
-	lp->hScroll = RM(NewControl((WindowPtr) wind, &r, (StringPtr) "",
+	PACKED_ASSIGN(lp->hScroll, NewControl((WindowPtr) wind, &r, (StringPtr) "",
 	       draw && lp->lActive, min, min, max, scrollBarProc, (LONGINT) 0));
-	STARH(MR(lp->hScroll))->contrlRfCon = RM((LONGINT) (long) retval);
+	STARH(PPR(lp->hScroll))->contrlRfCon = RM((LONGINT) (long) retval);
 	lp->listFlags |= lDoHAutoscroll;
     }
 

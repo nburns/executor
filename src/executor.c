@@ -545,7 +545,7 @@ PUBLIC void executor_main( void )
 			   address of a VCB) */
 			   
     MCLKPCmiss2 = 0;	/* &MCLKPCmiss1 = 0x358 + 78 (MacLinkPC misses) */
-    AuxCtlHead = 0;
+    CLEAR_AuxCtlHead ();
     CurDeactive = 0;
     CurActivate = 0;
     macfpstate[0] = 0;

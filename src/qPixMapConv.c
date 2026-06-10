@@ -65,7 +65,7 @@ gd_black_white (GDHandle gdh,
   PixMapPtr gd_pmap;
   
   gd = STARH (gdh);
-  gd_pmap = STARH (MR (gd->gdPMap));
+  gd_pmap = STARH (GD_PMAP (gdh));
   
   pixmap_black_white (gd_pmap, black_return, white_return);
 }
@@ -73,7 +73,7 @@ gd_black_white (GDHandle gdh,
 void
 pixmap_free_copy (PixMap *pm)
 {
-  DisposPtr (MR (pm->baseAddr));
+  DisposPtr (PPR (pm->baseAddr));
 }
  
 void
@@ -97,7 +97,7 @@ pixmap_copy (const PixMap *src_pm, const Rect *src_rect,
   
   row_bytes = ((width * CW (src_pm->pixelSize) + 31) / 32) * 4;
   
-  return_pm->baseAddr = RM (NewPtr (height * row_bytes));
+  PACKED_ASSIGN (return_pm->baseAddr, NewPtr (height * row_bytes));
   return_pm->rowBytes = CW (  row_bytes
 			    | PIXMAP_DEFAULT_ROW_BYTES);
   return_pm->bounds = *return_rect;
@@ -419,7 +419,7 @@ convert_pixmap (const PixMap *src, PixMap *dst,
     {
     case MUNGE (Indirect, Indirect):
       {
-	src_seed_x   = CTAB_SEED_X (MR (src->pmTable)); /* big endian */
+	src_seed_x   = CTAB_SEED_X ((CTabHandle) PPR (src->pmTable)); /* big endian */
 	dst_seed_x   = CTAB_SEED_X (PIXMAP_TABLE (GD_PMAP (the_gd)));
 
 	if (   src_bpp != cached_src_bpp       || dst_bpp != cached_dst_bpp
@@ -442,7 +442,7 @@ convert_pixmap (const PixMap *src, PixMap *dst,
  		CTabHandle mapping;
  		int max_mapping_elt, max_src_elt;
  		
- 		src_table = MR (src->pmTable);
+ 		src_table = (CTabHandle) PPR (src->pmTable);
  		max_src_elt = CTAB_SIZE (src_table);
  		max_mapping_elt = (1 << src_bpp) - 1;
  		mapping
@@ -488,7 +488,7 @@ convert_pixmap (const PixMap *src, PixMap *dst,
       {
 	CTabHandle src_table;
 
-	src_table = MR (src->pmTable);
+	src_table = (CTabHandle) PPR (src->pmTable);
 	src_seed_x = CTAB_SEED_X (src_table);
 	
 	dst_rgb_spec = pixmap_rgb_spec (dst);
@@ -586,12 +586,12 @@ convert_pixmap (const PixMap *src, PixMap *dst,
   
   /* using BITMAP_... on a PixMap * is slimy */
   src_row_bytes = BITMAP_ROWBYTES (src);
-  src_base = (uint8 *) (MR (src->baseAddr)
+  src_base = (uint8 *) (PPR (src->baseAddr)
 	      + (CW (rect->top) - CW (src->bounds.top)) * src_row_bytes
 	      + (CW (rect->left) - CW (src->bounds.left)) * src_bpp / 8);
-  
+
   dst_row_bytes = BITMAP_ROWBYTES (dst);
-  dst_base = (uint8 *) MR (dst->baseAddr);
+  dst_base = (uint8 *) PPR (dst->baseAddr);
   
   (*conversion_func) (depth_table_space,
 		      src_base, src_row_bytes, dst_base, dst_row_bytes,

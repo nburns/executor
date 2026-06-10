@@ -83,14 +83,14 @@ P0(PUBLIC pascal trap, void, DrawMenuBar)
 P0(PUBLIC pascal trap, void, ClearMenuBar)
 {
     if (MenuList)
-	SetHandleSize(MR(MenuList), MINMENULISTSIZE);
+	SetHandleSize(GET_MenuList(), MINMENULISTSIZE);
     else
-	MenuList = RM(NewHandle(MINMENULISTSIZE));
+	SET_MenuList(NewHandle(MINMENULISTSIZE));
     HxX(MENULIST, muoff) = 0;					/* int 1 */
     HxX(MENULIST, muright) = CWC(MENULEFT);			/* int 2 */
 
     (&STARH(MENULIST)->mufu)[3] = CWC(sizeof(muelem)); /* lastHMenu: int 6 */
-    (*(HIDDEN_Handle *)&(&STARH(MENULIST)->mufu)[1]).p = CLC(0);/* menuTitleSave: int 4,5 */
+    (*(HIDDEN_Handle *)&(&STARH(MENULIST)->mufu)[1]).pp = CLC(0);/* menuTitleSave: int 4,5 */
 }
 
 #define BLACK_RGB { CWC (0), CWC (0), CWC (0) }
@@ -146,8 +146,8 @@ P0(PUBLIC pascal trap, void, InitMenus)
       /* try to load 'mctb' resource 0; otherwise use default
 	 built into `ROM' */
 
-	MenuCInfo = (MCTableHandle) RM (NewHandle (sizeof default_menu_ctab));
-	BlockMove ((Ptr) default_menu_ctab, (Ptr) STARH (MR (MenuCInfo)),
+	SET_MenuCInfo(NewHandle(sizeof default_menu_ctab));
+	BlockMove ((Ptr) default_menu_ctab, (Ptr) STARH (GET_MenuCInfo()),
 		   sizeof default_menu_ctab);
     }
   else
@@ -155,12 +155,11 @@ P0(PUBLIC pascal trap, void, InitMenus)
       int n_entries;
 
       n_entries = CW (*(uint16 *) STARH (default_mcinfo));
-      MenuCInfo = (MCTableHandle) RM (NewHandle (n_entries
-						 * sizeof (MCEntry)));
+      SET_MenuCInfo(NewHandle(n_entries * sizeof (MCEntry)));
       BlockMove ((Ptr) (&((uint16 *) STARH (default_mcinfo))[1]),
-		 (Ptr) STARH (MR (MenuCInfo)),
+		 (Ptr) STARH (GET_MenuCInfo()),
 		 n_entries * sizeof (MCEntry));
-      append_end_marker_if_necessary (MR (MenuCInfo));
+      append_end_marker_if_necessary (GET_MenuCInfo());
     }
 
   InitProcMenu (0);	/* sets mbResID */			/* int 3 */
@@ -182,8 +181,8 @@ P2(PUBLIC pascal trap, MenuHandle, NewMenu, INTEGER, mid, StringPtr, str)
     HxX(retval, menuWidth) = HxX(retval, menuHeight) = 0;
     /* menuHeight calculated elsewhere */
     SetResLoad(TRUE);
-    temph = RM(GetResource(TICK("MDEF"), textMenuProc));
-    HxX(retval, menuProc) = temph;
+    temph = GetResource(TICK("MDEF"), textMenuProc);
+    PACKED_ASSIGN(HxX(retval, menuProc), temph);
     HxX(retval, enableFlags) = -1;
     str255assign(HxX(retval, menuData), str);
     *((char *) STARH(retval) + SIZEOFMINFO + U(str[0])) = 0;
@@ -267,7 +266,7 @@ P1 (PUBLIC pascal trap, MenuHandle, GetMenu, int16, rid)
 	  if (SIZEOFMINFO != 15)
 	    Munger ((Handle) retval, (int32) 6, (Ptr) 0, (int32) 0,
 		    (Ptr) "x", (int32) 2);
-	  MI_PROC_X (retval) = RM (temph);
+	  PACKED_ASSIGN(MI_PROC_X(retval), temph);
 	  CalcMenuSize(retval);
 	}
     }
@@ -648,14 +647,14 @@ P2(PUBLIC pascal trap, void, InsertMenu, MenuHandle, mh, INTEGER, before)
 	{
 	  mpend = HxX(MENULIST, mulist) + HIEROFF / sizeof(muelem);
 	  for (mp = FIRSTHIER;
-	       mp != mpend && (CW(STARH(MR(mp->muhandle))->menuID) != mid1);
+	       mp != mpend && (CW(STARH((MenuHandle)PPR(mp->muhandle))->menuID) != mid1);
 	       mp++)
 	    ;
 	  if (mp != mpend)	/* already there */
 /*-->*/	    return;
-	  SetHandleSize(MR(MenuList), (Size) HIEROFF + 2 * sizeof(muelem));
+	  SetHandleSize(GET_MenuList(), (Size) HIEROFF + 2 * sizeof(muelem));
 	  mpend = HxX(MENULIST, mulist) + HIEROFF / sizeof(muelem);
-	  mpend->muhandle = RM(mh);
+	  PACKED_ASSIGN(mpend->muhandle, mh);
 	  mpend->muleft = 0;
 	}
       else
@@ -664,16 +663,16 @@ P2(PUBLIC pascal trap, void, InsertMenu, MenuHandle, mh, INTEGER, before)
 	  mpend = HxX(MENULIST, mulist) + Hx(MENULIST, muoff) / sizeof(muelem);
 	  for (mp = HxX(MENULIST, mulist); mp != mpend; mp++)
 	    {
-	      if ((mid2 = CW(STARH(MR(mp->muhandle))->menuID)) == mid1)
+	      if ((mid2 = CW(STARH((MenuHandle)PPR(mp->muhandle))->menuID)) == mid1)
 /*-->*/		return;
 	      if (mid2 == before)
 		bindex = mp;
 	    }
-	  newmuelem.muhandle = RM(mh);
+	  PACKED_ASSIGN(newmuelem.muhandle, mh);
 	  if (bindex == 0)
 	    {
 	      newmuelem.muleft   = HxX(MENULIST, muright);
-	      Munger(MR(MenuList), Hx(MENULIST, muoff) + sizeof(muelem),
+	      Munger(GET_MenuList(), Hx(MENULIST, muoff) + sizeof(muelem),
 		     (Ptr) 0,(LONGINT) 0, (Ptr) &newmuelem,
 		     (LONGINT) sizeof(newmuelem));
 	      binoff = Hx(MENULIST, muoff);
@@ -681,8 +680,8 @@ P2(PUBLIC pascal trap, void, InsertMenu, MenuHandle, mh, INTEGER, before)
 	  else
 	    {
 	      newmuelem.muleft = bindex->muleft;
-	      binoff   = (char *) bindex - (char *) STARH(MR(MenuList));
-	      Munger(MR(MenuList), binoff, (Ptr) 0, (LONGINT) 0,
+	      binoff   = (char *) bindex - (char *) STARH(GET_MenuList());
+	      Munger(GET_MenuList(), binoff, (Ptr) 0, (LONGINT) 0,
 		     (Ptr) &newmuelem, (LONGINT) sizeof(newmuelem));
 	    }
 	  HxX(MENULIST, muoff) = CW(Hx(MENULIST, muoff) + sizeof(muelem));
@@ -701,13 +700,13 @@ P1 (PUBLIC pascal trap, void, DeleteMenu, int16, mid)
   
   mpend = HxX(MENULIST, mulist) + Hx(MENULIST, muoff) / sizeof(muelem);
   for (mp = HxX(MENULIST, mulist);
-       mp != mpend && CW(STARH(MR(mp->muhandle))->menuID) != mid;
+       mp != mpend && CW(STARH((MenuHandle)PPR(mp->muhandle))->menuID) != mid;
        mp++)
     ;
   if (mp != mpend)
     {
-      deleteloc = (LONGINT) ((char *)mp - (char *)STARH(MR(MenuList)));
-      Munger (MR (MenuList), deleteloc, (Ptr) 0, (int32) sizeof (muelem),
+      deleteloc = (LONGINT) ((char *)mp - (char *)STARH(GET_MenuList()));
+      Munger (GET_MenuList(), deleteloc, (Ptr) 0, (int32) sizeof (muelem),
 	      (Ptr) "", (int32) 0);
       HxX(MENULIST, muoff) = CW(Hx(MENULIST, muoff) - sizeof(muelem));
       MBDFCALL(mbCalc, 0, deleteloc);
@@ -716,13 +715,13 @@ P1 (PUBLIC pascal trap, void, DeleteMenu, int16, mid)
     {
       mpend = HxX(MENULIST, mulist) + HIEROFF / sizeof(muelem);
       for (mp = FIRSTHIER;
-	   mp != mpend && (CW(STARH(MR(mp->muhandle))->menuID) != mid);
+	   mp != mpend && (CW(STARH((MenuHandle)PPR(mp->muhandle))->menuID) != mid);
 	   mp++)
 	;
       if (mp == mpend)
 /*-->*/ return;		/* not there */
-      Munger(MR(MenuList),
-	     (int32) ((char *)mp - (char *) STARH (MR (MenuList))),
+      Munger(GET_MenuList(),
+	     (int32) ((char *)mp - (char *) STARH (GET_MenuList())),
 	     (Ptr) 0, (int32) sizeof(muelem), (Ptr) "", (int32) 0);
     }
   HIEROFFX = CW (HIEROFF - sizeof (muelem));
@@ -745,7 +744,7 @@ P1(PUBLIC pascal trap, Handle, GetNewMBar, INTEGER, mbarid)
       retval = 0;
     else
       {
-	if (!(*mb).p)
+	if (!(*mb).pp)
 	  LoadResource((Handle) mb);
 
 	LOCK_HANDLE_EXCURSION_1
@@ -755,9 +754,9 @@ P1(PUBLIC pascal trap, Handle, GetNewMBar, INTEGER, mbarid)
 	     ep = ip + Hx(mb, nmen);
 	     saveml = MENULIST;
 
-	     MenuList = 0;
+	     MenuList_H.pp = 0;
 	     ClearMenuBar();
-	     retval = MR(MenuList);
+	     retval = GET_MenuList();
 
 	     HxX(MENULIST, mufu) = HxX(saveml, mufu);	/* int 3 */
 
@@ -767,7 +766,7 @@ P1(PUBLIC pascal trap, Handle, GetNewMBar, INTEGER, mbarid)
 	       ip++;
 	     }
 	   });
-	MenuList = RM((Handle) saveml);
+	SET_MenuList((Handle) saveml);
       }
     return retval;
 }
@@ -776,19 +775,19 @@ P0(PUBLIC pascal trap, Handle, GetMenuBar)
 {
     HIDDEN_Handle retval;
 
-    retval.p = MR(MenuList);
+    HIDDEN_VAL_WRITE(retval, GET_MenuList());
     HandToHand(&retval);
-    return retval.p;
+    return (Handle)PPR(retval);
 }
 
 P1(PUBLIC pascal trap, void, SetMenuBar, Handle, ml)
 {
     HIDDEN_Handle temph;
 
-    DisposHandle(MR(MenuList));
-    temph.p = ml;
+    DisposHandle(GET_MenuList());
+    HIDDEN_VAL_WRITE(temph, ml);
     HandToHand(&temph);
-    MenuList = RM(temph.p);
+    MenuList_H.pp = temph.pp;
 }
 
 enum { nonhier = 0, hier = 1 };
@@ -812,7 +811,7 @@ menu_id_exists_p (int id)
   initpairs (mps);
   for (mp = mps[nonhier].startp; mp != mps[nonhier].endp; mp ++)
     {
-      if (CW (STARH (MR (mp->muhandle))->menuID) == id)
+      if (CW (STARH ((MenuHandle)PPR(mp->muhandle))->menuID) == id)
 	return TRUE;
     }
   return FALSE;
@@ -827,10 +826,10 @@ A1(PUBLIC, INTEGER, ROMlib_mentosix, INTEGER, menuid)
     initpairs(mps);
     for (i = (int) nonhier; i <= (int) hier; i++) {
 	for (mp = mps[i].startp, mpend = mps[i].endp;
-	      mp < mpend && CW(STARH(MR(mp->muhandle))->menuID) != menuid; mp++)
+	      mp < mpend && CW(STARH((MenuHandle)PPR(mp->muhandle))->menuID) != menuid; mp++)
 	    ;
 	if (mp < mpend)
-/*-->*/	    return (char *) mp - (char *) STARH(MR(MenuList));
+/*-->*/	    return (char *) mp - (char *) STARH(GET_MenuList());
     }
     return -1;
 }
@@ -898,9 +897,9 @@ A1(PRIVATE, INTEGER, wheretowhich, LONGINT, offset)
 {
     mbdfentry *p, *ep;
 
-    ep = (mbdfentry *) STARH(MR(MBSaveLoc));
+    ep = (mbdfentry *) STARH(MBSAVELOC);
     for (p = (mbdfentry *)
-	    ((char *) STARH(MR(MBSaveLoc)) + Hx(MBSAVELOC, lastMBSave));
+	    ((char *) STARH(MBSAVELOC) + Hx(MBSAVELOC, lastMBSave));
 				   p != ep && Cx(p->mbMLOffset) != offset; p--)
 	;
     return p - ep;
@@ -921,7 +920,7 @@ A3(PRIVATE, void, restoren, INTEGER, ntodrop, RgnHandle, restoredrgn,
     RgnHandle tmprgn;
 
     if (restoredrgn) {
-	p = (mbdfentry *) ((char *) STARH(MR(MBSaveLoc)) +
+	p = (mbdfentry *) ((char *) STARH(MBSAVELOC) +
 						    Hx(MBSAVELOC, lastMBSave));
 	RectRgn(restoredrgn, &p->mbRectSave);
 	shadowrect(&HxX(restoredrgn, rgnBBox));
@@ -953,11 +952,11 @@ A2(PRIVATE, MenuHandle, menunumtomh, INTEGER, mid, INTEGER *, sixp)
     
     mpend = HxX(MENULIST, mulist) + HIEROFF / sizeof(muelem);
     for (mp = FIRSTHIER; mp != mpend &&
-			       CW(STARH(MR(mp->muhandle))->menuID) != mid; mp++)
+			       CW(STARH((MenuHandle)PPR(mp->muhandle))->menuID) != mid; mp++)
 	    ;
     if (mp != mpend) {
-	*sixp = (char *) mp - (char *)STARH(MR(MenuList));
-/*-->*/ return MR(mp->muhandle);
+	*sixp = (char *) mp - (char *)STARH(GET_MenuList());
+/*-->*/ return (MenuHandle)PPR(mp->muhandle);
     }
     return 0;
 }
@@ -989,7 +988,8 @@ int32 ROMlib_menuhelper (MenuHandle mh, Rect *saverp,
   int i;
   LONGINT pointaslong;
   LONGINT where, templ;
-  RgnHandle saveclip, restoredrgn;
+  uint32_t saveclip;
+  RgnHandle restoredrgn;
   BOOLEAN changedmenus;
   INTEGER oldwhichmenuhit, whichmenuhit;
   HIDDEN_GrafPtr saveport;
@@ -999,7 +999,9 @@ int32 ROMlib_menuhelper (MenuHandle mh, Rect *saverp,
   boolean_t seen_up_already, done;
   
   GetPort (&saveport);
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
   saveport.p = MR(saveport.p);
+#endif
   SetPort (MR (wmgr_port));
   
   olditem = -1;
@@ -1024,8 +1026,8 @@ int32 ROMlib_menuhelper (MenuHandle mh, Rect *saverp,
       pt.v = CW (pt.v);
       pointaslong = ((int32) pt.v << 16) | (unsigned short) pt.h;
       where = MBDFCALL (mbHit, 0, pointaslong);
-      if (MenuHook)
-	CALLMENUHOOK (MR (MenuHook));
+      if (GET_MenuHook())
+	CALLMENUHOOK (GET_MenuHook());
       if (where == oldwhere)
 	{
 	  if (mh)
@@ -1044,11 +1046,11 @@ int32 ROMlib_menuhelper (MenuHandle mh, Rect *saverp,
 		    {
 		      restoren(i, restoredrgn, &r);
 		      nmenusdisplayed -= i;
-		      saveclip = PORT_CLIP_REGION_X (MR (wmgr_port));
-		      
-		      PORT_CLIP_REGION_X (MR (wmgr_port)) = RM (NewRgn ());
+		      saveclip = PORT_CLIP_REGION_X (MR (wmgr_port)).pp;
+
+		      PACKED_ASSIGN(PORT_CLIP_REGION_X (MR (wmgr_port)), NewRgn ());
 		      RectRgn (PORT_CLIP_REGION (MR (wmgr_port)), &r);
-		      
+
 		      if (item == 0)
 			{	        /* may have been 'cause of */
 			  pt.v = 32767;	/* scrolling, in which case */
@@ -1062,7 +1064,7 @@ int32 ROMlib_menuhelper (MenuHandle mh, Rect *saverp,
 		      MENUCALL (mChooseMsg, mh, &r, pt, &item);
 		      item = CW(item);
 		      DisposeRgn (PORT_CLIP_REGION (MR (wmgr_port)));
-		      PORT_CLIP_REGION_X (MR (wmgr_port)) = saveclip;
+		      PORT_CLIP_REGION_X (MR (wmgr_port)).pp = saveclip;
 		    }
 		  if ((newmh = itemishierarchical(mh, item, &tempi)))
 		    {
@@ -1071,25 +1073,25 @@ int32 ROMlib_menuhelper (MenuHandle mh, Rect *saverp,
 		      r2 = * (Rect *) (long) MBDFCALL (mbRect, 0,
 						       tempi | HIERRECTBIT);
 		      MBDFCALL(mbSave, tempi, (LONGINT) (long) &r2);
-		      if (MBarHook)
+		      if (GET_MBarHook())
 			{
-			  myd0 = CALLMBARHOOK(&r2, MR(MBarHook));
+			  myd0 = CALLMBARHOOK(&r2, GET_MBarHook());
 			  if (myd0 != 0)
 			    goto out;
 			}
-		      ((mbdfentry *)STARH(MR(MBSaveLoc)))
+		      ((mbdfentry *)STARH(MBSAVELOC))
 			[wheretowhich(tempi)].mbReserved = CLC(0);
 		      oldtopmenuitem = TopMenuItem;
 		      saveatmenubottom = AtMenuBottom;
 		      TopMenuItem = r2.top;
 		      PORT_TX_FACE_X (MR (wmgr_port)) = (Style) CB (0);
 		      PORT_TX_FONT_X (MR (wmgr_port)) = CWC (0);
-		      saveclip = PORT_CLIP_REGION_X (thePort);
-		      PORT_CLIP_REGION_X (thePort) = RM (NewRgn ());
+		      saveclip = PORT_CLIP_REGION_X (thePort).pp;
+		      PACKED_ASSIGN(PORT_CLIP_REGION_X (thePort), NewRgn ());
 		      RectRgn(PORT_CLIP_REGION (thePort), &r2);
 		      MENUCALL(mDrawMsg, newmh, &r2, dummy_pt, (INTEGER *) 0);
 		      DisposeRgn (PORT_CLIP_REGION (thePort));
-		      PORT_CLIP_REGION_X (thePort) = saveclip;
+		      PORT_CLIP_REGION_X (thePort).pp = saveclip;
 		      nmenusdisplayed++;
 		      MBDFCALL(mbSaveAlt, 0, tempi);
 		      TopMenuItem = oldtopmenuitem;
@@ -1116,14 +1118,14 @@ int32 ROMlib_menuhelper (MenuHandle mh, Rect *saverp,
 		}
 	      else
 		{
-		  mh = MR(((muelem *)
-			   ((char *)STARH(MR(MenuList)) + where))->muhandle);
+		  mh = (MenuHandle)PPR(((muelem *)
+			   ((char *)STARH(GET_MenuList()) + where))->muhandle);
 		  HiliteMenu(Hx(mh, menuID));
 		  r = * (Rect *) (long) MBDFCALL(mbRect, 0, where);
 		  MBDFCALL(mbSave, where, (LONGINT) (long) &r);
-		  if (MBarHook)
+		  if (GET_MBarHook())
 		    {
-		      myd0 = CALLMBARHOOK(&r, MR(MBarHook));
+		      myd0 = CALLMBARHOOK(&r, GET_MBarHook());
 		      if (myd0 != 0)
 			goto out;
 		    }
@@ -1131,12 +1133,12 @@ int32 ROMlib_menuhelper (MenuHandle mh, Rect *saverp,
 		  TopMenuItem = MBarHeight;
 		  PORT_TX_FACE_X (MR (wmgr_port)) = (Style) CB (0);
 		  PORT_TX_FONT_X (MR (wmgr_port)) = CWC (0);
-		  saveclip = PORT_CLIP_REGION_X (thePort);	/* ick */
-		  PORT_CLIP_REGION_X (thePort) = RM (NewRgn ());
+		  saveclip = PORT_CLIP_REGION_X (thePort).pp;	/* ick */
+		  PACKED_ASSIGN(PORT_CLIP_REGION_X (thePort), NewRgn ());
 		  RectRgn(PORT_CLIP_REGION (thePort), &r);
 		  MENUCALL(mDrawMsg, mh, &r, dummy_pt, (INTEGER *) 0);
 		  DisposeRgn (PORT_CLIP_REGION (thePort));
-		  PORT_CLIP_REGION_X (thePort) = saveclip;
+		  PORT_CLIP_REGION_X (thePort).pp = saveclip;
 		  nmenusdisplayed++;
 		  whichmenuhit = wheretowhich(where);
 		}
@@ -1164,12 +1166,12 @@ int32 ROMlib_menuhelper (MenuHandle mh, Rect *saverp,
 	  else
 	    {
 	      whichmenuhit = wheretowhich(where);
-	      newentry = (mbdfentry *)STARH(MR(MBSaveLoc)) + whichmenuhit;
-	      oldentry = (mbdfentry *)STARH(MR(MBSaveLoc)) + oldwhichmenuhit;
+	      newentry = (mbdfentry *)STARH(MBSAVELOC) + whichmenuhit;
+	      oldentry = (mbdfentry *)STARH(MBSAVELOC) + oldwhichmenuhit;
 	      oldentry->mbReserved = CL((ULONGINT)item);
 	      olditem = item = CL(newentry->mbReserved);
 	      changedmenus = TRUE;
-	      mh = MR(((muelem *) ((char *)STARH(MR(MenuList)) + where))->muhandle);
+	      mh = (MenuHandle)PPR(((muelem *) ((char *)STARH(GET_MenuList()) + where))->muhandle);
 	      templ = where;
 	      if (where > Hx(MENULIST, muoff))
 		templ |= HIERRECTBIT;
@@ -1257,7 +1259,11 @@ enter:
    }
  if (!mid)
    HiliteMenu(0);
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
  SetPort (saveport.p); /* Does SystemMenu() expect the WMgrPort also? */
+#else
+ SetPort ((GrafPtr)(uintptr_t)YY(saveport.pp));
+#endif
 
   /* Illustrator 5.5 behavior suggests that hits on hierarchical menus
    * for non leaf-node menus are handled differently.  [PR #1683].
@@ -1329,7 +1335,7 @@ A2(PRIVATE, BOOLEAN, findroot, INTEGER, menuid, INTEGER *, root_unswp)
 		     partype == hierparent && loopcount < maxi ; loopcount++) {
 	for (i = (int)nonhier; i <= (int)hier; i++) {
 	    for (mp = mps[i].startp, mpend = mps[i].endp; mp != mpend ; mp++) {
-		mh = MR(mp->muhandle);
+		mh = (MenuHandle)PPR(mp->muhandle);
 		p = (unsigned char *)STARH(mh) + SIZEOFMINFO +
 						  *(char *)(HxX(mh, menuData));
 		mitem = 1;
@@ -1380,7 +1386,7 @@ P1(PUBLIC pascal trap, LONGINT, MenuKey, CHAR, thec)
       for (mpend = mps[i].startp - 1, mp = mps[i].endp - 1; mp != mpend ;
            mp--)
         {
-          mh = MR(mp->muhandle);
+          mh = (MenuHandle)PPR(mp->muhandle);
           p = (unsigned char *) STARH(mh) + SIZEOFMINFO +
             *(unsigned char *)(HxX(mh, menuData));
           mitem = 1;
@@ -1563,18 +1569,18 @@ P1(PUBLIC pascal trap, MenuHandle, GetMHandle, INTEGER, mid)
     
       mpend = HxX(MENULIST, mulist) + HIEROFF / sizeof(muelem);
       for (mp = FIRSTHIER;
-	   mp != mpend && CW(STARH(MR(mp->muhandle))->menuID) != mid; mp++)
+	   mp != mpend && CW(STARH((MenuHandle)PPR(mp->muhandle))->menuID) != mid; mp++)
 	;
       if (mp != mpend)
-	retval = MR(mp->muhandle);
+	retval = (MenuHandle)PPR(mp->muhandle);
       else
 	{
 	  mpend = HxX(MENULIST, mulist) + Hx(MENULIST, muoff) / sizeof(muelem);
 	  for (mp = HxX(MENULIST, mulist);
-	       mp != mpend && CW(STARH(MR(mp->muhandle))->menuID) != mid; mp++)
+	       mp != mpend && CW(STARH((MenuHandle)PPR(mp->muhandle))->menuID) != mid; mp++)
 	    ;
 	  if (mp != mpend)
-	    retval = MR(mp->muhandle);
+	    retval = (MenuHandle)PPR(mp->muhandle);
 	  else
 	    return(0);
 	}
@@ -1605,7 +1611,7 @@ ROMlib_menucall (INTEGER mess, MenuHandle themenu, Rect * menrect, Point hit,
 
   if (defproc)
     {
-      if (defproc->p == NULL)
+      if (defproc->pp == 0)
 	LoadResource (defproc);
   
       mp = (menuprocp) STARH (defproc);
@@ -1635,7 +1641,7 @@ ROMlib_mbdfcall (INTEGER msg, INTEGER param1, LONGINT param2)
   int32 retval;
   mbdfprocp mp;
 
-  defproc = MR (MBDFHndl);
+  defproc = GET_MBDFHndl();
 
   switch (msg)
     {
@@ -1647,7 +1653,7 @@ ROMlib_mbdfcall (INTEGER msg, INTEGER param1, LONGINT param2)
       break;
     }
   
-  if (defproc->p == NULL)
+  if (defproc->pp == 0)
     LoadResource (defproc);
 
   mp = (mbdfprocp) STARH (defproc);

@@ -79,7 +79,7 @@ PRIVATE OSErr cathelper(CInfoPBPtr pb, BOOLEAN async, catop op)
 	pbf = (HFileInfo *) pb;
 	if (op == catGet) {
 	    if (UPDATE_IONAMEPTR_P(*pbf))
-		str255assign(MR(pbf->ioNamePtr), catkeyp->ckrCName);
+		str255assign((StringPtr)PPR(pbf->ioNamePtr), catkeyp->ckrCName);
 	    pbf->ioACUser = 0;
 	    pbf->ioFlAttrib = CB (open_attrib_bits (CL (frp->filFlNum), vcbp,
 						   &pbf->ioFRefNum));
@@ -120,7 +120,7 @@ PRIVATE OSErr cathelper(CInfoPBPtr pb, BOOLEAN async, catop op)
 	pbd = (DirInfo *) pb;
 	if (op == catGet) {
 	    if (UPDATE_IONAMEPTR_P(*pbd))
-		str255assign(MR(pbd->ioNamePtr), catkeyp->ckrCName);
+		str255assign((StringPtr)PPR(pbd->ioNamePtr), catkeyp->ckrCName);
 
 	    pbd->ioACUser = 0;
 		
@@ -240,9 +240,9 @@ PUBLIC OSErr hfsPBCatMove(CMovePBPtr pb, BOOLEAN async)
     if (err == noErr) {
 	err = ROMlib_writevcbp(srcbtparam.vcbp);
 	iop = *(ioParam *)pb;
-	iop.ioNamePtr = pb->ioNewName;
+	PACKED_ASSIGN(iop.ioNamePtr, (StringPtr)PPR(pb->ioNewName));
 	dstcurkind = directory;
-	ignorename = iop.ioNamePtr == 0;
+	ignorename = iop.ioNamePtr.pp == 0;
 	err = ROMlib_findvcbandfile(&iop, CL(pb->ioNewDirID), &dstdirbtparam, &dstcurkind,
 								    ignorename);
 	if (err == noErr) {

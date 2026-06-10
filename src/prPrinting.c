@@ -284,7 +284,7 @@ P3(PUBLIC pascal trap, void, PrComment, INTEGER, kind, INTEGER, size,
 			    ROMlib_gsave();
 			    need_restore = TRUE;
 			  }
-			thePort->grafProcs = RM(&sendpsprocs);
+			PACKED_ASSIGN(thePort->grafProcs, &sendpsprocs);
 		    }
 		    break;
 		case postscriptend:
@@ -295,13 +295,13 @@ P3(PUBLIC pascal trap, void, PrComment, INTEGER, kind, INTEGER, size,
 			    ROMlib_grestore();
 			    need_restore = FALSE;
 			  }
-			thePort->grafProcs = RM(&prprocs);
+			PACKED_ASSIGN(thePort->grafProcs, &prprocs);
 		      }
 		    break;
 		case postscripttextis:
 		    if (ROMlib_passpostscript)
-			(PORT_GRAF_PROCS (thePort))->textProc
-			  = RM(GOOFYCAST P_textasPS);
+			PACKED_ASSIGN((PORT_GRAF_PROCS (thePort))->textProc,
+				      GOOFYCAST P_textasPS);
 		    break;
 		case postscripthandle:
 		    if (pageno >= pagewanted && pageno <= lastpagewanted && ROMlib_passpostscript) {
@@ -340,47 +340,47 @@ ourinit (TPPrPort port, BOOLEAN preserve_font)
     printport.pnLoc.h = CWC (-32768);
     printport.pnLoc.v = CWC (-32768);
     OpenPort(&port->gPort);
-    sendpsprocs.textProc = RM(P_donotPrText);
-    sendpsprocs.lineProc = RM(P_donotPrLine);
-    sendpsprocs.rectProc = RM(P_donotPrRect);
-    sendpsprocs.rRectProc = RM(P_donotPrRRect);
-    sendpsprocs.ovalProc = RM(P_donotPrOval);
-    sendpsprocs.arcProc = RM(P_donotPrArc);
-    sendpsprocs.polyProc = RM(P_donotPrPoly);
-    sendpsprocs.rgnProc = RM(P_donotPrRgn);
-    sendpsprocs.bitsProc = RM(P_donotPrBits);
-    sendpsprocs.commentProc = RM(P_PrComment);
-    sendpsprocs.txMeasProc = RM(P_PrTxMeas);
+    PACKED_ASSIGN(sendpsprocs.textProc, P_donotPrText);
+    PACKED_ASSIGN(sendpsprocs.lineProc, P_donotPrLine);
+    PACKED_ASSIGN(sendpsprocs.rectProc, P_donotPrRect);
+    PACKED_ASSIGN(sendpsprocs.rRectProc, P_donotPrRRect);
+    PACKED_ASSIGN(sendpsprocs.ovalProc, P_donotPrOval);
+    PACKED_ASSIGN(sendpsprocs.arcProc, P_donotPrArc);
+    PACKED_ASSIGN(sendpsprocs.polyProc, P_donotPrPoly);
+    PACKED_ASSIGN(sendpsprocs.rgnProc, P_donotPrRgn);
+    PACKED_ASSIGN(sendpsprocs.bitsProc, P_donotPrBits);
+    PACKED_ASSIGN(sendpsprocs.commentProc, P_PrComment);
+    PACKED_ASSIGN(sendpsprocs.txMeasProc, P_PrTxMeas);
 #if 0
-    sendpsprocs.getPicProc = RM(P_donotPrGetPic);
-    sendpsprocs.putPicProc = RM(P_donotPrPutPic);
+    PACKED_ASSIGN(sendpsprocs.getPicProc, P_donotPrGetPic);
+    PACKED_ASSIGN(sendpsprocs.putPicProc, P_donotPrPutPic);
 #else
-    sendpsprocs.getPicProc = RM(P_StdGetPic);
-    sendpsprocs.putPicProc = RM(P_StdPutPic);
+    PACKED_ASSIGN(sendpsprocs.getPicProc, P_StdGetPic);
+    PACKED_ASSIGN(sendpsprocs.putPicProc, P_StdPutPic);
 #endif
-    prprocs.textProc = RM(P_PrText);
-    prprocs.lineProc = RM(P_PrLine);
-    prprocs.rectProc = RM(P_PrRect);
-    prprocs.rRectProc = RM(P_PrRRect);
-    prprocs.ovalProc = RM(P_PrOval);
-    prprocs.arcProc = RM(P_PrArc);
-    prprocs.polyProc = RM(P_PrPoly);
-    prprocs.rgnProc = RM(P_PrRgn);
-    prprocs.bitsProc = RM(P_PrBits);
-    prprocs.commentProc = RM(P_PrComment);
-    prprocs.txMeasProc = RM(P_PrTxMeas);
+    PACKED_ASSIGN(prprocs.textProc, P_PrText);
+    PACKED_ASSIGN(prprocs.lineProc, P_PrLine);
+    PACKED_ASSIGN(prprocs.rectProc, P_PrRect);
+    PACKED_ASSIGN(prprocs.rRectProc, P_PrRRect);
+    PACKED_ASSIGN(prprocs.ovalProc, P_PrOval);
+    PACKED_ASSIGN(prprocs.arcProc, P_PrArc);
+    PACKED_ASSIGN(prprocs.polyProc, P_PrPoly);
+    PACKED_ASSIGN(prprocs.rgnProc, P_PrRgn);
+    PACKED_ASSIGN(prprocs.bitsProc, P_PrBits);
+    PACKED_ASSIGN(prprocs.commentProc, P_PrComment);
+    PACKED_ASSIGN(prprocs.txMeasProc, P_PrTxMeas);
 #if 0
-    prprocs.getPicProc = RM(P_PrGetPic);
-    prprocs.putPicProc = RM(P_PrPutPic);
+    PACKED_ASSIGN(prprocs.getPicProc, P_PrGetPic);
+    PACKED_ASSIGN(prprocs.putPicProc, P_PrPutPic);
 #else
-    prprocs.getPicProc = RM(P_StdGetPic);
-    prprocs.putPicProc = RM(P_StdPutPic);
+    PACKED_ASSIGN(prprocs.getPicProc, P_StdGetPic);
+    PACKED_ASSIGN(prprocs.putPicProc, P_StdPutPic);
 #endif
     port->saveprocs = prprocs;
 #if 1
     port->gPort.device = CWC(1);
 #endif
-    port->gPort.grafProcs = RM(&port->saveprocs);
+    PACKED_ASSIGN(port->gPort.grafProcs, &port->saveprocs);
 
     SetRect (&port->gPort.portBits.bounds,
 	     -1 * ROMlib_resolution_x / 2,
@@ -389,7 +389,7 @@ ourinit (TPPrPort port, BOOLEAN preserve_font)
 	     ROMlib_paper_y - (ROMlib_resolution_y / 2));
     SetRect (&port->gPort.portRect, 0, 0,
 	     ROMlib_paper_x - 72, ROMlib_paper_y - 72);
-    HxX (MR (port->gPort.visRgn), rgnBBox) = port->gPort.portRect;
+    HxX (PPR (port->gPort.visRgn), rgnBBox) = port->gPort.portRect;
 
     if (preserve_font)
       port->gPort.txFont = saved_font;

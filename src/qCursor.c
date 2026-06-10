@@ -133,18 +133,18 @@ P1(PUBLIC pascal trap, void, SetCursor, Cursor *, cp)
       /* rowbytes of expanded cursor data */
       int rowbytes;
       
-      data_pixmap.baseAddr = RM ((Ptr) cp->data);
+      PACKED_ASSIGN (data_pixmap.baseAddr, (Ptr) cp->data);
       data_pixmap.rowBytes = CWC (2);
       data_pixmap.bounds = ROMlib_cursor_rect;
       data_pixmap.cmpCount = CWC (1);
       data_pixmap.pixelType = CWC (0);
       data_pixmap.pixelSize = data_pixmap.cmpSize = CWC (1);
-      data_pixmap.pmTable = RM (validate_relative_bw_ctab ());
+      PACKED_ASSIGN (data_pixmap.pmTable, validate_relative_bw_ctab ());
       
       rowbytes = (16 * host_cursor_depth) / 8;
       data_baseaddr = alloca (16 * rowbytes);
       
-      target_pixmap.baseAddr = (Ptr) RM (data_baseaddr);
+      PACKED_ASSIGN (target_pixmap.baseAddr, (Ptr) data_baseaddr);
       target_pixmap.rowBytes = CWC (rowbytes);
       target_pixmap.bounds = ROMlib_cursor_rect;
       target_pixmap.cmpCount = CWC (1);
@@ -259,32 +259,32 @@ P1 (PUBLIC pascal trap, CCrsrHandle, GetCCursor, INTEGER, crsr_id)
        /* NOTE: use CL below instead of MR because they're overloading
 	  crsrMap to have an offset rather than a handle */
 
-       cursor_pixel_map_offset = CL ((uint32) ccrsr->crsrMap);
+       cursor_pixel_map_offset = CL ((uint32) ccrsr->crsrMap.pp);
        cursor_pixel_map_resource
 	 = (PixMapPtr) ((char *) resource + cursor_pixel_map_offset);
-       
+
        cursor_pixel_map = NewPixMap ();
-       ccrsr->crsrMap = RM (cursor_pixel_map);
+       PACKED_ASSIGN (ccrsr->crsrMap, cursor_pixel_map);
        BlockMove ((Ptr) cursor_pixel_map_resource,
 		  (Ptr) STARH (cursor_pixel_map),
 		  sizeof *cursor_pixel_map_resource);
-       
-       ccrsr_data_offset = CL ((long) ccrsr->crsrData);
-       
-       ccrsr_ctab_offset = (int) PIXMAP_TABLE_AS_OFFSET (MR (ccrsr->crsrMap));
+
+       ccrsr_data_offset = CL ((long) ccrsr->crsrData.pp);
+
+       ccrsr_ctab_offset = (int) PIXMAP_TABLE_AS_OFFSET (PPR (ccrsr->crsrMap));
        ccrsr_data_size = ccrsr_ctab_offset - ccrsr_data_offset;
-       
-       ccrsr->crsrData = RM (NewHandle (ccrsr_data_size));
+
+       PACKED_ASSIGN (ccrsr->crsrData, NewHandle (ccrsr_data_size));
        BlockMove ((Ptr) resource + ccrsr_data_offset,
-		  STARH (MR (ccrsr->crsrData)),
+		  STARH (PPR (ccrsr->crsrData)),
 		  ccrsr_data_size);
-       
+
        tmp_ctab = (CTabPtr) ((char *) resource + ccrsr_ctab_offset);
        ccrsr_ctab_size = CTAB_STORAGE_FOR_SIZE (CW (tmp_ctab->ctSize));
-       h = RM (NewHandle (ccrsr_ctab_size));
-       PIXMAP_TABLE_X (MR (ccrsr->crsrMap)) = (CTabHandle) h;
+       h = NewHandle (ccrsr_ctab_size);
+       PACKED_ASSIGN (PIXMAP_TABLE_X (PPR (ccrsr->crsrMap)), (CTabHandle) h);
        BlockMove ((Ptr) tmp_ctab,
-		  (Ptr) STARH (PIXMAP_TABLE (MR (ccrsr->crsrMap))),
+		  (Ptr) STARH (PIXMAP_TABLE (PPR (ccrsr->crsrMap))),
 		  ccrsr_ctab_size);
      });
   
@@ -364,7 +364,7 @@ P1 (PUBLIC pascal trap, void, SetCCursor,
 	   if (!ccrsr_xdata)
 	     {
 	       ccrsr_xdata = NewHandle (32 * host_cursor_depth);
-	       CCRSR_XDATA_X (ccrsr) = RM (ccrsr_xdata);
+	       PACKED_ASSIGN (CCRSR_XDATA_X (ccrsr), ccrsr_xdata);
 	     }
       
 	   if (CCRSR_XVALID_X (ccrsr) == CWC (0)
@@ -386,11 +386,11 @@ P1 (PUBLIC pascal trap, void, SetCCursor,
 		    ccrsr_xmap.pixelSize = CW (host_cursor_depth);
 		    
 		    src = *STARH (CCRSR_MAP (ccrsr));
-		    src.baseAddr = CCRSR_DATA (ccrsr)->p;
+		    PACKED_ASSIGN (src.baseAddr, STARH (CCRSR_DATA (ccrsr)));
 		    LOCK_HANDLE_EXCURSION_1
 		      (ccrsr_xdata,
 		       {
-			 ccrsr_xmap.baseAddr = ccrsr_xdata->p;
+			 PACKED_ASSIGN (ccrsr_xmap.baseAddr, STARH (ccrsr_xdata));
 			 convert_pixmap (&src, &ccrsr_xmap,
 					 &ROMlib_cursor_rect, NULL);
 		       });
@@ -428,9 +428,9 @@ P1 (PUBLIC pascal trap, void, SetCCursor,
 	    (SysZone,
 	     {
 	       current_ccrsr = (CCrsrHandle) NewHandle (sizeof (CCrsr));
-	       CCRSR_DATA_X (current_ccrsr) = RM (NewHandle (0));
-	       CCRSR_XDATA_X (current_ccrsr) = RM (NULL);
-	       CCRSR_MAP_X (current_ccrsr) = RM (NewPixMap ());
+	       PACKED_ASSIGN (CCRSR_DATA_X (current_ccrsr), NewHandle (0));
+	       PACKED_ASSIGN0 (CCRSR_XDATA_X (current_ccrsr));
+	       PACKED_ASSIGN (CCRSR_MAP_X (current_ccrsr), NewPixMap ());
 	     });
 	}
     

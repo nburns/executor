@@ -51,7 +51,7 @@ find_control_helper (Point p, ControlHandle c,
 	    {
 	      retval = TestControl (c, p);
 	      if (retval)
-		cp->p = RM (c);
+		HPTR_WRITE (cp, c);
 	    }
 	}
     }
@@ -65,7 +65,7 @@ P3(PUBLIC pascal trap, INTEGER, FindControl, Point, p,	/* IMI-323 */
 
   retval = w ? find_control_helper(p, WINDOW_CONTROL_LIST(w), cp) : 0;
   if (!retval)
-    cp->p = 0;
+    HPTR_WRITE0 (cp);
   return retval;
 }
 

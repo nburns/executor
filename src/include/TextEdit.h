@@ -261,7 +261,7 @@ extern void ROMlib_sledgehammer_te (TEHandle te);
 #define TE_CLICK_STUFF(te)		(CW (TE_CLICK_STUFF_X (te)))
 #define TE_CLICK_LOC(te)		(CW (TE_CLICK_LOC_X (te)))
 #define TE_CLICK_TIME(te)		(CL (TE_CLICK_TIME_X (te)))
-#define TE_HTEXT(te)			(MR (TE_HTEXT_X (te)))
+#define TE_HTEXT(te)			(HxP ((te), hText))
 #define TE_JUST(te)			(CW (TE_JUST_X (te)))
 #define TE_TX_FONT(te)			(CW (TE_TX_FONT_X (te)))
 #define TE_TX_SIZE(te)			(CW (TE_TX_SIZE_X (te)))
@@ -354,7 +354,11 @@ extern void ROMlib_sledgehammer_te (TEHandle te);
 #define TEP_N_LINES(tep)		(CW (TEP_N_LINES_X (tep)))
 #define TEP_CLICK_STUFF(tep)		(CW (TEP_CLICK_STUFF_X (tep)))
 #define TEP_CLICK_LOC(tep)		(CL (TEP_CLICK_LOC_X (tep)))
-#define TEP_HTEXT(tep)			(MR (TEP_HTEXT_X (tep)))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define TEP_HTEXT(tep)			(MR (TEP_HTEXT_X (tep)))
+#else
+# define TEP_HTEXT(tep)			(PPR (TEP_HTEXT_X (tep)))
+#endif
 #define TEP_JUST(tep)			(CW (TEP_JUST_X (tep)))
 #define TEP_TX_FONT(tep)		(CW (TEP_TX_FONT_X (tep)))
 #define TEP_TX_SIZE(tep)		(CW (TEP_TX_SIZE_X (tep)))
@@ -406,12 +410,15 @@ extern void ROMlib_sledgehammer_te (TEHandle te);
 
 #define TE_STYLE_N_RUNS(te_style)	(CW (TE_STYLE_N_RUNS_X (te_style)))
 #define TE_STYLE_N_STYLES(te_style)	(CW (TE_STYLE_N_STYLES_X (te_style)))
-#define TE_STYLE_STYLE_TABLE(te_style)		\
- (MR (TE_STYLE_STYLE_TABLE_X (te_style)))
-#define TE_STYLE_LH_TABLE(te_style)		\
- (MR (TE_STYLE_LH_TABLE_X (te_style)))
-#define TE_STYLE_NULL_STYLE(te_style)		\
- (MR (TE_STYLE_NULL_STYLE_X (te_style)))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define TE_STYLE_STYLE_TABLE(te_style) (MR (TE_STYLE_STYLE_TABLE_X (te_style)))
+# define TE_STYLE_LH_TABLE(te_style)    (MR (TE_STYLE_LH_TABLE_X (te_style)))
+# define TE_STYLE_NULL_STYLE(te_style)  (MR (TE_STYLE_NULL_STYLE_X (te_style)))
+#else
+# define TE_STYLE_STYLE_TABLE(te_style) (PPR (TE_STYLE_STYLE_TABLE_X (te_style)))
+# define TE_STYLE_LH_TABLE(te_style)    (PPR (TE_STYLE_LH_TABLE_X (te_style)))
+# define TE_STYLE_NULL_STYLE(te_style)  (PPR (TE_STYLE_NULL_STYLE_X (te_style)))
+#endif
 
 #define TE_STYLE_NULL_SCRAP(te_style)		\
   (NULL_STYLE_NULL_SCRAP (TE_STYLE_NULL_STYLE (te_style)))

@@ -21,14 +21,14 @@ char ROMlib_rcsid_qCRegular[] =
     {									\
       if (CGrafPort_p (thePort))					\
 	{								\
-	  PixPatHandle orig_fill_pixpat_x;				\
-	  								\
+	  uint32_t orig_fill_pixpat_x;					\
+									\
 	  PenMode (patCopy);						\
-	  orig_fill_pixpat_x = CPORT_FILL_PIXPAT_X (thePort);		\
+	  orig_fill_pixpat_x = CPORT_FILL_PIXPAT_X (thePort).pp;	\
 	  /* ROMlib_fill_pixpat (pixpat); */				\
-	  CPORT_FILL_PIXPAT_X (thePort) = RM (pixpat);			\
+	  PACKED_ASSIGN (CPORT_FILL_PIXPAT_X (thePort), pixpat);	\
 	  CALLxxx;							\
-	  CPORT_FILL_PIXPAT_X (thePort) = orig_fill_pixpat_x;		\
+	  CPORT_FILL_PIXPAT_X (thePort).pp = orig_fill_pixpat_x;	\
 	}								\
       else								\
 	{								\

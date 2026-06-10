@@ -83,7 +83,7 @@ A6(PUBLIC, OSErr, ROMlib_PBMoveOrRename, ParmBlkPtr, pb,	/* INTERNAL */
 
     if ((err = ROMlib_nami(pb, dir, NoIndex, &oldpathname, &oldfilename,
 				 &oldendname, TRUE, &vcbp, &sbuf)) == noErr) {
-	npb.ioParam.ioNamePtr = RM((StringPtr) newname);
+	PACKED_ASSIGN (npb.ioParam.ioNamePtr, (StringPtr) newname);
 	npb.ioParam.ioVRefNum = pb->ioParam.ioVRefNum;
 	if ((err = ROMlib_nami(&npb, newdir, NoIndex, &newpathname,
 			       &newfilename, &newendname, TRUE, (VCBExtra **)0,
@@ -147,7 +147,7 @@ A2(PUBLIC, OSErr, ufsPBCatMove, CMovePBPtr, pb,		/* INTERNAL */
 						     BOOLEAN, a)
 {
     return ROMlib_PBMoveOrRename((ParmBlkPtr) pb, a, Cx(pb->ioDirID),
-			      Cx(pb->ioNewDirID), (char *) MR(pb->ioNewName), CatMove);
+			      Cx(pb->ioNewDirID), (char *) PPR(pb->ioNewName), CatMove);
 }
 
 A2(PUBLIC, OSErr, ufsPBOpenWD, WDPBPtr, pb, BOOLEAN, a)	/* INTERNAL */
@@ -159,7 +159,7 @@ A2(PUBLIC, OSErr, ufsPBOpenWD, WDPBPtr, pb, BOOLEAN, a)	/* INTERNAL */
     VCBExtra *vcbp;
     LONGINT dirid;
 
-    newpb.ioParam.ioNamePtr = pb->ioNamePtr;
+    PACKED_ASSIGN (newpb.ioParam.ioNamePtr, PPR(pb->ioNamePtr));
     newpb.ioParam.ioVRefNum = pb->ioVRefNum;
 
     err = ROMlib_nami(&newpb, Cx(pb->ioWDDirID), NoIndex, &pathname, &filename,

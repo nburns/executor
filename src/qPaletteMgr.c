@@ -196,7 +196,7 @@ window_p (WindowPtr w)
 {
   WindowPeek t_w;
   
-  for (t_w = MR (WindowList);
+  for (t_w = GET_WindowList ();
        t_w;
        t_w = WINDOW_NEXT_WINDOW (t_w))
     {
@@ -586,7 +586,7 @@ pm_do_updates_gd_changed (void)
     {
       if (t->w == (WindowPtr) -1)
 	{
-	  PaintOne ((WindowPeek) NULL, MR (GrayRgn));
+	  PaintOne ((WindowPeek) NULL, GET_GrayRgn ());
 	}
       else if (!window_p (t->w))
 	continue;
@@ -652,7 +652,7 @@ P1 (PUBLIC pascal trap, void, ActivatePalette, WindowPtr, src_window)
      have nothing to do */
   if (!PALETTE_MODIFIED_P (palette)
       /* PM5.0a sets the seeds to `-1', as far as i can tell */
-      && PALETTE_SEEDS_X (palette) != (Handle) CLC (-1)
+      && PALETTE_SEEDS_X (palette).pp != (uint32_t) CLC (-1)
       /* we only have a single display currently */
       && PALETTE_SEED_X (palette) == CTAB_SEED_X (gd_ctab))
     return;
@@ -711,7 +711,7 @@ P1 (PUBLIC pascal trap, void, ActivatePalette, WindowPtr, src_window)
     pm_do_updates_gd_changed ();
   
   PALETTE_CLEAR_MODIFIED (palette);
-  if (PALETTE_SEEDS_X (palette) != (Handle) CLC (-1))
+  if (PALETTE_SEEDS_X (palette).pp != (uint32_t) CLC (-1))
     PALETTE_SEED_X (palette) = CTAB_SEED_X (gd_ctab);
 }
 
@@ -816,7 +816,7 @@ P0 (PUBLIC pascal trap, void, InitPalettes)
       
       /* ### don't know what these fields fields are for, unitialized
  	 them to some random value */
-      PALETTE_WINDOW_X (default_palette) = (GrafPtr) CLC (0);
+      PACKED_ASSIGN0 (PALETTE_WINDOW_X (default_palette));
       PALETTE_DEVICES_X (default_palette) = CLC (-1);
       
       default_palette_info = PALETTE_INFO (default_palette);
@@ -834,7 +834,7 @@ P0 (PUBLIC pascal trap, void, InitPalettes)
       entry->ciPrivate = CWC (0);
       
       /* initial contents don't matter */
-      PALETTE_SEEDS_X (default_palette) = RM (NewHandle (sizeof (int)));
+      PACKED_ASSIGN (PALETTE_SEEDS_X (default_palette), NewHandle (sizeof (int)));
       PALETTE_SET_MODIFIED (default_palette);
     }
 
@@ -862,7 +862,7 @@ P4 (PUBLIC pascal trap, PaletteHandle, NewPalette,
   memset (STARH (new_palette), 0, PALETTE_STORAGE_FOR_ENTRIES (entries));
 
   /* initial contents don't matter */
-  PALETTE_SEEDS_X (new_palette) = RM (NewHandle (sizeof (int)));
+  PACKED_ASSIGN (PALETTE_SEEDS_X (new_palette), NewHandle (sizeof (int)));
   PALETTE_SET_MODIFIED (new_palette);
   
   PALETTE_ENTRIES_X (new_palette) = CW (entries);
@@ -912,7 +912,7 @@ P1 (PUBLIC pascal trap, PaletteHandle, GetNewPalette, INTEGER, id)
 	     palette_size);
   
   /* initial contents don't matter */
-  PALETTE_SEEDS_X (retval) = RM (NewHandle (sizeof (int)));
+  PACKED_ASSIGN (PALETTE_SEEDS_X (retval), NewHandle (sizeof (int)));
   PALETTE_SET_MODIFIED (retval);
   
   return retval;  

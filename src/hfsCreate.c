@@ -24,14 +24,14 @@ PRIVATE OSErr freeallblocks(HVCB *vcbp, filerec *frp)
     if (!fcbp)
 	retval = tmfoErr;
     else {
-	fcbp->fcbVPtr = RM(vcbp);
+	PACKED_ASSIGN(fcbp->fcbVPtr, vcbp);
 	fcbp->fcbFlNum = frp->filFlNum;
 	fcbp->fcbPLen = frp->filPyLen;
 	memmove((char *) fcbp->fcbExtRec, (char *) frp->filExtRec,
 		(LONGINT) sizeof(frp->filExtRec));
 	fcbp->fcbMdRByt = WRITEBIT;
 	pbr.ioParam.ioMisc = 0;
-	pbr.ioParam.ioRefNum = CW((char *) fcbp - (char *) MR(FCBSPtr));
+	pbr.ioParam.ioRefNum = CW((char *) fcbp - (char *) GET_FCBSPtr());
 	retval = ROMlib_allochelper((ioParam *) &pbr, FALSE, seteof, FALSE);
 	if (retval == noErr) {
 	    fcbp->fcbPLen = frp->filRPyLen;

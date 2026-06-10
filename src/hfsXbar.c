@@ -41,7 +41,7 @@ PRIVATE BOOLEAN hfsvol(ioParam *pb)
     HVCB *vcbp;
     LONGINT dir;
     
-    vcbp = ROMlib_findvcb(Cx(pb->ioVRefNum), MR(pb->ioNamePtr), &dir, TRUE);
+    vcbp = ROMlib_findvcb(Cx(pb->ioVRefNum), (StringPtr)PPR(pb->ioNamePtr), &dir, TRUE);
     if (!vcbp) {
 	vcbp = ROMlib_findvcb(Cx(pb->ioVRefNum), (StringPtr) 0, &dir, TRUE);
 	if (!vcbp)
@@ -79,7 +79,7 @@ PRIVATE BOOLEAN hfsfil(ioParam *pb)
 
     fcbp = ROMlib_refnumtofcbp(Cx(pb->ioRefNum));
     if (fcbp) {
-	vcbp = MR(fcbp->fcbVPtr);
+	vcbp = (HVCB *)PPR(fcbp->fcbVPtr);
 	if (vcbp->vcbCTRef) {
 #if defined(CACHECHECK)
 	    cachecheck(vcbp);
@@ -179,7 +179,7 @@ A2(PUBLIC trap, OSErrRET, PBRead, ParmBlkPtr, pb, BOOLEAN, async)
 		    pb->ioParam.ioResult = CW(ROMlib_transphysblk(&dqp->hfs,
 						   Cx(pb->ioParam.ioPosOffset),
 					Cx(pb->ioParam.ioReqCount) / PHYSBSIZE,
-					     MR(pb->ioParam.ioBuffer), reading,
+					     (Ptr)PPR(pb->ioParam.ioBuffer), reading,
 						  &pb->ioParam.ioActCount));
 
 	    }
@@ -204,7 +204,7 @@ A2(PUBLIC trap, OSErrRET, PBRead, ParmBlkPtr, pb, BOOLEAN, async)
 
 	    buf = alloca (CL (pb->ioParam.ioReqCount));
 
-	    pbr.ioParam.ioBuffer = (Ptr) RM (buf);
+	    PACKED_ASSIGN(pbr.ioParam.ioBuffer, buf);
 	    retval = PBRead (&pbr, FALSE);
 	    pb->ioParam.ioActCount  = pbr.ioParam.ioActCount;
 	    pb->ioParam.ioPosOffset = pbr.ioParam.ioPosOffset;
@@ -247,10 +247,10 @@ A2(PUBLIC trap, OSErrRET, PBRead, ParmBlkPtr, pb, BOOLEAN, async)
 		if (ROMlib_newlinetocr && to_find == '\r')
 		  *p = '\r';
 	      }
-	    memcpy (MR (pb->ioParam.ioBuffer), MR (pbr.ioParam.ioBuffer),
+	    memcpy ((Ptr)PPR(pb->ioParam.ioBuffer), (Ptr)PPR(pbr.ioParam.ioBuffer),
 		    CL (pb->ioParam.ioActCount));
 	    ROMlib_destroy_blocks ((syn68k_addr_t) (long)
-				   US_TO_SYN68K(MR (pb->ioParam.ioBuffer)),
+				   US_TO_SYN68K((Ptr)PPR(pb->ioParam.ioBuffer)),
 				   CL (pb->ioParam.ioActCount), TRUE);
 	  }
 	else
@@ -295,7 +295,7 @@ A2(PUBLIC trap, OSErrRET, PBWrite, ParmBlkPtr, pb, BOOLEAN, async)
 		pb->ioParam.ioResult = CW(ROMlib_transphysblk(&dqp->hfs,
 						   Cx(pb->ioParam.ioPosOffset),
 					Cx(pb->ioParam.ioReqCount) / PHYSBSIZE,
-					     MR(pb->ioParam.ioBuffer), writing,
+					     (Ptr)PPR(pb->ioParam.ioBuffer), writing,
 						  &pb->ioParam.ioActCount));
 
 	}
@@ -350,9 +350,9 @@ A2(PUBLIC trap, OSErrRET, PBHOpen, HParmBlkPtr, pb, BOOLEAN, async)
 {
     OSErr retval;
 
-    if (pb->ioParam.ioBuffer == 0 &&
-	pb->ioParam.ioNamePtr && MR(pb->ioParam.ioNamePtr)[0]
-			      && MR(pb->ioParam.ioNamePtr)[1] == '.')
+    if (!pb->ioParam.ioBuffer.pp &&
+	pb->ioParam.ioNamePtr.pp && ((StringPtr)PPR(pb->ioParam.ioNamePtr))[0]
+			          && ((StringPtr)PPR(pb->ioParam.ioNamePtr))[1] == '.')
         retval = ROMlib_driveropen((ParmBlkPtr) pb, async);
     else if (hfsvol((ioParam *) pb))
 	retval = hfsPBHOpen(pb, async);
@@ -408,7 +408,7 @@ A2(PUBLIC trap, OSErrRET, PBGetCatInfo, CInfoPBPtr, pb, BOOLEAN, async)
 {
     OSErr retval;
     BOOLEAN ishfs;
-    StringPtr savep;
+    typeof(pb->dirInfo.ioNamePtr) savep;
 
     if (CW(pb->dirInfo.ioFDirIndex) < 0 && pb->hFileInfo.ioDirID == CLC (1))
 	retval = -43; /* perhaps we should check for a valid volume
@@ -417,7 +417,7 @@ A2(PUBLIC trap, OSErrRET, PBGetCatInfo, CInfoPBPtr, pb, BOOLEAN, async)
       {
 	savep = pb->dirInfo.ioNamePtr;
 	if (pb->dirInfo.ioFDirIndex != CWC (0))	/* IMIV-155, 156 */
-	  pb->dirInfo.ioNamePtr = 0;
+	  PACKED_ASSIGN0(pb->dirInfo.ioNamePtr);
 	ishfs = hfsvol((ioParam *) pb);
 	pb->dirInfo.ioNamePtr = savep;
 	
@@ -510,11 +510,11 @@ A2(PUBLIC trap, OSErrRET, PBHGetFInfo, HParmBlkPtr, pb, BOOLEAN, async)
 {
     OSErr retval;
     BOOLEAN ishfs;
-    StringPtr savep;
+    typeof(pb->ioParam.ioNamePtr) savep;
 
     savep = pb->ioParam.ioNamePtr;
     if (CW(pb->fileParam.ioFDirIndex) > 0)	/* IMIV-155, 156 */
-	pb->ioParam.ioNamePtr = 0;
+	PACKED_ASSIGN0(pb->ioParam.ioNamePtr);
     ishfs = hfsvol((ioParam *) pb);
     pb->ioParam.ioNamePtr = savep;
 
@@ -540,8 +540,8 @@ A2(PUBLIC trap, OSErrRET, PBOpen, ParmBlkPtr, pb, BOOLEAN, async)
 {
     OSErr retval;
 
-    if (pb->ioParam.ioNamePtr && MR(pb->ioParam.ioNamePtr)[0]
-			      && MR(pb->ioParam.ioNamePtr)[1] == '.')
+    if (pb->ioParam.ioNamePtr.pp && ((StringPtr)PPR(pb->ioParam.ioNamePtr))[0]
+			          && ((StringPtr)PPR(pb->ioParam.ioNamePtr))[1] == '.')
 	retval = ROMlib_driveropen(pb, async);
     else if (hfsvol((ioParam *) pb))
 	retval = hfsPBOpen(pb, async);
@@ -559,8 +559,8 @@ PUBLIC void test_serial(void)
 
   memset (&pb_in, 0, sizeof pb_in);
   memset (&pb_out, 0, sizeof pb_out);
-  pb_in.ioParam.ioNamePtr = RM ((StringPtr) "\004.AIn");
-  pb_out.ioParam.ioNamePtr = RM ((StringPtr) "\005.AOut");
+  PACKED_ASSIGN(pb_in.ioParam.ioNamePtr, (StringPtr)"\004.AIn");
+  PACKED_ASSIGN(pb_out.ioParam.ioNamePtr, (StringPtr)"\005.AOut");
   open_in_val = PBOpen (&pb_in, FALSE);
   open_out_val = PBOpen (&pb_out, FALSE);
   close_in_val = PBClose (&pb_in, FALSE);
@@ -698,12 +698,12 @@ A2(PUBLIC trap, OSErrRET, PBGetWDInfo, WDPBPtr, pb, BOOLEAN, async)
 A2(PUBLIC trap, OSErrRET, PBGetFInfo, ParmBlkPtr, pb, BOOLEAN, async)
 {
     BOOLEAN ishfs;
-    StringPtr savep;
+    typeof(pb->ioParam.ioNamePtr) savep;
     OSErr retval;
 
     savep = pb->ioParam.ioNamePtr;
     if (CW(pb->fileParam.ioFDirIndex) > 0)	/* IMIV-155, 156 */
-	pb->ioParam.ioNamePtr = 0;
+	PACKED_ASSIGN0(pb->ioParam.ioNamePtr);
     ishfs = hfsvol((ioParam *) pb);
     pb->ioParam.ioNamePtr = savep;
 
@@ -879,10 +879,10 @@ A2(PUBLIC trap, OSErrRET, PBHGetVolParms, HParmBlkPtr, pb, BOOLEAN, async)
    >= (int) offsetof (typeof (*(ptr)), field) + (int) sizeof ((ptr)->field))
     
   vcbp = ROMlib_findvcb(Cx(pb->ioParam.ioVRefNum),
-			MR(pb->ioParam.ioNamePtr), &dir, FALSE);
+			(StringPtr)PPR(pb->ioParam.ioNamePtr), &dir, FALSE);
   if (vcbp)
     {
-      infop = (getvolparams_info_t *) MR (pb->ioParam.ioBuffer);
+      infop = (getvolparams_info_t *) PPR(pb->ioParam.ioBuffer);
       rc     = CL (pb->ioParam.ioReqCount);
       nused  = 0;
       if (roomfor (infop, vMVersion, rc))

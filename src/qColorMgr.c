@@ -369,17 +369,17 @@ P3 (PUBLIC pascal trap, void, GetSubTable,
   LOCK_HANDLE_EXCURSION_2
     (in_ctab, target_ctab,
      {
-       CTabHandle gdev_ctab_save = PIXMAP_TABLE_X (gd_pmap);
-       ITabHandle gdev_itab_save = GD_ITABLE_X (gdev);
-       
+       uint32_t gdev_ctab_save = PIXMAP_TABLE_X (gd_pmap).pp;
+       uint32_t gdev_itab_save = GD_ITABLE_X (gdev).pp;
+
        /* pull tables into locals for easy access */
        ColorSpec *in_ctab_table = CTAB_TABLE (in_ctab);
-       
+
        /* ColorSpec *target_ctab_table = CTAB_TABLE (target_ctab); */
        /* int gd_ctab_p = CTAB_FLAGS_X (target_ctab) & CTAB_GDEVICE_BIT_X; */
-       
-       PIXMAP_TABLE_X (gd_pmap) = RM (target_ctab);
-       GD_ITABLE_X (gdev) = RM (itab);
+
+       PACKED_ASSIGN (PIXMAP_TABLE_X (gd_pmap), target_ctab);
+       PACKED_ASSIGN (GD_ITABLE_X (gdev), itab);
        
        for (i = CTAB_SIZE (in_ctab); i >= 0; i --)
 	 {
@@ -401,8 +401,8 @@ P3 (PUBLIC pascal trap, void, GetSubTable,
 	   color->value = CW (ctab_index);
 	 }
        
-       PIXMAP_TABLE_X (gd_pmap) = gdev_ctab_save;
-       GD_ITABLE_X (gdev) = gdev_itab_save;
+       PIXMAP_TABLE_X (gd_pmap).pp = gdev_ctab_save;
+       GD_ITABLE_X (gdev).pp = gdev_itab_save;
      });
 }
 
@@ -665,7 +665,7 @@ P3 (PUBLIC pascal trap, void, MakeITable,
       if (!inverse_table)
 	{
 	  inverse_table = (ITabHandle) NewHandle (0);
-	  GD_ITABLE_X (MR (TheGDevice)) = RM (inverse_table);
+	  PACKED_ASSIGN (GD_ITABLE_X (MR (TheGDevice)), inverse_table);
 	}
     }
   
@@ -1016,10 +1016,10 @@ P1 (PUBLIC pascal trap, void, AddSearch,
   gdev = MR (TheGDevice);
 
   search_list_elt = (SProcHndl) NewHandle (sizeof (SProcRec));
-  HxX (search_list_elt, srchProc) = RM (searchProc);
-  HxX (search_list_elt, nxtSrch) = GD_SEARCH_PROC_X (gdev);
+  PACKED_ASSIGN (HxX (search_list_elt, srchProc), searchProc);
+  PACKED_ASSIGN (HxX (search_list_elt, nxtSrch), PPR (GD_SEARCH_PROC_X (gdev)));
 
-  GD_SEARCH_PROC_X (gdev) = RM (search_list_elt);
+  PACKED_ASSIGN (GD_SEARCH_PROC_X (gdev), search_list_elt);
 
   /* Invalidate all color conversion tables. */
   ROMlib_invalidate_conversion_tables ();
@@ -1042,12 +1042,12 @@ P1 (PUBLIC pascal trap, void, DelSearch,
   prev = NULL;
   for (s = GD_SEARCH_PROC (gdev); s != NULL; s = HxP (s, nxtSrch))
     {
-      if (HxX (s, srchProc) == RM (searchProc))
+      if (PPR (HxX (s, srchProc)) == searchProc)
 	{
 	  if (prev == NULL)
-	    GD_SEARCH_PROC_X (gdev) = HxX (s, nxtSrch);
+	    PACKED_ASSIGN (GD_SEARCH_PROC_X (gdev), PPR (HxX (s, nxtSrch)));
 	  else
-	    HxX (prev, nxtSrch) = HxX (s, nxtSrch);
+	    PACKED_ASSIGN (HxX (prev, nxtSrch), PPR (HxX (s, nxtSrch)));
 	  DisposHandle ((Handle) s);
 	  /* Invalidate all color conversion tables. */
 	  ROMlib_invalidate_conversion_tables ();

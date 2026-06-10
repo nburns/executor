@@ -7,6 +7,7 @@
 
 
 #include "rsys/common.h"
+#include "rsys/nextprint.h"
 #include <stdarg.h>
 
 #if !defined (OMIT_RCSID_STRINGS)
@@ -904,10 +905,10 @@ static void commonupdate(comGrafPtr thePortp)
 	printport.portBits.bounds = thePortp->portBits.bounds;
     }
     if (!ROMlib_suppressclip && (reloadclip ||
-			     !myEqualRect(&MR(*MR(thePortp->clipRgn))->rgnBBox,
-					&MR(*MR(printport.clipRgn))->rgnBBox))) {
-	NeXTClip(&MR(*MR(thePortp->clipRgn))->rgnBBox);
-	MR(*MR(printport.clipRgn))->rgnBBox = MR(*MR(thePortp->clipRgn))->rgnBBox;
+			     !myEqualRect(&((struct comRgn*)MR(*(struct comRgn**)PPR(thePortp->clipRgn)))->rgnBBox,
+					&((struct comRgn*)MR(*(struct comRgn**)PPR(printport.clipRgn)))->rgnBBox))) {
+	NeXTClip(&((struct comRgn*)MR(*(struct comRgn**)PPR(thePortp->clipRgn)))->rgnBBox);
+	((struct comRgn*)MR(*(struct comRgn**)PPR(printport.clipRgn)))->rgnBBox = ((struct comRgn*)MR(*(struct comRgn**)PPR(thePortp->clipRgn)))->rgnBBox;
 	printport.pnLoc.h = CWC(-32768);	/* force reload */
 	printport.txFont = CWC(-32768);	/* force reload */
     }
@@ -1413,7 +1414,7 @@ void NeXTPrArc(LONGINT verb, comRect *rp, LONGINT starta, LONGINT arca,
 }
 
 PRIVATE int
-num_image_bytes (numbytes, pixelsize, direct_color_p)
+num_image_bytes (int numbytes, int pixelsize, int direct_color_p)
 {
   int retval;
 
@@ -1495,7 +1496,7 @@ void NeXTPrBits(comBitMap *srcbmp, comRect *srcrp, comRect *dstrp,
       rowbytes = CW(srcbmp->rowBytes) & ROWMASK;
 
       PStranslate(CW(dstrp->left), CW(dstrp->top));
-      baseaddr = (unsigned char *)MR(srcbmp->baseAddr)
+      baseaddr = (unsigned char *)PPR(srcbmp->baseAddr)
 	+ (CW(srcrp->top) - CW(srcbmp->bounds.top)) * (LONGINT) rowbytes;
 
       /* NOTE: now that we don't send big arrays, I believe that doing
@@ -1567,7 +1568,7 @@ void NeXTPrBits(comBitMap *srcbmp, comRect *srcrp, comRect *dstrp,
 	  HIDDEN_PixMapPtr pxp;
 	  boolean_t has_warned_p;
 
-	  pxp.p = (PixMapPtr) RM (srcpmp);
+	  PACKED_ASSIGN (pxp, srcpmp);
 	  DPSPrintf (DPSGetCurrentContext (),
 		     "[/Indexed /DeviceRGB %d <\n", (1 << pixelsize) - 1);
 

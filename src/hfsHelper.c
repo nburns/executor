@@ -253,9 +253,9 @@ PUBLIC void ROMlib_OurClose( void )
     HVCB *vcbp, *next;
     ParamBlockRec pbr;
 
-    for (vcbp = (HVCB *) MR(VCBQHdr.qHead); vcbp; vcbp = next) {
-	next = (HVCB *) MR(vcbp->qLink);
-	pbr.ioParam.ioNamePtr = 0;
+    for (vcbp = (HVCB *) PPR(VCBQHdr.qHead); vcbp; vcbp = next) {
+	next = (HVCB *) PPR(vcbp->qLink);
+	PACKED_ASSIGN0(pbr.ioParam.ioNamePtr);
 	if (Cx(vcbp->vcbCTRef)) {
 	    pbr.ioParam.ioVRefNum = vcbp->vcbVRefNum;
 	    PBUnmountVol(&pbr);
@@ -772,7 +772,7 @@ PUBLIC void *ROMlib_indexqueue(QHdr *qp, short index)
     for (p = CL(qp->qHead); (--index > 0) && p; p = CL(p->qLink))
 	;
 #else
-    for (p = MR(qp->qHead); (--index > 0) && p; p = MR(p->vcbQElem.qLink))
+    for (p = (QElemPtr)PPR(qp->qHead); (--index > 0) && p; p = (QElemPtr)PPR(p->vcbQElem.qLink))
 	;
 #endif
     return p;

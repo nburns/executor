@@ -74,19 +74,43 @@ extern LONGINT 	MinusOne;
 extern Byte 	ApplScratch[12];
 #endif
 
-#define MemTop	(MemTop_H.p)
-#define BufPtr	(BufPtr_H.p)
-#define HeapEnd	(HeapEnd_H.p)
-#define TheZone	(TheZone_H.p)
-#define ApplLimit	(ApplLimit_H.p)
-#define SysZone		(SysZone_H.p)
-#define ApplZone	(ApplZone_H.p)
-#define ROMBase		(ROMBase_H.p)
-#define heapcheck	(heapcheck_H.p)
-#define GZRootHnd	(GZRootHnd_H.p)
-#define IAZNotify	(IAZNotify_H.p)
-#define CurrentA5	(CurrentA5_H.p)
-#define CurStackBase	(CurStackBase_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define MemTop      (MemTop_H.p)
+# define BufPtr      (BufPtr_H.p)
+# define HeapEnd     (HeapEnd_H.p)
+# define TheZone     (TheZone_H.p)
+# define ApplLimit   (ApplLimit_H.p)
+# define SysZone     (SysZone_H.p)
+# define ApplZone    (ApplZone_H.p)
+# define ROMBase     (ROMBase_H.p)
+# define heapcheck   (heapcheck_H.p)
+# define GZRootHnd   (GZRootHnd_H.p)
+# define IAZNotify   (IAZNotify_H.p)
+# define CurrentA5   (CurrentA5_H.p)
+# define CurStackBase (CurStackBase_H.p)
+# define GET_TheZone()     MR(TheZone_H.p)
+# define SET_TheZone(v)    (TheZone_H.p = RM(v))
+# define GET_SysZone()     MR(SysZone_H.p)
+# define GET_ApplZone()    MR(ApplZone_H.p)
+# define SET_ApplZone(v)   (ApplZone_H.p = RM(v))
+# define GET_GZRootHnd()   MR(GZRootHnd_H.p)
+# define GET_IAZNotify()   MR(IAZNotify_H.p)
+# define GET_CurrentA5()   MR(CurrentA5_H.p)
+# define SET_CurrentA5(v)  (CurrentA5_H.p = RM(v))
+#else
+/* On 64-bit, .p does not exist - use GET/SET macros for all lowglobal access */
+# define SysZone           GET_SysZone()
+# define ApplZone          GET_ApplZone()
+# define GET_TheZone()     ((THz) PPR(TheZone_H))
+# define SET_TheZone(v)    (TheZone_H.pp = RPP(v))
+# define GET_SysZone()     ((THz) PPR(SysZone_H))
+# define GET_ApplZone()    ((THz) PPR(ApplZone_H))
+# define SET_ApplZone(v)   (ApplZone_H.pp = RPP(v))
+# define GET_GZRootHnd()   ((Handle) PPR(GZRootHnd_H))
+# define GET_IAZNotify()   ((ProcPtr) PPR(IAZNotify_H))
+# define GET_CurrentA5()   ((Ptr) PPR(CurrentA5_H))
+# define SET_CurrentA5(v)  (CurrentA5_H.pp = RPP(v))
+#endif
 
 /* traps which can have a `sys' or `clear' bit set */
 

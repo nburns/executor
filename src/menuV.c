@@ -40,7 +40,7 @@ P1(PUBLIC pascal trap, void, InitProcMenu, INTEGER, mbid)
      * GetResource to fail.  A small test program then confirmed that
      * the bits are not masked off.
      */
-    MBDFHndl = RM(GetResource(TICK("MBDF"), mbid));
+    SET_MBDFHndl(GetResource(TICK("MBDF"), mbid));
     HxX(MENULIST, mufu) = CW(mbid);
     MBDFCALL(mbInit, 0, 0L);
 }
@@ -77,7 +77,7 @@ P4(PUBLIC pascal trap, LONGINT, PopUpMenuSelect, MenuHandle, mh, INTEGER, top,
     Rect saver;
     INTEGER tempi;
     LONGINT where;
-    RgnHandle saveclip;
+    uint32_t saveclip;
     int count;
     
 /*
@@ -123,12 +123,12 @@ P4(PUBLIC pascal trap, LONGINT, PopUpMenuSelect, MenuHandle, mh, INTEGER, top,
 	 
 	 MBDFCALL (mbSave, where, (LONGINT) (long) &saver);
 	 
-	 saveclip = PORT_CLIP_REGION_X (thePort); /* ick */
-	 PORT_CLIP_REGION_X (thePort) = RM (NewRgn ());
+	 saveclip = PORT_CLIP_REGION_X (thePort).pp; /* ick */
+	 PACKED_ASSIGN(PORT_CLIP_REGION_X (thePort), NewRgn ());
 	 RectRgn (PORT_CLIP_REGION (thePort), &saver);
 	 MENUCALL (mDrawMsg, mh, &saver, p, (INTEGER *) 0);
 	 DisposeRgn (PORT_CLIP_REGION (thePort));
-	 PORT_CLIP_REGION_X (thePort) = saveclip;
+	 PORT_CLIP_REGION_X (thePort).pp = saveclip;
 	 MBDFCALL (mbSaveAlt, 0, where);
        });
     return ROMlib_menuhelper (mh, &saver, where, TRUE, 1);

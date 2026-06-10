@@ -54,8 +54,8 @@ typedef HIDDEN_WindowPtr HIDDEN_DialogPtr;
 #define DIALOG_EDIT_OPEN_X(dialog)	(((DialogPeek) (dialog))->editOpen)
 #define DIALOG_ADEF_ITEM_X(dialog)	(((DialogPeek) (dialog))->aDefItem)
 
-#define DIALOG_ITEMS(dialog)		(MR (DIALOG_ITEMS_X (dialog)))
-#define DIALOG_TEXTH(dialog)		(MR (DIALOG_TEXTH_X (dialog)))
+#define DIALOG_ITEMS(dialog)		(PPR (DIALOG_ITEMS_X (dialog)))
+#define DIALOG_TEXTH(dialog)		(PPR (DIALOG_TEXTH_X (dialog)))
 #define DIALOG_EDIT_FIELD(dialog)	(CW (DIALOG_EDIT_FIELD_X (dialog)))
 #define DIALOG_EDIT_OPEN(dialog)	(CW (DIALOG_EDIT_OPEN_X (dialog)))
 #define DIALOG_ADEF_ITEM(dialog)	(CW (DIALOG_ADEF_ITEM_X (dialog)))
@@ -128,8 +128,15 @@ extern INTEGER 	ACount;
 extern INTEGER 	DlgFont;
 #endif
 
-#define ResumeProc	(ResumeProc_H.p)
-#define DABeeper	(DABeeper_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define ResumeProc	(ResumeProc_H.p)
+# define DABeeper	(DABeeper_H.p)
+# define GET_DABeeper()		MR (DABeeper_H.p)
+# define GET_ResumeProc()	MR (ResumeProc_H.p)
+#else
+# define GET_DABeeper()		PPR (DABeeper_H)
+# define GET_ResumeProc()	PPR (ResumeProc_H)
+#endif
 
 extern pascal trap INTEGER C_Alert( INTEGER id, 
  ProcPtr fp );

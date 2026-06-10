@@ -120,10 +120,10 @@ PUBLIC cacheentry *ROMlib_addrtocachep(Ptr addr, HVCB *vcbp)
     cacheentry *retval;
     INTEGER i;
 
-    headp = (cachehead *) MR(vcbp->vcbCtlBuf);
-    for (i = CW(headp->nitems), retval = MR(headp->flink); --i >= 0 &&
+    headp = (cachehead *) PPR(vcbp->vcbCtlBuf);
+    for (i = CW(headp->nitems), retval = (cacheentry *)PPR(headp->flink); --i >= 0 &&
 	     (addr < (Ptr) retval || addr > (Ptr) retval + sizeof(cacheentry));
-						    retval = MR(retval->flink))
+						    retval = (cacheentry *)PPR(retval->flink))
 	;
     return i >= 0 ? retval : 0;
 }
@@ -314,15 +314,15 @@ PUBLIC BOOLEAN ROMlib_searchnode(btnode *btp, void *key, compfp fp,
 
 PRIVATE void makefirst(cachehead *headp, cacheentry *entryp)
 {
-    if (MR(headp->flink) != entryp) {
-	MR(entryp->blink)->flink = entryp->flink;   /* remove link */
-	MR(entryp->flink)->blink = entryp->blink;
-	
-	entryp->flink = headp->flink;
-	entryp->blink = MR(headp->flink)->blink;
-	
-	MR(headp->flink)->blink = RM(entryp);
-	headp->flink = RM(entryp);
+    if ((cacheentry *)PPR(headp->flink) != entryp) {
+	((cacheentry *)PPR(entryp->blink))->flink = entryp->flink;   /* remove link */
+	((cacheentry *)PPR(entryp->flink))->blink = entryp->blink;
+
+	PACKED_ASSIGN(entryp->flink, (cacheentry *)PPR(headp->flink));
+	entryp->blink = ((cacheentry *)PPR(headp->flink))->blink;
+
+	PACKED_ASSIGN(((cacheentry *)PPR(headp->flink))->blink, entryp);
+	PACKED_ASSIGN(headp->flink, entryp);
     }
 }
 
@@ -333,7 +333,7 @@ PUBLIC OSErr ROMlib_putcache(cacheentry *cachep)
     
     err = noErr;
 
-    vcbp = MR(cachep->vptr);
+    vcbp = (HVCB *)PPR(cachep->vptr);
     if ((cachep->flags & (CACHEDIRTY|CACHEFREE)) == CACHEDIRTY) {
 #if 0
 	BufTgFNum = cachep->fileno;
@@ -383,12 +383,12 @@ PUBLIC OSErr ROMlib_getcache(cacheentry **retpp, uint16 refnum, ULONGINT logbno,
 #endif
     
     ROMlib_index_cached = FALSE;
-    fcbp = (filecontrolblock *)((char *)MR(FCBSPtr) + refnum);
-    vcbp = MR(fcbp->fcbVPtr);
+    fcbp = (filecontrolblock *)((char *)GET_FCBSPtr() + refnum);
+    vcbp = (HVCB *)PPR(fcbp->fcbVPtr);
     filenum = CL(fcbp->fcbFlNum);
     forkwanted = fcbp->fcbMdRByt & RESOURCEBIT ? resourcefork : datafork;
-    headp = (cachehead *) MR(vcbp->vcbCtlBuf);
-    
+    headp = (cachehead *) PPR(vcbp->vcbCtlBuf);
+
     count = CW(headp->nitems);
     lastp = 0;
     lastdirtyp = 0;
@@ -396,13 +396,13 @@ PUBLIC OSErr ROMlib_getcache(cacheentry **retpp, uint16 refnum, ULONGINT logbno,
 #if 1
     badnesscount = 0;
 #endif
-    for (retval = MR(headp->flink); --count >= 0 && (CL(retval->logblk) != logbno ||
-		CW(retval->refnum) != refnum || MR(retval->vptr) != vcbp ||
+    for (retval = (cacheentry *)PPR(headp->flink); --count >= 0 && (CL(retval->logblk) != logbno ||
+		CW(retval->refnum) != refnum || (HVCB *)PPR(retval->vptr) != vcbp ||
 		CL(retval->fileno) != filenum || retval->forktype != forkwanted);
-						      retval = MR(retval->flink)) {
+						      retval = (cacheentry *)PPR(retval->flink)) {
 	if (!(retval->flags & CACHEBUSY)) {
 	    if (retval->flags & CACHEDIRTY) {
-	        if (MR(retval->vptr) == vcbp)   /* TODO: take vptr == vcbp out */
+	        if ((HVCB *)PPR(retval->vptr) == vcbp)   /* TODO: take vptr == vcbp out */
 		    lastdirtyp = retval;
 #if 1
 		else
@@ -435,7 +435,7 @@ PUBLIC OSErr ROMlib_getcache(cacheentry **retpp, uint16 refnum, ULONGINT logbno,
     }
     makefirst(headp, retval);
     if (count < 0) {
-	retval->vptr = RM(vcbp);
+	PACKED_ASSIGN(retval->vptr, vcbp);
 	retval->fileno = CL(filenum);
 	retval->refnum = CW(refnum);
 	retval->logblk = CL(logbno);
@@ -507,11 +507,11 @@ PUBLIC OSErr ROMlib_cleancache(HVCB *vcbp)
     cacheentry *cachep;
     OSErr err;
     
-    headp = (cachehead *) MR(vcbp->vcbCtlBuf);
+    headp = (cachehead *) PPR(vcbp->vcbCtlBuf);
     err = noErr;
     for (i = CW(headp->nitems), cachep = (cacheentry *) (headp + 1); --i >= 0;
 								    ++cachep) {
-	if (MR(cachep->vptr) == vcbp)
+	if ((HVCB *)PPR(cachep->vptr) == vcbp)
 	    cachep->flags &= ~CACHEBUSY;
     }
     fs_err_hook (err);
@@ -525,14 +525,14 @@ PUBLIC OSErr ROMlib_flushcachevcbp(HVCB *vcbp)
     cacheentry *cachep;
     OSErr err;
     
-    headp = (cachehead *) MR(vcbp->vcbCtlBuf);
+    headp = (cachehead *) PPR(vcbp->vcbCtlBuf);
     err = noErr;
     if (headp)
       {
 	for (i = CW(headp->nitems), cachep = (cacheentry *) (headp + 1);
 	     --i >= 0; ++cachep)
 	  {
-	    if (MR(cachep->vptr) == vcbp && (cachep->flags & CACHEDIRTY))
+	    if ((HVCB *)PPR(cachep->vptr) == vcbp && (cachep->flags & CACHEDIRTY))
 	      {
 		OSErr err2;
 
@@ -1288,9 +1288,9 @@ PRIVATE OSErr maketrailentrybusy(trailentry *tep, uint16 refnum)
     OSErr err;
     HVCB *SWvcbp;
     
-    SWvcbp = ((filecontrolblock *)((char *)MR(FCBSPtr) + refnum))->fcbVPtr;
+    SWvcbp = (HVCB *)PPR(((filecontrolblock *)((char *)GET_FCBSPtr() + refnum))->fcbVPtr);
     if (CW(tep->cachep->refnum) != refnum ||
-    	CL(tep->cachep->logblk) != tep->logbno || tep->cachep->vptr != SWvcbp)
+    	CL(tep->cachep->logblk) != tep->logbno || (HVCB *)PPR(tep->cachep->vptr) != SWvcbp)
 	err = ROMlib_getcache(&tep->cachep, refnum, tep->logbno, GETCACHESAVE);
     else {
 	err = noErr;
@@ -1649,9 +1649,9 @@ PRIVATE OSErr savebusybuffers(HVCB *vcbp, saverec_t ***savehandlep)
     Size cursize;
     OSErr err;
 
-    headp = (cachehead *) MR(vcbp->vcbCtlBuf);
+    headp = (cachehead *) PPR(vcbp->vcbCtlBuf);
     count = CW(headp->nitems);
-    
+
     retval = (saverec_t **) NewHandle((Size) 0);
     if (retval == 0)
       {
@@ -1660,7 +1660,7 @@ PRIVATE OSErr savebusybuffers(HVCB *vcbp, saverec_t ***savehandlep)
 	return err;
       }
     cursize = 0;
-    for (cachep = MR(headp->flink); --count >= 0; cachep = MR(cachep->flink)) {
+    for (cachep = (cacheentry *)PPR(headp->flink); --count >= 0; cachep = (cacheentry *)PPR(cachep->flink)) {
 	if (cachep->flags & CACHEBUSY) {
 	    tempsaverec.refnum = CW(cachep->refnum);
 	    tempsaverec.logbno = CL(cachep->logblk);
@@ -1712,7 +1712,7 @@ PRIVATE OSErr getfreenode(cacheentry **newcachepp, cacheentry *block0cachep)
     refnum = CW(block0cachep->refnum);
     block0p = (btblock0 *) block0cachep->buf;
     if (block0p->nfreenodes == CLC(0)) {
-	fcbp = (filecontrolblock *) ((char *)MR(FCBSPtr) + refnum);
+	fcbp = (filecontrolblock *) ((char *)GET_FCBSPtr() + refnum);
 	iop.ioRefNum = CW(refnum);
 	iop.ioReqCount = fcbp->fcbClmpSize;
 
@@ -1732,16 +1732,16 @@ PRIVATE OSErr getfreenode(cacheentry **newcachepp, cacheentry *block0cachep)
 
 	flags = fcbp->fcbMdRByt;
 	fcbp->fcbMdRByt |= WRITEBIT;
-	err = savebusybuffers(MR(fcbp->fcbVPtr), &busysave);
+	err = savebusybuffers((HVCB *)PPR(fcbp->fcbVPtr), &busysave);
 	if (err != noErr)
 	  {
 	    fs_err_hook (err);
 	    return err;
 	  }
-	ROMlib_cleancache(MR(fcbp->fcbVPtr));
+	ROMlib_cleancache((HVCB *)PPR(fcbp->fcbVPtr));
 	err = PBAllocate((ParmBlkPtr) &iop, FALSE);    /* yahoo */
-	MR(fcbp->fcbVPtr)->vcbFlags |= CWC(VCBDIRTY);
-	ROMlib_flushvcbp(MR(fcbp->fcbVPtr));  /* just setting DIRTY isn't safe */
+	((HVCB *)PPR(fcbp->fcbVPtr))->vcbFlags |= CWC(VCBDIRTY);
+	ROMlib_flushvcbp((HVCB *)PPR(fcbp->fcbVPtr));  /* just setting DIRTY isn't safe */
 	err1 = restorebusybuffers(busysave);
 	if (err == noErr || (err == dskFulErr && CL(iop.ioActCount) > 0))
 	    err = err1;
@@ -1868,7 +1868,7 @@ PRIVATE OSErr slipin(cacheentry *cachep, INTEGER after, anykey *keyp,
 #if defined (CATFILEDEBUG)
     checkbtp(btp);
 #endif /* CATFILEDEBUG */
-    vcbp = MR(cachep->vptr);
+    vcbp = (HVCB *)PPR(cachep->vptr);
     firstoffset = (short *)((char *)btp + PHYSBSIZE) - 1;
     nrecs = CW(btp->ndNRecs);
     keysize = EVENUP(((catkey *)keyp)->ckrKeyLen + 1);
@@ -2105,7 +2105,7 @@ PRIVATE OSErr btcreate(btparam *btpb, void *datap, INTEGER datasize)
 /*-->*/	return err;
       }
     block0p = (btblock0 *) block0cachep->buf;
-    vcbp = MR(block0cachep->vptr);
+    vcbp = (HVCB *)PPR(block0cachep->vptr);
     potentialfree = CL(block0p->nfreenodes);
     potentialfree += CW(vcbp->vcbFreeBks) * (CL(vcbp->vcbAlBlkSiz) / PHYSBSIZE);
 
@@ -2276,7 +2276,7 @@ PUBLIC xtntkey *ROMlib_newextentrecord(filecontrolblock *fcbp, uint16 newabn)
     OSErr err;
     forktype forkwanted;
     
-    vcbp = MR(fcbp->fcbVPtr);
+    vcbp = (HVCB *)PPR(fcbp->fcbVPtr);
     forkwanted = fcbp->fcbMdRByt & RESOURCEBIT ? resourcefork : datafork;
     memset(&rec, 0, sizeof(rec));
     ROMlib_makextntparam(&btparamrec, vcbp, forkwanted, CL(fcbp->fcbFlNum), newabn);
@@ -2447,7 +2447,7 @@ PUBLIC OSErr ROMlib_btpbindex (ioParam *pb, LONGINT dirid, HVCB **vcbpp,
 	count = new_count;
     save_count = new_count;
     newpb = *pb;
-    newpb.ioNamePtr = RM((StringPtr) "");
+    PACKED_ASSIGN(newpb.ioNamePtr, (StringPtr) "");
     *vcbpp = 0;
     
     kind = thread;

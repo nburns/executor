@@ -392,7 +392,11 @@ typedef Byte *BytePtr;
 MAKE_HIDDEN(BytePtr);
 
 #define thePort		(STARH(STARH((HIDDEN_HIDDEN_GrafPtr_Ptr *) (long) SYN68K_TO_US(a5))))
-#define thePortX	((*STARH((HIDDEN_HIDDEN_GrafPtr_Ptr *) (long) SYN68K_TO_US(a5))).p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define thePortX	((*STARH((HIDDEN_HIDDEN_GrafPtr_Ptr *) (long) SYN68K_TO_US(a5))).p)
+#else
+# define thePortX	((*STARH((HIDDEN_HIDDEN_GrafPtr_Ptr *) (long) SYN68K_TO_US(a5))).pp)
+#endif
 #define white		(STARH((HIDDEN_BytePtr *)(long) SYN68K_TO_US(a5)) -8)
 #define black		(STARH((HIDDEN_BytePtr *)(long) SYN68K_TO_US(a5)) -16)
 #define gray		(STARH((HIDDEN_BytePtr *)(long) SYN68K_TO_US(a5)) -24)
@@ -442,7 +446,12 @@ extern Byte 	HiliteMode;
 #define JCrsrObscure	(JCrsrObscure_H.p)
 #define JUnknown574	(JUnknown574_H.p)
 #define JCrsrTask	(JCrsrTask_H.p)
-#define ScrnBase	(ScrnBase_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define ScrnBase           (ScrnBase_H.p)
+# define SET_ScrnBase(v)    (ScrnBase_H.p = RM(v))
+#else
+# define SET_ScrnBase(v)    (ScrnBase_H.pp = RPP(v))
+#endif
 #define Key1Trans	(Key1Trans_H.p)
 #define Key2Trans	(Key2Trans_H.p)
 

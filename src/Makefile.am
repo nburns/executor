@@ -500,6 +500,10 @@ if CONFIG_ARCH_X86_64
 arch_sources = config/arch/x86_64/x86_64.c config/arch/x86_64/x86_64.h
 endif CONFIG_ARCH_X86_64
 
+if CONFIG_ARCH_ARM64
+arch_sources = config/arch/arm64/arm64.c config/arch/arm64/arm64.h
+endif CONFIG_ARCH_ARM64
+
 
 if CONFIG_FRONT_END_DOS
 # The DOS port of Executor hasn't ever been built using automake.  Most likely

@@ -157,7 +157,7 @@ P2(PUBLIC pascal trap, void, LCellSize, Point, csize,		/* IMIV-273 */
 				    - CW(lp->dataBounds.left))));
     if (!(lp->cellSize.v = CW(csize.v))) {
 	gp = thePort;
-	SetPort(MR(lp->port));
+	SetPort((GrafPtr)PPR(lp->port));
 	GetFontInfo(&fi);
 	lp = STARH(list);	/* could have moved */
 	lp->cellSize.v = CW(CW(fi.ascent) + CW(fi.descent) + CW(fi.leading));

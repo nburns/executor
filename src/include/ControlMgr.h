@@ -127,7 +127,17 @@ typedef struct PACKED AuxCtlRec {
 extern HIDDEN_AuxCtlHandle AuxCtlHead_H;
 #endif
 
-#define AuxCtlHead	(AuxCtlHead_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define AuxCtlHead	(AuxCtlHead_H.p)
+# define GET_AuxCtlHead()    MR(AuxCtlHead_H.p)
+# define SET_AuxCtlHead(v)   (AuxCtlHead_H.p = RM(v))
+# define CLEAR_AuxCtlHead()  (AuxCtlHead_H.p = CLC_NULL)
+#else
+/* On 64-bit, AuxCtlHead_H.pp holds the Mac address (uint32); use GET/SET macros */
+# define GET_AuxCtlHead()    PPR(AuxCtlHead_H)
+# define SET_AuxCtlHead(v)   (AuxCtlHead_H.pp = RPP(v))
+# define CLEAR_AuxCtlHead()  (AuxCtlHead_H.pp = 0)
+#endif
 
 #if !defined (__STDC__)
 extern void SetCTitle(); 

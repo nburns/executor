@@ -39,7 +39,7 @@ A4(PRIVATE, void, setselectnilflag, BOOLEAN, setit, Cell, cell,
 					ListHandle, list, BOOLEAN, hiliteempty)
 {
     GrafPtr saveport;
-    RgnHandle saveclip;
+    uint32_t saveclip;
     Rect r;
     INTEGER *ip, off0wbit, off0, off1;
     LISTDECL();
@@ -60,8 +60,8 @@ A4(PRIVATE, void, setselectnilflag, BOOLEAN, setit, Cell, cell,
 
 		saveport = thePort;
 		SetPort(HxP(list, port));
-		saveclip = PORT_CLIP_REGION_X (thePort);
-		PORT_CLIP_REGION_X (thePort) = RM (NewRgn ());
+		saveclip = PORT_CLIP_REGION_X (thePort).pp;
+		PACKED_ASSIGN(PORT_CLIP_REGION_X (thePort), NewRgn ());
 		ClipRect(&r);
 
 		LISTBEGIN(list);
@@ -72,7 +72,7 @@ A4(PRIVATE, void, setselectnilflag, BOOLEAN, setit, Cell, cell,
 		LISTEND(list);
 
 		DisposeRgn (PORT_CLIP_REGION (thePort));
-		PORT_CLIP_REGION_X (thePort) = saveclip;
+		PORT_CLIP_REGION_X (thePort).pp = saveclip;
 		SetPort (saveport);
 	    }
 	}
@@ -138,7 +138,7 @@ P2(PUBLIC, pascal void,  ROMlib_mytrack, ControlHandle, ch, INTEGER, part)
 
     lp = (ListPtr) (long) STARH((Handle) (long) MR(HxX(ch, contrlRfCon)));
 
-    page = ch == MR(lp->hScroll) ?
+    page = ch == (ControlHandle)PPR(lp->hScroll) ?
 		     CW(lp->visible.right)  - CW(lp->visible.left) - 1
 		 :
 		     CW(lp->visible.bottom) - CW(lp->visible.top)  - 1;

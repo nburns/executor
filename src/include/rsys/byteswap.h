@@ -106,17 +106,53 @@ extern int bad_cx_splosion;
 #  define STARH(h)		MR ((h)->p)
 #  define HxP(handle, field)	MR (STARH(handle)->field)
 #  define HxX(handle, field)	(STARH(handle)->field)
-#  define HxZ(handle, field) HxX(handle, field)
+#  define HxZ(handle, field)	HxX(handle, field)
+/* Write a native pointer into a handle's pointer-typed field (via RM conversion) */
+#  define SETP(h, f, v)		(HxX(h, f) = RM(v))
+#  define SETP0(h, f)		(HxX(h, f) = CLC_NULL)
+/* Write a native pointer into a standalone HIDDEN type */
+#  define HIDDEN_VAL(h)		((h).p)
+#  define HIDDEN_VAL_WRITE(h, v) ((h).p = RM(v))
+#  define HIDDEN_VAL_WRITE0(h)	 ((h).p = CLC_NULL)
+/* RPP: convert native pointer to Mac-address uint32 (reverse of PPR) */
+#  define RPP(n) RM(n)
+/* HPTR_*: access a HIDDEN_* type via a pointer to it */
+#  define HPTR_VAL(hptr)                  ((hptr)->p)
+#  define HPTR_WRITE(hptr, native_val)    ((hptr)->p = RM(native_val))
+#  define HPTR_WRITE0(hptr)               ((hptr)->p = CLC_NULL)
+#  define HPTR_COPY_FIELD(dst, src_field) ((dst)->p = (src_field))
+/* PACKED_ASSIGN: write a native ptr directly into a PACKED_MEMBER lvalue */
+#  define PACKED_ASSIGN(lval, native_ptr) ((lval) = RM(native_ptr))
+#  define PACKED_ASSIGN0(lval)            ((lval) = CLC_NULL)
+/* FROM_HIDDEN: convert a HIDDEN_* value to a native pointer */
+#  define FROM_HIDDEN(h)  MR((h).p)
 #else
 #  define STARH(h)		((typeof ((h)->type[0])) (YY ((h)->pp)))
-#  define HxP(handle, field)	MR ((STARH(handle)->field).pp)
+#  define HxP(handle, field)	PPR ((STARH(handle))->field)
 #  define HxX(handle, field)	((STARH(handle))->field)
 
-// HxZ is a handle dereference where the member selected is itself some form
-// of packed pointer, but we're only checking to see if it's zero or non-zero
-// (e.g. if (HxZ(hand)) )
-
+/* HxZ: dereference a handle field that is a packed pointer, for zero/non-zero check */
 #  define HxZ(handle, field)	((STARH(handle))->field.pp)
+
+/* Write a native pointer into a handle's PACKED_MEMBER pointer field */
+#  define SETP(h, f, v)		(HxX(h, f).pp = RPP(v))
+#  define SETP0(h, f)		(HxX(h, f).pp = 0)
+/* Write a native pointer into a standalone HIDDEN type */
+#  define HIDDEN_VAL(h)		((h).pp)
+#  define HIDDEN_VAL_WRITE(h, v)  ((h).pp = RPP(v))
+#  define HIDDEN_VAL_WRITE0(h)	  ((h).pp = 0)
+/* RPP: convert native pointer to Mac-address uint32 (reverse of PPR) */
+#  define RPP(n) ((uint32)RM(n))
+/* HPTR_*: access a HIDDEN_* type via a pointer to it */
+#  define HPTR_VAL(hptr)                  ((hptr)->pp)
+#  define HPTR_WRITE(hptr, native_val)    ((hptr)->pp = RPP(native_val))
+#  define HPTR_WRITE0(hptr)               ((hptr)->pp = 0)
+#  define HPTR_COPY_FIELD(dst, src_field) ((dst)->pp = (src_field).pp)
+/* PACKED_ASSIGN: write a native ptr directly into a PACKED_MEMBER lvalue */
+#  define PACKED_ASSIGN(lval, native_ptr) ((lval).pp = RPP(native_ptr))
+#  define PACKED_ASSIGN0(lval)            ((lval).pp = 0)
+/* FROM_HIDDEN: convert a HIDDEN_* value to a native pointer */
+#  define FROM_HIDDEN(h)  PPR(h)
 #endif
 
 #define Hx(handle, field)	Cx (STARH(handle)->field)

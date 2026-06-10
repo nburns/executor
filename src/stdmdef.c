@@ -126,7 +126,7 @@ get_icon_info (mextp item_info, icon_info_t *info, int need_icon_p)
 	  else
 	    {
 	      info->icon = h;
-	      if (!h->p)
+	      if (!h->pp)
 		LoadResource (h);
 	    }
 	}
@@ -207,7 +207,7 @@ draw_right_arrow (Rect *menu_rect, MenuHandle mh, int item, int invert_p)
     };
   int x, y;
   
-  arrow_bitmap.baseAddr = RM ((Ptr) right_arrow_bits);
+  PACKED_ASSIGN(arrow_bitmap.baseAddr, (Ptr) right_arrow_bits);
   arrow_bitmap.rowBytes = CWC (1);
   SetRect (&arrow_bitmap.bounds, 0, 0, /* right, bottom */ 6, 11);
   
@@ -251,7 +251,7 @@ draw_arrow (Rect *menu_rect, MenuHandle mh, arrowtype arrdir)
 
   if (arrdir == uparrow)
     {
-      arrow_bitmap.baseAddr = RM ((Ptr) up_arrow_bits);
+      PACKED_ASSIGN(arrow_bitmap.baseAddr, (Ptr) up_arrow_bits);
       arrow_bitmap.rowBytes = CWC (2);
       SetRect (&arrow_bitmap.bounds, 0, 0, /* right, bottom */ 11, 6);
       
@@ -259,7 +259,7 @@ draw_arrow (Rect *menu_rect, MenuHandle mh, arrowtype arrdir)
     }
   else if (arrdir == downarrow)
     {
-      arrow_bitmap.baseAddr = RM ((Ptr) down_arrow_bits);
+      PACKED_ASSIGN(arrow_bitmap.baseAddr, (Ptr) down_arrow_bits);
       arrow_bitmap.rowBytes = CWC (2);
       SetRect (&arrow_bitmap.bounds, 0, 0, /* right, bottom */ 11, 6);
 
@@ -731,7 +731,9 @@ P5(PUBLIC, pascal void, mdef0, INTEGER, mess, MenuHandle, mh, Rect *, rp,
   HIDDEN_GrafPtr saveport;
 
   GetPort(&saveport);
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
   saveport.p = MR(saveport.p);
+#endif
   SetPort (MR (wmgr_port));
   
   current_menu_rect = rp;
@@ -802,5 +804,9 @@ P5(PUBLIC, pascal void, mdef0, INTEGER, mess, MenuHandle, mh, Rect *, rp,
     }
   HUnlock((Handle) th);
   DisposHandle((Handle) th);
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
   SetPort(saveport.p);
+#else
+  SetPort((GrafPtr)(uintptr_t)YY(saveport.pp));
+#endif
 }

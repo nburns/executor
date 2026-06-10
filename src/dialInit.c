@@ -27,7 +27,7 @@ P1(PUBLIC, pascal void,  ROMlib_mysound, INTEGER, i)
 
 P1(PUBLIC pascal trap, void, ErrorSound, ProcPtr, sp)	/* IMI-411 */
 {
-    DABeeper = RM(sp);
+    PACKED_ASSIGN (DABeeper_H, sp);
 }
 
 P1 (PUBLIC pascal trap, void, InitDialogs, ProcPtr, rp)	/* IMI-411 */
@@ -38,16 +38,24 @@ P1 (PUBLIC pascal trap, void, InitDialogs, ProcPtr, rp)	/* IMI-411 */
     (SysZone,
      {
        DlgFont = CWC (systemFont);
-       ResumeProc = RM (rp);
+       PACKED_ASSIGN (ResumeProc_H, rp);
        ErrorSound ((ProcPtr) P_ROMlib_mysound);
        PtrToHand (nothing, &DAStrings_H[0], (LONGINT) 1);
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
        DAStrings_H[0].p = RM (DAStrings_H[0].p);
+#endif
        PtrToHand (nothing, &DAStrings_H[1], (LONGINT) 1);
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
        DAStrings_H[1].p = RM (DAStrings_H[1].p);
+#endif
        PtrToHand (nothing, &DAStrings_H[2], (LONGINT) 1);
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
        DAStrings_H[2].p = RM (DAStrings_H[2].p);
+#endif
        PtrToHand (nothing, &DAStrings_H[3], (LONGINT) 1);
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
        DAStrings_H[3].p = RM (DAStrings_H[3].p);
+#endif
      });
 }
 

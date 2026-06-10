@@ -17,6 +17,9 @@ case ${host_cpu} in
   i[[3456]]86)
     host_cpu=i386
   ;;
+  aarch64)
+    host_cpu=arm64
+  ;;
 esac
 
 case ${build_os} in
@@ -132,6 +135,12 @@ AC_SUBST(host_os)
 AC_SUBST(front_end)
 AC_SUBST(sound_config)
 
+case ${build_cpu} in
+  aarch64)
+    build_cpu=arm64
+  ;;
+esac
+
 AC_CONFIG_LINKS([build-arch-config.h:config/arch/$build_cpu/$build_cpu.h
                  build-os-config.h:config/os/$build_os/$build_os.h
                  host-arch-config.h:config/arch/$host_cpu/$host_cpu.h
@@ -147,6 +156,7 @@ AM_CONDITIONAL([CONFIG_ARCH_I386], [test x$host_cpu = xi386])
 AM_CONDITIONAL([CONFIG_ARCH_M68K], [test x$host_cpu = xm68k])
 AM_CONDITIONAL([CONFIG_ARCH_POWERPC], [test x$host_cpu = xpowerpc])
 AM_CONDITIONAL([CONFIG_ARCH_X86_64], [test x$host_cpu = xx86_64])
+AM_CONDITIONAL([CONFIG_ARCH_ARM64], [test x$host_cpu = xarm64])
 
 AM_CONDITIONAL([CONFIG_FRONT_END_DOS], [test x$front_end = xdos])
 AM_CONDITIONAL([CONFIG_FRONT_END_NEXTSTEP], [test x$front_end = xnextstep])

@@ -1,8 +1,8 @@
 /* define `SDL' the Simple DirectMedia Layer front-end */
 #if !defined (SDL)
 
-#include <SDL/SDL.h>
-#include <SDL/SDL_thread.h>
+#include <SDL.h>
+#include <SDL_thread.h>
 
 /* Define the front end */
 #define SDL

@@ -335,7 +335,9 @@ extern LONGINT TFSTagData1;
 extern INTEGER SCSIFlags;
 #endif
 
-#define WDCBsPtr	(WDCBsPtr_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define WDCBsPtr  (WDCBsPtr_H.p)
+#endif
 
 #endif
 
@@ -353,8 +355,8 @@ extern INTEGER SCSIFlags;
     FALSE;							\
 })
 
-#define WDNUMTOWDP(v) ((wdentry *)(MR(WDCBsPtr) + (INTEGER) ((v) ^ WDMAGIC)))
-#define WDPTOWDNUM(p)   (((char *) (p) - (char *)MR(WDCBsPtr)) ^ WDMAGIC)
+#define WDNUMTOWDP(v) ((wdentry *)(GET_WDCBsPtr() + (INTEGER) ((v) ^ WDMAGIC)))
+#define WDPTOWDNUM(p)   (((char *) (p) - (char *)GET_WDCBsPtr()) ^ WDMAGIC)
 
 typedef enum { seteof, allocany, alloccontig } alloctype;
 

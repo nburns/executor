@@ -349,7 +349,7 @@ A1(PRIVATE, void, fillpixpat, PixPatHandle, ph)
     {
       HandToHand ((HIDDEN_Handle *) &ph);
       
-      CPORT_FILL_PIXPAT_X (theCPort) = RM (ph);
+      PACKED_ASSIGN (CPORT_FILL_PIXPAT_X (theCPort), ph);
     }
 }
 
@@ -1061,14 +1061,14 @@ A2(PRIVATE, void, eatPixMap, register PixMapPtr, pixp, INTEGER, rowb)
     pixp->cmpSize    = eatINTEGERX();
     pixp->planeBytes = eatLONGINTX();
     (void) eatLONGINTX();	/* IMV-104 */
-    pixp->pmTable    = RM((CTabHandle) NewHandle(sizeof(ColorTable)));
+    PACKED_ASSIGN (pixp->pmTable, (CTabHandle) NewHandle(sizeof(ColorTable)));
 					/* will be filled in later */
     pixp->pmReserved = eatLONGINTX();
 }
 
 A2(PRIVATE, void, eatBitMap, BitMap *, bp, INTEGER, rowb)
 {
-    bp->baseAddr = 0;
+    PACKED_ASSIGN0 (bp->baseAddr);
     bp->rowBytes = rowb ? CW(rowb) : eatINTEGERX();
     eatRect(&bp->bounds);
 }
@@ -1131,12 +1131,12 @@ A2(PRIVATE, Size, eatpixdata, PixMapPtr, pixmap, BOOLEAN *, freep)
 	    else if (pixmap->packType == CWC (2))
 	      memcpy (STARH (h), nextbytep, pic_data_size);
 	    
-	    pixmap->baseAddr = h->p;
+	    PACKED_ASSIGN (pixmap->baseAddr, STARH (h));
 	    *freep = TRUE;
 	  }
 	else
 	  {
-	    pixmap->baseAddr = RM ((Ptr) nextbytep);
+	    PACKED_ASSIGN (pixmap->baseAddr, (Ptr) nextbytep);
 	    *freep = FALSE;
 	  }
 	nextbytep += pic_data_size;
@@ -1157,8 +1157,7 @@ A2(PRIVATE, Size, eatpixdata, PixMapPtr, pixmap, BOOLEAN *, freep)
 	       });
 	  }
 	HLock(h);
-	pixmap->baseAddr = (*h).p;	/* can't use STARH 'cause we don't */
-					/* want to byte swap the result */
+	PACKED_ASSIGN (pixmap->baseAddr, STARH (h));
 	temp_scanline = alloca (rowb);
 	for (scanline = (uint8 *) BITMAP_BASEADDR (pixmap),
 	       ep = scanline + final_data_size;
@@ -1180,6 +1179,7 @@ A2(PRIVATE, Size, eatpixdata, PixMapPtr, pixmap, BOOLEAN *, freep)
 		inp = nextbytep;
 		temph = NULL;
 	      }
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
 	    dp.p = (Ptr) RM (temp_scanline);
 	    temp_pp.p = (Ptr) RM (inp);
 
@@ -1190,6 +1190,18 @@ A2(PRIVATE, Size, eatpixdata, PixMapPtr, pixmap, BOOLEAN *, freep)
 	      UnpackBits (&temp_pp, &dp,
 			  insert_pad_byte_p ? comp_bytes * 3 : rowb);
 	    inp = MR ((unsigned char *) temp_pp.p);
+#else
+	    dp.pp = RPP (temp_scanline);
+	    temp_pp.pp = RPP (inp);
+
+	    if (pixmap->pixelSize == CWC (16)
+		&& pixmap->packType == CWC (3))
+	      unpack_int16_bits (&temp_pp, &dp, rowb);
+	    else
+	      UnpackBits (&temp_pp, &dp,
+			  insert_pad_byte_p ? comp_bytes * 3 : rowb);
+	    inp = (unsigned char *) PPR (temp_pp);
+#endif
 	    
 	    if (pixmap->pixelSize == CWC (32))
 	      {
@@ -1264,29 +1276,30 @@ A2(PRIVATE, void, eatbitdata, register BitMap *, bp, BOOLEAN, packed)
 	      {
 		THz savezone;
 
-		savezone = TheZone;
-		TheZone = SysZone;
+		savezone = GET_TheZone ();
+		SET_TheZone (GET_SysZone ());
 		h = NewHandle(datasize);
-		TheZone = savezone;
+		SET_TheZone (savezone);
 	      }
 	    HLock(h);
 	    CToPascalCall(procp, CTOP_StdGetPic, STARH(h), datasize);
-	    bp->baseAddr = (*h).p;
+	    PACKED_ASSIGN (bp->baseAddr, STARH (h));
 	} else
-	    bp->baseAddr = RM((Ptr) nextbytep);
+	    PACKED_ASSIGN (bp->baseAddr, (Ptr) nextbytep);
 	nextbytep += datasize;
     } else {
 	h = NewHandle(datasize);
 	if (!h)
 	  {
 	    THz savezone;
-	    
-	    savezone = TheZone;
-	    TheZone = SysZone;
+
+	    savezone = GET_TheZone ();
+	    SET_TheZone (GET_SysZone ());
 	    h = NewHandle(datasize);
-	    TheZone = savezone;
+	    SET_TheZone (savezone);
 	  }
 	HLock(h);
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
 	bp->baseAddr = (*h).p;	/* can't use STARH */
 	for (dp.p = MR(bp->baseAddr), ep = dp.p + datasize; dp.p < ep; ) {
 	    length = rowb > 250 ? eatINTEGER() : eatByte();
@@ -1297,9 +1310,9 @@ A2(PRIVATE, void, eatbitdata, register BitMap *, bp, BOOLEAN, packed)
 		inp = (Byte *) STARH(temph);
 	    } else {
 		inp = nextbytep;
-#if !defined(LETGCCWAIL)
+# if !defined(LETGCCWAIL)
 		temph = 0;
-#endif
+# endif
 	    }
 	    inp = RM(inp);
 	    dp.p = RM(dp.p);
@@ -1315,6 +1328,37 @@ A2(PRIVATE, void, eatbitdata, register BitMap *, bp, BOOLEAN, packed)
 		DisposHandle(temph);
 	    }
 	}
+#else /* 64-bit */
+	PACKED_ASSIGN (bp->baseAddr, STARH (h));
+	{
+	    Ptr dp_native, ep_native;
+	    dp_native = (Ptr) PPR (bp->baseAddr);
+	    ep_native = dp_native + datasize;
+	    while (dp_native < ep_native) {
+		length = rowb > 250 ? eatINTEGER() : eatByte();
+		if (procp) {
+		    temph = NewHandle(length);
+		    HLock(temph);
+		    CToPascalCall(procp, CTOP_StdGetPic, STARH(temph), length);
+		    inp = (Byte *) STARH(temph);
+		} else {
+		    inp = nextbytep;
+		    temph = 0;
+		}
+		dp.pp = RPP (dp_native);
+		temp_pp.pp = RPP (inp);
+		UnpackBits(&temp_pp, &dp, rowb);
+		inp = (Byte *) PPR (temp_pp);
+		dp_native = (Ptr) PPR (dp);
+		if (!procp)
+		    nextbytep = inp;
+		else {
+		    nextbytep += length;
+		    DisposHandle(temph);
+		}
+	    }
+	}
+#endif
     }
 }
 
@@ -1331,7 +1375,7 @@ A1(PRIVATE, void, eatColorTable, register PixMapPtr, pixmap)
     register ColorSpec *cspecp, *cspecep;
     register CTabHandle ch;
 
-    ch = MR(pixmap->pmTable);
+    ch = (CTabHandle) PPR (pixmap->pmTable);
     cp = STARH(ch);
     /* cp->ctSeed = */  eatLONGINTX();
     cp->ctSeed = CL (GetCTSeed ());
@@ -1376,8 +1420,8 @@ A1 (PRIVATE, void, eatPixPat, PixPatHandle, pixpat)
 	     PixMapHandle patmap;
 
 	     patmap = (PixMapHandle) NewHandleClear (sizeof (PixMap));
-	     PIXMAP_TABLE_X (patmap) = (CTabHandle) RM (NewHandle (0));
-	     PIXPAT_MAP_X (pixpat) = RM (patmap);
+	     PACKED_ASSIGN (PIXMAP_TABLE_X (patmap), (CTabHandle) NewHandle (0));
+	     PACKED_ASSIGN (PIXPAT_MAP_X (pixpat), patmap);
 	   }
 	   MakeRGBPat (pixpat, &rgb);
 	 }
@@ -1388,7 +1432,7 @@ A1 (PRIVATE, void, eatPixPat, PixPatHandle, pixpat)
 	   
 	   eatPattern (PIXPAT_1DATA (pixpat));
 	   patmap = (PixMapHandle) NewHandle (sizeof (PixMap));
-	   PIXPAT_MAP_X (pixpat) = RM (patmap);
+	   PACKED_ASSIGN (PIXPAT_MAP_X (pixpat), patmap);
 	   LOCK_HANDLE_EXCURSION_1
 	     (patmap,
 	      {
@@ -1402,7 +1446,7 @@ A1 (PRIVATE, void, eatPixPat, PixPatHandle, pixpat)
 					  the call to PtrToXHand below will
 					  fail, with a nilHandleErr as per
 					  IM Memory 2-62 */
-		PIXPAT_DATA_X (pixpat) = RM (temph);
+		PACKED_ASSIGN (PIXPAT_DATA_X (pixpat), temph);
 		PtrToXHand (BITMAP_BASEADDR (patmap_ptr), temph, datasize);
 		if (free)
 		  DisposHandle (RecoverHandle (BITMAP_BASEADDR (patmap_ptr)));
@@ -1456,10 +1500,10 @@ P2(PUBLIC pascal trap, void, DrawPicture, PicHandle, pic, Rect *, destrp)
     INTEGER hsize;
     void (*f)();
     INTEGER vers;
-    auto Fixed scaleh, scalev, tempf;	/* "auto":  cc -a bug avoidance */
+    Fixed scaleh, scalev, tempf;
     RGBColor rgb;
     BitMap bm;
-    auto PixMap pm;	/* "auto":  cc -a bug avoidance */
+    PixMap pm;
     BOOLEAN packed;
     GrafPort saveport, *the_port;
     CGrafPtr the_cport;
@@ -1510,7 +1554,7 @@ P2(PUBLIC pascal trap, void, DrawPicture, PicHandle, pic, Rect *, destrp)
 		 && CW (destrp->left) == CW (destrp->right)))
       return;
 #else
-    if (!pic || !pic->p || EmptyRect(destrp) || EmptyRect(&HxX(pic, picFrame)))
+    if (!pic || !pic->pp || EmptyRect(destrp) || EmptyRect(&HxX(pic, picFrame)))
       return;
 #endif
 
@@ -1528,11 +1572,11 @@ P2(PUBLIC pascal trap, void, DrawPicture, PicHandle, pic, Rect *, destrp)
 
     saveport = *the_port;
     saveportbounds = PORT_BOUNDS (the_port);
-    PORT_CLIP_REGION_X (the_port) = RM (NewRgn ());
+    PACKED_ASSIGN (PORT_CLIP_REGION_X (the_port), NewRgn ());
 
     SetRectRgn (PORT_CLIP_REGION (the_port), -32768, -32768, 32767, 32767);
     
-    PORT_VIS_REGION_X (the_port) = RM (NewRgn ());
+    PACKED_ASSIGN (PORT_VIS_REGION_X (the_port), NewRgn ());
     CopyRgn (PORT_VIS_REGION (&saveport),
 	     PORT_VIS_REGION (the_port));
     
@@ -1544,9 +1588,9 @@ P2(PUBLIC pascal trap, void, DrawPicture, PicHandle, pic, Rect *, destrp)
  	junk_pen_pixpat  = NewPixPat ();
  	junk_bk_pixpat   = NewPixPat ();
 	junk_fill_pixpat = NewPixPat ();
- 	CPORT_PEN_PIXPAT_X (the_cport)  = RM (junk_pen_pixpat);
- 	CPORT_BK_PIXPAT_X (the_cport)   = RM (junk_bk_pixpat);
- 	CPORT_FILL_PIXPAT_X (the_cport) = RM (junk_fill_pixpat);
+ 	PACKED_ASSIGN (CPORT_PEN_PIXPAT_X (the_cport),  junk_pen_pixpat);
+ 	PACKED_ASSIGN (CPORT_BK_PIXPAT_X (the_cport),   junk_bk_pixpat);
+ 	PACKED_ASSIGN (CPORT_FILL_PIXPAT_X (the_cport), junk_fill_pixpat);
       }
     else
       {
@@ -1598,10 +1642,10 @@ P2(PUBLIC pascal trap, void, DrawPicture, PicHandle, pic, Rect *, destrp)
     state = HGetState((Handle) pic);
     HLock((Handle) pic);
 
-    grafprocp = MR (the_port->grafProcs);
+    grafprocp = PORT_GRAF_PROCS (the_port);
     if (grafprocp)
       {
-	procp = MR(grafprocp->getPicProc);
+	procp = (void (*)(Ptr, INTEGER)) PPR (grafprocp->getPicProc);
 	if (procp == P_StdGetPic)
 	  procp = 0;
       }
@@ -1803,7 +1847,7 @@ P2(PUBLIC pascal trap, void, DrawPicture, PicHandle, pic, Rect *, destrp)
 		    if (packed)
 		      DisposHandle (RecoverHandle (BITMAP_BASEADDR (bmp)));
 		    if (words[0] & 0x8000)
-		      DisposHandle ((Handle) MR (pm.pmTable));
+		      DisposHandle ((Handle) PPR (pm.pmTable));
 		    else if (!packed && procp)
 		      DisposHandle (RecoverHandle (BITMAP_BASEADDR (bmp)));
 		    break;

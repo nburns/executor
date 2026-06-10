@@ -168,21 +168,21 @@ convert_transparent (const PixMap *src1, const PixMap *src2,
   if (tile_src1_p)
     {
       src1_row_base = (unsigned char *)
-	(MR (src1->baseAddr)
+	(PPR (src1->baseAddr)
 	 + (src1_rowbytes * (pat_y_offset & (s1_height - 1))));
     }
   else
     {
       src1_row_base = (unsigned char *)
-	(MR (src1->baseAddr)
+	(PPR (src1->baseAddr)
 	 + ((CW (r1->top) - CW (src1->bounds.top)) * src1_rowbytes));
     }
-  
+
   src2_row_base = (unsigned char *)
-    (MR (src2->baseAddr)
+    (PPR (src2->baseAddr)
      + (CW (r2->top) - CW (src2->bounds.top)) * src2_rowbytes);
-  dst_row_base = (unsigned char *) MR (dst->baseAddr);
-  
+  dst_row_base = (unsigned char *) PPR (dst->baseAddr);
+
 #define RGB_TO_INDIRECT_PIXEL(rgb, pixel)	\
   ((void) ((pixel) = Color2Index (rgb)))
   
@@ -270,7 +270,7 @@ convert_transparent (const PixMap *src1, const PixMap *src2,
 
 #define NONPAT_NEXT1 src1_row_base += src1_rowbytes
 #define PAT_NEXT1 \
-  src1_row_base = (unsigned char *) (MR (src1->baseAddr)		\
+  src1_row_base = (unsigned char *) (PPR (src1->baseAddr)		\
 		   + (src1_rowbytes * ((y + pat_y_offset) & (s1_height - 1))))
 
 #define SHIFT_COUNT(x, bpp)  (8 - (bpp) - (bpp) * ((x) & (7 / (bpp))))
@@ -493,18 +493,18 @@ convert_pixmap_with_IMV_mode (const PixMap *src1, const PixMap *src2,
   /* Compute a pointer to the base of the first row of each bitmap. */
   if (tile_src1_p)
     {
-      src1_row_base = (unsigned char *) (MR (src1->baseAddr)
+      src1_row_base = (unsigned char *) (PPR (src1->baseAddr)
 		       + (src1_rowbytes * (pat_y_offset & (s1_height - 1))));
     }
   else
     {
-      src1_row_base = (unsigned char *) (MR (src1->baseAddr)
+      src1_row_base = (unsigned char *) (PPR (src1->baseAddr)
 		       + ((CW (r1->top) - CW (src1->bounds.top))
 			  * src1_rowbytes));
     }
-  src2_row_base = (unsigned char *) (MR (src2->baseAddr)
+  src2_row_base = (unsigned char *) (PPR (src2->baseAddr)
 		   + (CW (r2->top) - CW (src2->bounds.top)) * src2_rowbytes);
-  dst_row_base = (unsigned char *) MR (dst->baseAddr);
+  dst_row_base = (unsigned char *) PPR (dst->baseAddr);
   
   /* Fetch the "op color" fields, in case they are needed. */
   op_red   = CW (op_color->red);
@@ -592,7 +592,7 @@ convert_pixmap_with_IMV_mode (const PixMap *src1, const PixMap *src2,
 
 #define NONPAT_NEXT1 src1_row_base += src1_rowbytes
 #define PAT_NEXT1 \
-  src1_row_base = (unsigned char *) (MR (src1->baseAddr)		\
+  src1_row_base = (unsigned char *) (PPR (src1->baseAddr)		\
 		   + (src1_rowbytes * ((y + pat_y_offset) & (s1_height - 1))))
 
 #define SHIFT_COUNT(x, bpp)  (8 - (bpp) - (bpp) * ((x) & (7 / (bpp))))

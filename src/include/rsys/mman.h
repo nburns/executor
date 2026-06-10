@@ -90,7 +90,8 @@ enum { TRAP_MASK = 0xF9FF };
 ((((trapno) & TRAP_MASK) == ((to_look_for) & TRAP_MASK)) \
  && (((trapno) & CLRBIT) != 0))
 
-#define ZONE_SAVE_EXCURSION(zone, body)		\
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define ZONE_SAVE_EXCURSION(zone, body)	\
   do {						\
       THz save_zone;				\
 						\
@@ -99,6 +100,17 @@ enum { TRAP_MASK = 0xF9FF };
       { body }					\
       TheZone = save_zone;			\
   } while (FALSE)
+#else
+# define ZONE_SAVE_EXCURSION(zone, body)	\
+  do {						\
+      THz save_zone;				\
+						\
+      save_zone = GET_TheZone ();		\
+      SET_TheZone (zone);			\
+      { body }					\
+      SET_TheZone (save_zone);			\
+  } while (FALSE)
+#endif
 
 /* These macros assign values to fields of a structure referred to
  * by a handle.  They perform no byte swapping.  There is no need to
@@ -107,11 +119,16 @@ enum { TRAP_MASK = 0xF9FF };
  *	      gdRefNum, CWC (9),
  *	      gdID,     CWC (14));
  */
+/* Use __builtin_memcpy for field assignment so PACKED_MEMBER union fields
+   (4-byte unions storing 32-bit Mac addresses) accept pointer-sized values:
+   on little-endian, the low 4 bytes of the pointer are the Mac address. */
+#define _HA(hp, f, v) __builtin_memcpy(&((hp)->f), &(v), sizeof((hp)->f))
+
 #define HASSIGN_1(h, f1, v1)			\
 ({						\
   typeof (v1) _v1 = (v1);			\
   typeof (STARH (h)) _hp = STARH (h);		\
-  _hp->f1 = _v1;				\
+  _HA(_hp, f1, _v1);				\
 })
 
 #define HASSIGN_2(h, f1, v1, f2, v2)		\
@@ -119,8 +136,8 @@ enum { TRAP_MASK = 0xF9FF };
   typeof (v1) _v1 = (v1);			\
   typeof (v2) _v2 = (v2);			\
   typeof (STARH (h)) _hp = STARH (h);		\
-  _hp->f1 = _v1;				\
-  _hp->f2 = _v2;				\
+  _HA(_hp, f1, _v1);				\
+  _HA(_hp, f2, _v2);				\
 })
 
 #define HASSIGN_3(h, f1, v1, f2, v2, f3, v3)	\
@@ -129,9 +146,9 @@ enum { TRAP_MASK = 0xF9FF };
   typeof (v2) _v2 = (v2);			\
   typeof (v3) _v3 = (v3);			\
   typeof (STARH (h)) _hp = STARH (h);		\
-  _hp->f1 = _v1;				\
-  _hp->f2 = _v2;				\
-  _hp->f3 = _v3;				\
+  _HA(_hp, f1, _v1);				\
+  _HA(_hp, f2, _v2);				\
+  _HA(_hp, f3, _v3);				\
 })
 
 #define HASSIGN_4(h, f1, v1, f2, v2, f3, v3, f4, v4)	\
@@ -141,10 +158,10 @@ enum { TRAP_MASK = 0xF9FF };
   typeof (v3) _v3 = (v3);				\
   typeof (v4) _v4 = (v4);				\
   typeof (STARH (h)) _hp = STARH (h);			\
-  _hp->f1 = _v1;					\
-  _hp->f2 = _v2;					\
-  _hp->f3 = _v3;					\
-  _hp->f4 = _v4;					\
+  _HA(_hp, f1, _v1);					\
+  _HA(_hp, f2, _v2);					\
+  _HA(_hp, f3, _v3);					\
+  _HA(_hp, f4, _v4);					\
 })
 
 #define HASSIGN_5(h, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5)	\
@@ -155,11 +172,11 @@ enum { TRAP_MASK = 0xF9FF };
   typeof (v4) _v4 = (v4);					\
   typeof (v5) _v5 = (v5);					\
   typeof (STARH (h)) _hp = STARH (h);				\
-  _hp->f1 = _v1;						\
-  _hp->f2 = _v2;						\
-  _hp->f3 = _v3;						\
-  _hp->f4 = _v4;						\
-  _hp->f5 = _v5;						\
+  _HA(_hp, f1, _v1);						\
+  _HA(_hp, f2, _v2);						\
+  _HA(_hp, f3, _v3);						\
+  _HA(_hp, f4, _v4);						\
+  _HA(_hp, f5, _v5);						\
 })
 
 #define HASSIGN_6(h, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5, f6, v6)	\
@@ -171,12 +188,12 @@ enum { TRAP_MASK = 0xF9FF };
   typeof (v5) _v5 = (v5);						\
   typeof (v6) _v6 = (v6);						\
   typeof (STARH (h)) _hp = STARH (h);					\
-  _hp->f1 = _v1;							\
-  _hp->f2 = _v2;							\
-  _hp->f3 = _v3;							\
-  _hp->f4 = _v4;							\
-  _hp->f5 = _v5;							\
-  _hp->f6 = _v6;							\
+  _HA(_hp, f1, _v1);							\
+  _HA(_hp, f2, _v2);							\
+  _HA(_hp, f3, _v3);							\
+  _HA(_hp, f4, _v4);							\
+  _HA(_hp, f5, _v5);							\
+  _HA(_hp, f6, _v6);							\
 })
 
 #define HASSIGN_7(h, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5,	\
@@ -190,13 +207,13 @@ enum { TRAP_MASK = 0xF9FF };
   typeof (v6) _v6 = (v6);					\
   typeof (v7) _v7 = (v7);					\
   typeof (STARH (h)) _hp = STARH (h);				\
-  _hp->f1 = _v1;						\
-  _hp->f2 = _v2;						\
-  _hp->f3 = _v3;						\
-  _hp->f4 = _v4;						\
-  _hp->f5 = _v5;						\
-  _hp->f6 = _v6;						\
-  _hp->f7 = _v7;						\
+  _HA(_hp, f1, _v1);						\
+  _HA(_hp, f2, _v2);						\
+  _HA(_hp, f3, _v3);						\
+  _HA(_hp, f4, _v4);						\
+  _HA(_hp, f5, _v5);						\
+  _HA(_hp, f6, _v6);						\
+  _HA(_hp, f7, _v7);						\
 })
 
 #define HASSIGN_10(h, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5,	\
@@ -213,16 +230,16 @@ enum { TRAP_MASK = 0xF9FF };
   typeof (v9) _v9 = (v9);					\
   typeof (v10) _v10 = (v10);					\
   typeof (STARH (h)) _hp = STARH (h);				\
-  _hp->f1 = _v1;						\
-  _hp->f2 = _v2;						\
-  _hp->f3 = _v3;						\
-  _hp->f4 = _v4;						\
-  _hp->f5 = _v5;						\
-  _hp->f6 = _v6;						\
-  _hp->f7 = _v7;						\
-  _hp->f8 = _v8;						\
-  _hp->f9 = _v9;						\
-  _hp->f10 = _v10;						\
+  _HA(_hp, f1, _v1);						\
+  _HA(_hp, f2, _v2);						\
+  _HA(_hp, f3, _v3);						\
+  _HA(_hp, f4, _v4);						\
+  _HA(_hp, f5, _v5);						\
+  _HA(_hp, f6, _v6);						\
+  _HA(_hp, f7, _v7);						\
+  _HA(_hp, f8, _v8);						\
+  _HA(_hp, f9, _v9);						\
+  _HA(_hp, f10, _v10);						\
 })
 
 #define HASSIGN_11(h, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5,	\
@@ -241,17 +258,17 @@ enum { TRAP_MASK = 0xF9FF };
   typeof (v10) _v10 = (v10);					\
   typeof (v11) _v11 = (v11);					\
   typeof (STARH (h)) _hp = STARH (h);				\
-  _hp->f1 = _v1;						\
-  _hp->f2 = _v2;						\
-  _hp->f3 = _v3;						\
-  _hp->f4 = _v4;						\
-  _hp->f5 = _v5;						\
-  _hp->f6 = _v6;						\
-  _hp->f7 = _v7;						\
-  _hp->f8 = _v8;						\
-  _hp->f9 = _v9;						\
-  _hp->f10 = _v10;						\
-  _hp->f11 = _v11;						\
+  _HA(_hp, f1, _v1);						\
+  _HA(_hp, f2, _v2);						\
+  _HA(_hp, f3, _v3);						\
+  _HA(_hp, f4, _v4);						\
+  _HA(_hp, f5, _v5);						\
+  _HA(_hp, f6, _v6);						\
+  _HA(_hp, f7, _v7);						\
+  _HA(_hp, f8, _v8);						\
+  _HA(_hp, f9, _v9);						\
+  _HA(_hp, f10, _v10);						\
+  _HA(_hp, f11, _v11);						\
 })
 
 #define HASSIGN_12(h, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5,	\
@@ -271,18 +288,18 @@ enum { TRAP_MASK = 0xF9FF };
   typeof (v11) _v11 = (v11);					\
   typeof (v12) _v12 = (v12);					\
   typeof (STARH (h)) _hp = STARH (h);				\
-  _hp->f1 = _v1;						\
-  _hp->f2 = _v2;						\
-  _hp->f3 = _v3;						\
-  _hp->f4 = _v4;						\
-  _hp->f5 = _v5;						\
-  _hp->f6 = _v6;						\
-  _hp->f7 = _v7;						\
-  _hp->f8 = _v8;						\
-  _hp->f9 = _v9;						\
-  _hp->f10 = _v10;						\
-  _hp->f11 = _v11;						\
-  _hp->f12 = _v12;						\
+  _HA(_hp, f1, _v1);						\
+  _HA(_hp, f2, _v2);						\
+  _HA(_hp, f3, _v3);						\
+  _HA(_hp, f4, _v4);						\
+  _HA(_hp, f5, _v5);						\
+  _HA(_hp, f6, _v6);						\
+  _HA(_hp, f7, _v7);						\
+  _HA(_hp, f8, _v8);						\
+  _HA(_hp, f9, _v9);						\
+  _HA(_hp, f10, _v10);						\
+  _HA(_hp, f11, _v11);						\
+  _HA(_hp, f12, _v12);						\
 })
 
 #define HASSIGN_13(h, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5,	\

@@ -108,7 +108,7 @@ menu_delete_entries (int16 menu_id)
   int menu_c_info_size;
   int i;
   
-  menu_c_info = MR (MenuCInfo);
+  menu_c_info = GET_MenuCInfo();
   menu_c_info_size = GetHandleSize ((Handle) menu_c_info);
   entries = STARH (menu_c_info);
   for (i = 0; MCENTRY_ID_X (&entries[i]) != CWC (-99);)
@@ -136,7 +136,7 @@ P2 (PUBLIC pascal trap, void, DelMCEntries,
   int menu_c_info_size;
   int i;
   
-  menu_c_info = MR (MenuCInfo);
+  menu_c_info = GET_MenuCInfo();
   menu_c_info_size = GetHandleSize ((Handle) menu_c_info);
   entries = STARH (menu_c_info);
   for (i = 0; MCENTRY_ID_X (&entries[i]) != CWC (-99); i ++)
@@ -160,7 +160,7 @@ P0 (PUBLIC pascal trap, MCTableHandle, GetMCInfo)
   MCTableHandle retval, menu_c_info;
   int menu_c_info_size;
   
-  menu_c_info = MR (MenuCInfo);
+  menu_c_info = GET_MenuCInfo();
   menu_c_info_size = GetHandleSize ((Handle) menu_c_info);
   retval = (MCTableHandle) NewHandle (menu_c_info_size);
   if (retval)
@@ -173,7 +173,7 @@ P0 (PUBLIC pascal trap, MCTableHandle, GetMCInfo)
 P1 (PUBLIC pascal trap, void, SetMCInfo,
     MCTableHandle, menu_ctab)
 {
-  DispMCInfo (MR (MenuCInfo));
+  DispMCInfo (GET_MenuCInfo());
 
   ZONE_SAVE_EXCURSION
     (SysZone,
@@ -184,7 +184,7 @@ P1 (PUBLIC pascal trap, void, SetMCInfo,
        size = GetHandleSize ((Handle) menu_ctab);
        t = NewHandle (size);
        BlockMove ((Ptr) STARH (menu_ctab), (Ptr) STARH (t), size);
-       MenuCInfo = (MCTableHandle) RM (t);
+       SET_MenuCInfo((MCTableHandle) t);
      });
 }
 
@@ -200,7 +200,7 @@ P2 (PUBLIC pascal trap, MCEntryPtr, GetMCEntry,
   MCTableHandle menu_c_info;
   MCEntryPtr t;
   
-  menu_c_info = MR (MenuCInfo);
+  menu_c_info = GET_MenuCInfo();
   for (t = STARH (menu_c_info); MCENTRY_ID_X (t) != CWC (-99); t ++)
     {
       if (MCENTRY_ID (t) == menu_id
@@ -220,7 +220,7 @@ P2 (PUBLIC pascal trap, void, SetMCEntries,
   int i;
 
 
-  menu_c_info = MR (MenuCInfo);
+  menu_c_info = GET_MenuCInfo();
   menu_c_info_size = GetHandleSize ((Handle) menu_c_info);
   gui_assert (! (menu_c_info_size % sizeof (MCEntry)));
   menu_c_info_n_entries = (menu_c_info_size / sizeof (MCEntry));

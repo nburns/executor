@@ -19,9 +19,9 @@ PUBLIC filecontrolblock *ROMlib_getfreefcbp( void )
     short length;
     filecontrolblock *fcbp, *efcbp;
     
-    length = CW(*(short *)MR(FCBSPtr));
-    fcbp = (filecontrolblock *) ((short *)MR(FCBSPtr)+1);
-    efcbp = (filecontrolblock *) ((char *)MR(FCBSPtr) + length);
+    length = CW(*(short *)GET_FCBSPtr());
+    fcbp = (filecontrolblock *) ((short *)GET_FCBSPtr()+1);
+    efcbp = (filecontrolblock *) ((char *)GET_FCBSPtr() + length);
     for (;fcbp < efcbp && Cx(fcbp->fcbFlNum);
 		     fcbp = (filecontrolblock *) ((char *)fcbp + CW(FSFCBLen)))
 	;
@@ -35,10 +35,10 @@ PUBLIC filecontrolblock *ROMlib_refnumtofcbp(uint16 refnum)
     
     if (refnum < sizeof(short) || refnum % CW(FSFCBLen) != sizeof(short))
 	return 0;
-    len = CW(*(uint16 *)MR(FCBSPtr));
+    len = CW(*(uint16 *)GET_FCBSPtr());
     if (refnum >= len)
 	return 0;
-    retval = (filecontrolblock *)((char *)MR(FCBSPtr) + refnum);
+    retval = (filecontrolblock *)((char *)GET_FCBSPtr() + refnum);
     if (retval->fcbFlNum == 0)
 	retval = 0;
     return retval;
@@ -157,7 +157,7 @@ PRIVATE xtntkey *fcbpbnotoxkeyp(filecontrolblock *fcbp, uint16 bno)
     OSErr err;
     
     forkwanted = fcbp->fcbMdRByt & RESOURCEBIT ? resourcefork : datafork;
-    ROMlib_makextntparam(&btparamblock, MR(fcbp->fcbVPtr), forkwanted,
+    ROMlib_makextntparam(&btparamblock, (HVCB *)PPR(fcbp->fcbVPtr), forkwanted,
 						      CL(fcbp->fcbFlNum), bno);
     err = ROMlib_keyfind(&btparamblock);
 #if 0
@@ -181,7 +181,7 @@ PUBLIC LONGINT ROMlib_logtophys(filecontrolblock *fcbp, LONGINT absoffset,
     LONGINT alinphys;
     unsigned short nphysalcontig;
     
-    vcbp = (HVCB *) MR(fcbp->fcbVPtr);
+    vcbp = (HVCB *)PPR(fcbp->fcbVPtr);
     alblksiz = Cx(vcbp->vcbAlBlkSiz);
     bno = absoffset / alblksiz;
     skip = absoffset % alblksiz;
@@ -211,7 +211,7 @@ PRIVATE OSErr pbtofcbp(ioParam *pb, filecontrolblock **fcbpp, accesstype rw)
 	if (rw == writing) {
 	    retval = ROMlib_writefcbp(*fcbpp);
 	    if (retval == noErr)
-		retval = ROMlib_writevcbp(MR((*fcbpp)->fcbVPtr));
+		retval = ROMlib_writevcbp((HVCB *)PPR((*fcbpp)->fcbVPtr));
 	} else
 	    retval = noErr;
     }
@@ -233,8 +233,8 @@ PRIVATE void setbits(HVCB *vcbp, ULONGINT bno, ULONGINT ntoset, unsigned char lo
     vcbp->vcbFlags |= CW(VCBDIRTY);
     /* bno -= Cx(vcbp->vcbAlBlSt); not sure about this */
     ebno = bno + ntoset;
-    cp  = (unsigned char *) MR(vcbp->vcbMAdr) +  bno / 8 + MADROFFSET;
-    ecp = (unsigned char *) MR(vcbp->vcbMAdr) + ebno / 8 + MADROFFSET;
+    cp  = (unsigned char *) PPR(vcbp->vcbMAdr) +  bno / 8 + MADROFFSET;
+    ecp = (unsigned char *) PPR(vcbp->vcbMAdr) + ebno / 8 + MADROFFSET;
     startbit =  bno % 8;
     stopbit  = ebno % 8;
     if (cp == ecp) {
@@ -267,7 +267,7 @@ PRIVATE void setbits(HVCB *vcbp, ULONGINT bno, ULONGINT ntoset, unsigned char lo
     ROMlib_transphysblk(&((VCBExtra *)vcbp)->u.hfs,
 		    (Cx(vcbp->vcbVBMSt) + first_map_block) * (ULONGINT) PHYSBSIZE,
 					  last_map_block - first_map_block + 1,
-	          MR(vcbp->vcbMAdr) + MADROFFSET + first_map_block * PHYSBSIZE,
+	          (Ptr)PPR(vcbp->vcbMAdr) + MADROFFSET + first_map_block * PHYSBSIZE,
 							  writing, (LONGINT *) 0);
     vcbsync(vcbp);
 }
@@ -283,7 +283,7 @@ PRIVATE ULONGINT countbits(HVCB *vcbp, ULONGINT bno, unsigned char lookfor)
     /* bno -= Cx(vcbp->vcbAlBlSt); not sure about this */
     retval = 0;
     max = Cx(vcbp->vcbNmAlBlks) - bno;
-    cp = (unsigned char *) MR(vcbp->vcbMAdr) + bno / 8 + MADROFFSET;
+    cp = (unsigned char *) PPR(vcbp->vcbMAdr) + bno / 8 + MADROFFSET;
 #if 0
     {
     	Size madrlen;
@@ -483,7 +483,7 @@ PUBLIC OSErr ROMlib_allochelper(ioParam *pb, BOOLEAN async, alloctype alloc,
 	neweof = 0;			/* this */
 #endif
     clumpsize = Cx(fcbp->fcbClmpSize);
-    vcbp = (HVCB *) MR(fcbp->fcbVPtr);
+    vcbp = (HVCB *)PPR(fcbp->fcbVPtr);
     if (!clumpsize)
 	clumpsize = Cx(vcbp->vcbClpSiz);
 
@@ -711,7 +711,7 @@ PRIVATE OSErr PBReadWrite(ioParam *pb, BOOLEAN async, accesstype rw)
 	fs_err_hook (newerr);
 /*-->*/ RETURN(newerr);
       }
-    vcbp = MR(fcbp->fcbVPtr);
+    vcbp = (HVCB *)PPR(fcbp->fcbVPtr);
 
     absoffset = pbabsoffset(pb, fcbp);
     if (absoffset < 0)
@@ -746,7 +746,7 @@ PRIVATE OSErr PBReadWrite(ioParam *pb, BOOLEAN async, accesstype rw)
     }
     ntoskip = absoffset % PHYSBSIZE;
     nphyscontig = 0;
-    bufp = MR(pb->ioBuffer);
+    bufp = (Ptr)PPR(pb->ioBuffer);
 #if !defined (LETGCCWAIL)
     physblock = 0;
 #endif /* LETGCCWAIL */
@@ -958,10 +958,10 @@ PRIVATE OSErr dirtyfcbp(filecontrolblock *fcbp)
     INTEGER dumint;
     
     if (fcbp->fcbMdRByt & DIRTYBIT) {
-	refnum = (char *) fcbp - (char *) MR(FCBSPtr);
-	vcbp = MR(fcbp->fcbVPtr);
+	refnum = (char *) fcbp - (char *) GET_FCBSPtr();
+	vcbp = (HVCB *)PPR(fcbp->fcbVPtr);
 	if ((catpos = Cx(fcbp->fcbCatPos))) {
-	    err = ROMlib_getcache(&cachep, CW(MR(fcbp->fcbVPtr)->vcbCTRef),
+	    err = ROMlib_getcache(&cachep, CW(((HVCB *)PPR(fcbp->fcbVPtr))->vcbCTRef),
 								    catpos, 0);
 	    if (err != noErr)
 	      {
@@ -974,10 +974,10 @@ PRIVATE OSErr dirtyfcbp(filecontrolblock *fcbp)
 							  &retkeyp, &dumint)) {
 	      btparam btparamrec;
 
-	      btparamrec.vcbp = MR (fcbp->fcbVPtr);
+	      btparamrec.vcbp = (HVCB *)PPR(fcbp->fcbVPtr);
 	      btparamrec.tofind.catk = key;
 	      btparamrec.fp = ROMlib_catcompare;
-	      btparamrec.refnum = CW (MR (fcbp->fcbVPtr)->vcbCTRef);
+	      btparamrec.refnum = CW(((HVCB *)PPR(fcbp->fcbVPtr))->vcbCTRef);
 	      err = ROMlib_keyfind (&btparamrec);
 	      if (err == noErr)
 		{
@@ -1048,7 +1048,7 @@ PUBLIC OSErr hfsPBFlushFile(ParmBlkPtr pb, BOOLEAN async)
     else
         err = dirtyfcbp(fcbp);
     if (err == noErr)
-	err = ROMlib_flushvcbp (MR(fcbp->fcbVPtr));
+	err = ROMlib_flushvcbp ((HVCB *)PPR(fcbp->fcbVPtr));
 
     fs_err_hook (err);
     PBRETURN((ioParam *) pb, err);
@@ -1277,27 +1277,28 @@ PUBLIC OSErr ROMlib_findvcbandfile(ioParam *pb, LONGINT dirid, btparam *btpb,
   OSErr err;
   int badness;
   LONGINT dir;
-  StringPtr savep;
-    
+
   badness = 0;
   dir = 0;
-  if (pb->ioNamePtr)
+  if (pb->ioNamePtr.pp)
     {
       StringPtr namep;
 
-      namep = MR (pb->ioNamePtr);
+      namep = (StringPtr)PPR(pb->ioNamePtr);
       if (namep[0] == 1 && namep[1] == ':')
 	ignorename = TRUE;
     }
   do
     {
       err = noErr;
-      savep = pb->ioNamePtr;
-      if (ignorename)
-	pb->ioNamePtr = 0;
-      btpb->vcbp = ROMlib_findvcb(CW(pb->ioVRefNum), MR(pb->ioNamePtr), &dir,
+      {
+        typeof(pb->ioNamePtr) savep_nm = pb->ioNamePtr;
+        if (ignorename)
+	  PACKED_ASSIGN0(pb->ioNamePtr);
+        btpb->vcbp = ROMlib_findvcb(CW(pb->ioVRefNum), (StringPtr)PPR(pb->ioNamePtr), &dir,
 				  TRUE);
-      pb->ioNamePtr = savep;
+        pb->ioNamePtr = savep_nm;
+      }
       if (dir == 0)
 	{
 	  dir = dirid;
@@ -1314,13 +1315,13 @@ PUBLIC OSErr ROMlib_findvcbandfile(ioParam *pb, LONGINT dirid, btparam *btpb,
 	  StringPtr to_look_for_p;
 
 	  if (!ignorename
-	      && dir_prefixes_volume(MR(pb->ioNamePtr), btpb->vcbp->vcbVN))
+	      && dir_prefixes_volume((StringPtr)PPR(pb->ioNamePtr), btpb->vcbp->vcbVN))
 	    dirid = 1;
 	  else
 	    ROMlib_adjustdirid(&dirid, btpb->vcbp, CW(pb->ioVRefNum));
-	  
-	  if (!ignorename && dirid == 2 && pb->ioNamePtr
-	      && MR(pb->ioNamePtr)[0] == 0 && (*kindp & directory))
+
+	  if (!ignorename && dirid == 2 && pb->ioNamePtr.pp
+	      && ((StringPtr)PPR(pb->ioNamePtr))[0] == 0 && (*kindp & directory))
 	    {
 	      dirid = 1;
 	      str255assign(tempstr, btpb->vcbp->vcbVN);
@@ -1329,7 +1330,7 @@ PUBLIC OSErr ROMlib_findvcbandfile(ioParam *pb, LONGINT dirid, btparam *btpb,
 	      to_look_for_p = tempstr;
 	    }
 	  else
-	    to_look_for_p = MR(pb->ioNamePtr);
+	    to_look_for_p = (StringPtr)PPR(pb->ioNamePtr);
 
 	  err = findentry(dirid, to_look_for_p, btpb, kindp, ignorename);
 	  if (err)
@@ -1372,11 +1373,11 @@ PUBLIC OSErr ROMlib_alreadyopen(HVCB *vcbp, LONGINT flnum, SignedByte *permp,
     if (*permp == fsRdPerm)
 	return noErr;
     busybit = busy == resourcebusy ? RESOURCEBIT : 0;
-    length = CW(*(short *)MR(FCBSPtr));
-    fcbp = (filecontrolblock *) ((short *)MR(FCBSPtr)+1);
-    efcbp = (filecontrolblock *) ((char *)MR(FCBSPtr) + length);
+    length = CW(*(short *)GET_FCBSPtr());
+    fcbp = (filecontrolblock *) ((short *)GET_FCBSPtr()+1);
+    efcbp = (filecontrolblock *) ((char *)GET_FCBSPtr() + length);
     for (;fcbp < efcbp; fcbp = (filecontrolblock *) ((char *)fcbp + CW(FSFCBLen)))
-	if (MR(fcbp->fcbVPtr) == vcbp && CL(fcbp->fcbFlNum) == flnum &&
+	if ((HVCB *)PPR(fcbp->fcbVPtr) == vcbp && CL(fcbp->fcbFlNum) == flnum &&
 		 (busy == eitherbusy
 			 || (fcbp->fcbMdRByt & RESOURCEBIT) == busybit) &&
 			      ((fcbp->fcbMdRByt & WRITEBIT) || permp == &temp))
@@ -1390,14 +1391,14 @@ PUBLIC OSErr ROMlib_alreadyopen(HVCB *vcbp, LONGINT flnum, SignedByte *permp,
 		break;
 	    case fsWrPerm:
 	    case fsRdWrPerm:
-		*refnump = CW((char *) fcbp - (char *) MR(FCBSPtr));
+		*refnump = CW((char *) fcbp - (char *) GET_FCBSPtr());
 		err = opWrErr;
 		fs_err_hook (err);
 		return err;
 		break;
 	    case fsRdWrShPerm:
 		if (!(fcbp->fcbMdRByt & SHAREDBIT)) {
-		    *refnump = CW((char *) fcbp - (char *) MR(FCBSPtr));
+		    *refnump = CW((char *) fcbp - (char *) GET_FCBSPtr());
 		    err = opWrErr;
 		    fs_err_hook (err);
 		    return err;
@@ -1507,11 +1508,11 @@ PRIVATE OSErr PBOpenHelper(ioParam *pb, forktype ft, LONGINT dirid, BOOLEAN asyn
 		(LONGINT) sizeof(frp->filRExtRec));
     }
     fcbp->fcbCrPs = 0;
-    fcbp->fcbVPtr = RM(btparamrec.vcbp);
+    PACKED_ASSIGN(fcbp->fcbVPtr, btparamrec.vcbp);
 #if defined(MAC)
-    fcbp->fcbBfAdr = pb->ioMisc;
+    PACKED_ASSIGN(fcbp->fcbBfAdr, (Ptr)(long)pb->ioMisc);
 #else /* !defined(MAC) */
-    fcbp->fcbBfAdr = (Ptr) (long) pb->ioMisc;
+    PACKED_ASSIGN(fcbp->fcbBfAdr, (Ptr)(long)pb->ioMisc);
 #endif /* !defined(MAC) */
     fcbp->fcbFlPos = 0;
     
@@ -1526,7 +1527,7 @@ PRIVATE OSErr PBOpenHelper(ioParam *pb, forktype ft, LONGINT dirid, BOOLEAN asyn
     fcbp->fcbCatPos = cachep->logblk;
     fcbp->fcbDirID = catkeyp->ckrParID;
     str255assign(fcbp->fcbCName, catkeyp->ckrCName);
-    pb->ioRefNum = CW((char *) fcbp - (char *) MR(FCBSPtr));
+    pb->ioRefNum = CW((char *) fcbp - (char *) GET_FCBSPtr());
     PBRETURN(pb, noErr);
 }
 

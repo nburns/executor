@@ -113,7 +113,11 @@ extern void dialog_draw_item (DialogPtr dp, itmp itemp, int itemno);
 
 #define ITEM_H_X(itemp)		\
   ((itemp)->itmhand)
-#define ITEM_H(itemp)		(MR (ITEM_H_X (itemp)))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define ITEM_H(itemp)		(MR (ITEM_H_X (itemp)))
+#else
+# define ITEM_H(itemp)		(PPR (ITEM_H_X (itemp)))
+#endif
 
 #define ITEM_TYPE(itemp)	\
   ((itemp)->itmtype)

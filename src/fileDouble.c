@@ -323,7 +323,7 @@ A1(PUBLIC, OSErr, ROMlib_seteof, fcbrec *, fp)	/* INTERNAL */
     if (err == noErr) {
 	for (i = 0; i < NFCB; i++) {
 	    if (ROMlib_fcblocks[i].fdfnum == fp->fdfnum &&
-				     ROMlib_fcblocks[i].fcvptr == fp->fcvptr &&
+				     PPR(ROMlib_fcblocks[i].fcvptr) == PPR(fp->fcvptr) &&
 				     (ROMlib_fcblocks[i].fcflags & fcfisres) ==
 						    (fp->fcflags & fcfisres)) {
 		ROMlib_fcblocks[i].fcleof  = CL(leof);

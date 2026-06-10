@@ -512,7 +512,7 @@ already_open_res_file (INTEGER swapped_vref, LONGINT swapped_file_num)
     if (err == noErr && fcbp->fdfnum == swapped_file_num)
       {
 	VCB *vptr;
-	vptr = MR(fcbp->fcvptr);
+	vptr = PPR(fcbp->fcvptr);
 	if (vptr->vcbVRefNum == swapped_vref && (fcbp->fcflags & fcfisres))
 	  retval = Hx (map, resfn);
       }

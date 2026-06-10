@@ -24,7 +24,7 @@ P0(PUBLIC pascal trap, PolyHandle, OpenPoly)
     
     ph = (PolyHandle) NewHandle ((Size) SMALLPOLY);
     HxX(ph, polySize) = CWC (SMALLPOLY);
-    PORT_POLY_SAVE_X (thePort) = RM ((Handle) ph);
+    PACKED_ASSIGN (PORT_POLY_SAVE_X (thePort), (Handle) ph);
     HidePen();
     return(ph);
 }
@@ -54,7 +54,7 @@ P0(PUBLIC pascal trap, void, ClosePoly)
     HxX(ph, polyBBox.left)   = CW(left);
     HxX(ph, polyBBox.bottom) = CW(bottom);
     HxX(ph, polyBBox.right)  = CW(right);
-    PORT_POLY_SAVE_X (thePort) = CWC (0);
+    PACKED_ASSIGN0 (PORT_POLY_SAVE_X (thePort));
     ShowPen();
 }
 

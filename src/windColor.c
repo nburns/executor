@@ -81,35 +81,41 @@ const ColorSpec default_system6_color_win_ctab[] =
 #undef GRAY_RGB
 #undef WHITE_RGB
 #undef BLACK_RGB
-      
+
 void
 wind_color_init (void)
 {
-  /* initalize the default window colortable */
   ZONE_SAVE_EXCURSION
     (SysZone,
      {
        default_aux_win = (AuxWinHandle) NewHandle (sizeof (AuxWinRec));
-       HxX (default_aux_win, awNext) = 0;
-       HxX (default_aux_win, awOwner) = 0;
-       HxX (default_aux_win, awCTable)
-	 = (CTabHandle) RM (GetResource (TICK("wctb"), 0));
-       HxX (default_aux_win, dialogCItem) = 0;
+       SETP0 (default_aux_win, awNext);
+       SETP0 (default_aux_win, awOwner);
+       SETP (default_aux_win, awCTable,
+	     (CTabHandle) GetResource (TICK("wctb"), 0));
+       SETP0 (default_aux_win, dialogCItem);
        HxX (default_aux_win, awFlags) = 0;
-       HxX (default_aux_win, awReserved) = 0;
+       SETP0 (default_aux_win, awReserved);
        HxX (default_aux_win, awRefCon) = 0;
      });
 }
 
-AuxWinHandle *
+HIDDEN_AuxWinHandle *
 lookup_aux_win (WindowPtr w)
 {
-  AuxWinHandle *t;
+  HIDDEN_AuxWinHandle *t;
 
-  for (t = &AuxWinHead;
-       *t && HxP (MR (*t), awOwner) != w;
-       t = &HxX (MR (*t), awNext))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+  for (t = (HIDDEN_AuxWinHandle *) &AuxWinHead_H;
+       t->p && HxP (MR (t->p), awOwner) != w;
+       t = (HIDDEN_AuxWinHandle *) &HxX (MR (t->p), awNext))
     ;
+#else
+  for (t = &AuxWinHead_H;
+       t->pp && HxP (STARH (t), awOwner) != w;
+       t = &HxX (STARH (t), awNext))
+    ;
+#endif
   return t;
 }
 
@@ -120,28 +126,27 @@ P2 (PUBLIC pascal trap, void, SetWinColor,
   if (w)
     {
       AuxWinHandle aux_w;
-      
-      aux_w = MR (*lookup_aux_win (w));
+
+      aux_w = STARH (lookup_aux_win (w));
 
       if (!aux_w)
 	{
 	  AuxWinHandle t_aux_w;
-	  
-	  t_aux_w = AuxWinHead;
+
+	  t_aux_w = GET_AuxWinHead ();
 	  aux_w = (AuxWinHandle) NewHandle (sizeof (AuxWinRec));
-	  AuxWinHead = RM (aux_w);
-	  HxX (aux_w, awNext)      = t_aux_w;
-	  HxX (aux_w, awOwner)     = (WindowPtr) RM (w);
-	  /* FIXME: copy? */
-	  HxX (aux_w, awCTable)    = RM (new_w_ctab);
-	  HxX (aux_w, dialogCItem) = 0;
-	  HxX (aux_w, awFlags)     = /* CL (proc_id & 0x0F) */ 0;
-	  HxX (aux_w, awReserved)  = 0;
-	  HxX (aux_w, awRefCon)    = 0;
+	  SET_AuxWinHead (aux_w);
+	  SETP (aux_w, awNext, t_aux_w);
+	  SETP (aux_w, awOwner, w);
+	  SETP (aux_w, awCTable, new_w_ctab);
+	  SETP0 (aux_w, dialogCItem);
+	  HxX (aux_w, awFlags)    = 0;
+	  SETP0 (aux_w, awReserved);
+	  HxX (aux_w, awRefCon)   = 0;
 	}
       else
-	HxX (aux_w, awCTable) = RM (new_w_ctab);
-      
+	SETP (aux_w, awCTable, new_w_ctab);
+
       if (CGrafPort_p (w))
 	{
 	  ColorSpec *w_ctab_table;
@@ -149,11 +154,9 @@ P2 (PUBLIC pascal trap, void, SetWinColor,
 
 	  w_ctab_table = CTAB_TABLE (new_w_ctab);
 	  color = &w_ctab_table[wContentColor].rgb;
-	  
+
 	  CPORT_RGB_BK_COLOR (w) = *color;
-	  
-	  /* pick the best color and store it into window's port's
-	     bkColor field */
+
 	  PORT_BK_COLOR_X (w) = CL (Color2Index (color));
 
 	  if (WINDOW_VISIBLE_X (w))
@@ -162,7 +165,7 @@ P2 (PUBLIC pascal trap, void, SetWinColor,
 	       {
 		 RgnHandle t;
 		 t = NewRgn ();
-		 
+
 		 CopyRgn (WINDOW_CONT_REGION (w), t);
 		 OffsetRgn (t,
 			    CW (PORT_BOUNDS (w).left),
@@ -171,15 +174,11 @@ P2 (PUBLIC pascal trap, void, SetWinColor,
 		 DisposeRgn (t);
 	       });
 	}
-	  
+
       if (WINDOW_VISIBLE_X (w))
 	{
-	  /* set the port here, don't just save it while drawing the
-	     window
-	     FIXME: i'm not sure to what extent this should be the
-	     case, at the bare minimum at least here */
-	  SetPort (MR (wmgr_port));
-	  
+	  SetPort (GET_WMgrPort ());
+
 	  SetClip (WINDOW_STRUCT_REGION (w));
 	  ClipAbove ((WindowPeek)w);
 	  WINDCALL (w, wDraw, 0);
@@ -187,7 +186,6 @@ P2 (PUBLIC pascal trap, void, SetWinColor,
     }
   else
     {
-      /* modify the default color window table */
       abort ();
     }
 }
@@ -209,25 +207,22 @@ P2 (PUBLIC pascal trap, BOOLEAN, GetAuxWin,
 {
   if (! w)
     {
-      /* return default window color table */
-      aux_win_out->p = RM (default_aux_win);
+      HPTR_WRITE (aux_win_out, default_aux_win);
       return TRUE;
     }
   else
     {
       AuxWinHandle t;
 
-      t = *lookup_aux_win (w);
+      t = STARH (lookup_aux_win (w));
       if (t)
 	{
-	  /* return this window's color table */
-	  aux_win_out->p = t;
+	  HPTR_WRITE (aux_win_out, t);
 	  return TRUE;
 	}
       else
 	{
-	  /* return default window color table */
-	  aux_win_out->p = RM (default_aux_win);
+	  HPTR_WRITE (aux_win_out, default_aux_win);
 	  return FALSE;
 	}
     }

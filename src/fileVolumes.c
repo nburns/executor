@@ -659,8 +659,8 @@ A1(PUBLIC, OSErr, ufsPBMountVol, ParmBlkPtr, pb)	/* INTERNAL */
     ALLOCABEGIN
 
     err = noErr;
-    savezone = TheZone;
-    TheZone = SysZone;
+    savezone = GET_TheZone();
+    SET_TheZone(GET_SysZone());
     if (Ustat(ROMlib_volumename, &sbuf) < 0)
 /*-->*/	RETURN(badMDBErr)
     if (ROMlib_vcbbydrive(Cx(pb->volumeParam.ioVRefNum)) ||
@@ -717,8 +717,8 @@ A1(PUBLIC, OSErr, ufsPBMountVol, ParmBlkPtr, pb)	/* INTERNAL */
     vp->vcb.vcbClpSiz   = CLC(1);
     vp->vcb.vcbAlBlSt   = CWC(10);
     vp->vcb.vcbNxtCNID  = CLC(1000);
-    if (!DefVCBPtr) {
-        DefVCBPtr = RM((VCB *) vp);
+    if (!GET_DefVCBPtr()) {
+        SET_DefVCBPtr((VCB *) vp);
 	DefVRefNum = vp->vcb.vcbVRefNum;
 	DefDirID   = CLC(2);	/* top level */
     }
@@ -726,7 +726,7 @@ A1(PUBLIC, OSErr, ufsPBMountVol, ParmBlkPtr, pb)	/* INTERNAL */
     pb->ioParam.ioVRefNum = vp->vcb.vcbVRefNum;
     Enqueue((QElemPtr) vp, &VCBQHdr);
 DONE:
-    TheZone = savezone;
+    SET_TheZone(savezone);
     ALLOCAEND
     return err;
 }
@@ -740,7 +740,7 @@ A4(PUBLIC, OSErr, GetVInfo, INTEGER, drv, StringPtr, voln,	/* IMIV-107 */
 
     pbr.volumeParam.ioVolIndex = 0;
     pbr.volumeParam.ioVRefNum = CW(drv);
-    pbr.volumeParam.ioNamePtr = RM(voln);
+    PACKED_ASSIGN (pbr.volumeParam.ioNamePtr, voln);
     temp = PBGetVInfo(&pbr, 0);
     *vrn = pbr.volumeParam.ioVRefNum;
     *freeb = CL(Cx(pbr.volumeParam.ioVFrBlk) * Cx(pbr.volumeParam.ioVAlBlkSiz));
@@ -755,7 +755,7 @@ A2(PUBLIC, OSErr, GetVRefNum, INTEGER, prn, INTEGER *, vrn)	/* IMIV-107 */
     fp = PRNTOFPERR(prn, &err);
 
     if (err == noErr)
-	*vrn = MR(fp->fcvptr)->vcbVRefNum;
+	*vrn = PPR(fp->fcvptr)->vcbVRefNum;
     return(err);
 }
 
@@ -764,7 +764,7 @@ A2(PUBLIC, OSErr, GetVol, StringPtr, voln, INTEGER *, vrn)	/* IMIV-107 */
     ParamBlockRec pbr;
     OSErr temp;
 
-    pbr.volumeParam.ioNamePtr = RM(voln);
+    PACKED_ASSIGN (pbr.volumeParam.ioNamePtr, voln);
     temp = PBGetVol(&pbr, 0);
     *vrn = pbr.volumeParam.ioVRefNum;
     return(temp);
@@ -774,7 +774,7 @@ A2(PUBLIC, OSErr, SetVol, StringPtr, voln, INTEGER, vrn)	/* IMIV-107 */
 {
     ParamBlockRec pbr;
 
-    pbr.volumeParam.ioNamePtr = RM(voln);
+    PACKED_ASSIGN (pbr.volumeParam.ioNamePtr, voln);
     pbr.volumeParam.ioVRefNum = CW(vrn);
     return(PBSetVol(&pbr, 0));
 }
@@ -783,7 +783,7 @@ A2(PUBLIC, OSErr, FlushVol, StringPtr, voln, INTEGER, vrn)	/* IMIV-108 */
 {
     ParamBlockRec pbr;
 
-    pbr.ioParam.ioNamePtr = RM(voln);
+    PACKED_ASSIGN (pbr.ioParam.ioNamePtr, voln);
     pbr.ioParam.ioVRefNum = CW(vrn);
     return(PBFlushVol(&pbr, 0));
 }
@@ -792,7 +792,7 @@ A2(PUBLIC, OSErr, UnmountVol, StringPtr, voln, INTEGER, vrn)	/* IMIV-108 */
 {
     ParamBlockRec pbr;
 
-    pbr.ioParam.ioNamePtr = RM(voln);
+    PACKED_ASSIGN (pbr.ioParam.ioNamePtr, voln);
     pbr.ioParam.ioVRefNum = CW(vrn);
     return(PBUnmountVol(&pbr));
 }
@@ -801,7 +801,7 @@ A2(PUBLIC, OSErr, Eject, StringPtr, voln, INTEGER, vrn)	/* IMIV-108 */
 {
     ParamBlockRec pbr;
 
-    pbr.ioParam.ioNamePtr = RM(voln);
+    PACKED_ASSIGN (pbr.ioParam.ioNamePtr, voln);
     pbr.ioParam.ioVRefNum = CW(vrn);
     return(PBEject(&pbr));
 }
@@ -813,31 +813,31 @@ A4(PRIVATE, VCB *, findvcb, StringPtr, sp, INTEGER, vrn, BOOLEAN *, iswd,
 
     *iswd = FALSE;
     if (sp && sp[U(sp[0])] == VOLCHAR) {
-	for (vcbptr = (VCB *)MR(VCBQHdr.qHead);
+	for (vcbptr = (VCB *)PPR(VCBQHdr.qHead);
 	     vcbptr && !EqualString(sp, (StringPtr) vcbptr->vcbVN,
 								  FALSE, TRUE);
-	     vcbptr = (VCB *)MR(vcbptr->qLink))
+	     vcbptr = (VCB *)PPR(vcbptr->qLink))
 	    ;
 	*vrnp = vcbptr->vcbVRefNum;
     } else {
 	if (vrn == 0) {
-	    if (DefVCBPtr)
-		*vrnp = MR(DefVCBPtr)->vcbVRefNum;
+	    if (GET_DefVCBPtr())
+		*vrnp = GET_DefVCBPtr()->vcbVRefNum;
 	    else
 		*vrnp = 0;
-/*-->*/	    return MR(DefVCBPtr);
+/*-->*/	    return GET_DefVCBPtr();
 	}
 	if (vrn < 0) {
 	    *vrnp = CW(vrn);
 	    if (ISWDNUM(vrn)) {
 		*iswd = TRUE;
-		vcbptr = WDNUMTOWDP(vrn)->vcbp;
+		vcbptr = PPR(WDNUMTOWDP(vrn)->vcbp);
 	    } else
 		vcbptr = ROMlib_vcbbyvrn(vrn);
 	} else {
-	    for (vcbptr = (VCB *)MR(VCBQHdr.qHead);
+	    for (vcbptr = (VCB *)PPR(VCBQHdr.qHead);
 	         vcbptr &&  Cx(vcbptr->vcbDrvNum) != vrn;
-		 vcbptr = (VCB *)MR(vcbptr->qLink))
+		 vcbptr = (VCB *)PPR(vcbptr->qLink))
 		;
 	    if (vcbptr)
 		*vrnp = vcbptr->vcbVRefNum;
@@ -859,20 +859,20 @@ A2(PRIVATE, VCB *, grabvcb, ParmBlkPtr, pb, INTEGER *, vrefnump)
     therest = 0;
     dir = 1;
     if ((i = Cx(pb->volumeParam.ioVolIndex)) > 0)
-	for (vcbp = (VCB *) MR(VCBQHdr.qHead); i > 1 && vcbp ;
-						vcbp = (VCB *)MR(vcbp->qLink), i--)
+	for (vcbp = (VCB *) PPR(VCBQHdr.qHead); i > 1 && vcbp ;
+						vcbp = (VCB *)PPR(vcbp->qLink), i--)
 	    ;
     else if (Cx(pb->volumeParam.ioVolIndex) == 0) {
-	sp = MR(pb->volumeParam.ioNamePtr);
-	pb->volumeParam.ioNamePtr = 0;
+	sp = (StringPtr) PPR(pb->volumeParam.ioNamePtr);
+	PACKED_ASSIGN0 (pb->volumeParam.ioNamePtr);
 	vcbp = ROMlib_breakoutioname(pb, &dir, &therest, (BOOLEAN *) 0, FALSE);
-	pb->volumeParam.ioNamePtr = RM(sp);
+	PACKED_ASSIGN (pb->volumeParam.ioNamePtr, sp);
     } else
       {
 	BOOLEAN use_defaults;
 	unsigned char *p;
 
-	p = (unsigned char *) MR (pb->volumeParam.ioNamePtr);
+	p = (unsigned char *) PPR (pb->volumeParam.ioNamePtr);
 	if (!p || p[0] == 0 || p[1] == ':')
 	  use_defaults = TRUE;
 	else
@@ -958,8 +958,8 @@ A1(PRIVATE, VCB *, common, ParmBlkPtr, pb)
 	  vcbp->vcbFreeBks  = CW (short_free_bks);
 	  vcbp->vcbFilCnt   = CL(sbuf.f_files);
 	}
-	if (pb->volumeParam.ioNamePtr)
-	    str255assign(MR(pb->volumeParam.ioNamePtr), vcbp->vcbVN);
+	if (PPR(pb->volumeParam.ioNamePtr))
+	    str255assign((StringPtr)PPR(pb->volumeParam.ioNamePtr), vcbp->vcbVN);
 	pb->volumeParam.ioVCrDate   = vcbp->vcbCrDate;
 	pb->volumeParam.ioVLsBkUp   = vcbp->vcbVolBkUp;
 	pb->volumeParam.ioVAtrb     = vcbp->vcbAtrb;
@@ -1011,7 +1011,7 @@ A2(PUBLIC, OSErr, ufsPBHGetVInfo, HParmBlkPtr, pb,	/* INTERNAL */
 					     (Size) sizeof(vcbp->vcbFndrInfo));
 	if (ISWDNUM(Cx(BootDrive))) {
 	    wdp = WDNUMTOWDP(Cx(BootDrive));
-	    if (MR(wdp->vcbp) == vcbp)
+	    if (PPR(wdp->vcbp) == vcbp)
 		pb->volumeParam.ioVFndrInfo[1] = wdp->dirid;
 	}
     }
@@ -1029,13 +1029,13 @@ A2(PUBLIC, OSErr, ufsPBSetVInfo, HParmBlkPtr, pb,	/* INTERNAL */
 
     err = noErr;
 
-    if ((vcbp = findvcb(MR(pb->volumeParam.ioNamePtr), Cx(pb->volumeParam.ioVRefNum),
+    if ((vcbp = findvcb((StringPtr)PPR(pb->volumeParam.ioNamePtr), Cx(pb->volumeParam.ioVRefNum),
 						     &iswd, &temp)) && !iswd) {
-        if (pb->volumeParam.ioNamePtr)
+        if (PPR(pb->volumeParam.ioNamePtr))
 	  {
-	    ntocopy = MIN(MR(pb->volumeParam.ioNamePtr)[0],
+	    ntocopy = MIN(((StringPtr)PPR(pb->volumeParam.ioNamePtr))[0],
 			  sizeof (vcbp->vcbVN)-1);
-	    BlockMove((Ptr) MR(pb->volumeParam.ioNamePtr)+1,
+	    BlockMove((Ptr)PPR(pb->volumeParam.ioNamePtr)+1,
 		      (Ptr) vcbp->vcbVN+1,(Size) ntocopy);
 	    vcbp->vcbVN[0] = ntocopy;
 	  }
@@ -1076,7 +1076,7 @@ A1(PUBLIC, OSErr, ufsPBUnmountVol, ParmBlkPtr, pb)	/* INTERNAL */
     temp = PBFlushVol(pb, FALSE);
     for (i = 0; i < NFCB; i++)
 	if (ROMlib_fcblocks[i].fdfnum &&
-		MR(ROMlib_fcblocks[i].fcvptr)->vcbVRefNum == pb->ioParam.ioVRefNum)
+		PPR(ROMlib_fcblocks[i].fcvptr)->vcbVRefNum == pb->ioParam.ioVRefNum)
 	    FSClose(i*94+2);
     if ((vcbp = (VCBExtra *) ROMlib_vcbbyvrn(Cx(pb->ioParam.ioVRefNum))))
 	ROMlib_dbm_close(vcbp);

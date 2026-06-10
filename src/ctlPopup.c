@@ -52,20 +52,24 @@ init (ControlHandle ctl)
   {
     HIDDEN_Handle hh;
 
-    hh.p = (Handle) mh;
+    HIDDEN_VAL_WRITE (hh, (Handle) mh);
     HandToHand (&hh);
     flags = CTL_VALUE (ctl);
 
     POPUP_MENU_ID_X (data)     = CW (mid);
-    POPUP_MENU_X (data)        = RM ((MenuHandle) hh.p);
+    SETP (data, menu, (MenuHandle) FROM_HIDDEN (hh));
   }  
   /* private fields */
   POPUP_TITLE_WIDTH (data)   = CTL_MAX (ctl);
   POPUP_FLAGS (data)	     = flags;
   
-  CTL_DATA_X (ctl) = (Handle) RM (data);
-  
+  SETP (ctl, contrlData, (Handle) data);
+
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
   CTL_ACTION_X (ctl) = (ProcPtr) CLC (-1);
+#else
+  CTL_ACTION_X (ctl).pp = (uint32) CLC (-1);
+#endif
   CTL_VALUE_X (ctl) = CWC (1);
   CTL_MIN_X (ctl) = CWC (1);
   CTL_MAX_X (ctl) = CW (CountMItems (mh));
@@ -402,7 +406,7 @@ draw (ControlHandle ctl, draw_state_t draw_state,
 	  image_bits (00000100), image_bits (00000000),
 	};
       
-      arrow_bitmap.baseAddr = RM ((Ptr) down_arrow_bits);
+      PACKED_ASSIGN (arrow_bitmap.baseAddr, (Ptr) down_arrow_bits);
       arrow_bitmap.rowBytes = CWC (2);
       SetRect (&arrow_bitmap.bounds, 0, 0, /* right, bottom */ 11, 6);
       

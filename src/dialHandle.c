@@ -49,7 +49,7 @@ P3(PUBLIC pascal, BOOLEAN, ROMlib_myfilt, DialogPeek, dp, EventRecord *, evt,
 	 (Cx(evt->message) & 0xFF) == NUMPAD_ENTER)) {
         ip = ROMlib_dpnotoip(dp, CW(*ith = dp->aDefItem), &flags);
 	if (ip && (CB(ip->itmtype) & ctrlItem)) {
-	    c = (ControlHandle) MR(ip->itmhand);
+	    c = (ControlHandle) PPR(ip->itmhand);
 	    if (Hx(c, contrlVis) && U(Hx(c, contrlHilite)) != INACTIVE) {
 		if ((when = ROMlib_when) != WriteNever)
 		    ROMlib_WriteWhen(WriteInBltrgn);
@@ -58,12 +58,12 @@ P3(PUBLIC pascal, BOOLEAN, ROMlib_myfilt, DialogPeek, dp, EventRecord *, evt,
 		Delay((LONGINT)5, (LONGINT *) 0);
 		HiliteControl(c, 0);
 #endif
-		HSetState(MR(((DialogPeek) dp)->items), flags);
+		HSetState(DIALOG_ITEMS(dp), flags);
 		ROMlib_WriteWhen(when);
     /*-->*/	    return -1;
 	    }
 	}
-	HSetState(MR(((DialogPeek) dp)->items), flags);
+	HSetState(DIALOG_ITEMS(dp), flags);
     }
     return FALSE;
 }
@@ -130,7 +130,7 @@ ROMlib_CALLUSERITEM (DialogPtr dp,
     int retval;					\
     						\
     retval = FindWindow (pt, &__wp);		\
-    *(wp) = MR (__wp.p);			\
+    *(wp) = (WindowPtr) PPR (__wp);			\
 						\
     retval;					\
   })
@@ -171,7 +171,7 @@ P 2 (PUBLIC pascal trap, void, ModalDialog, ProcPtr, fp,		/* IMI-415 */
 	 *item = CWC (-1);
        else
 	 {
-	   idle = (Cx (dp->editField) == -1) ? 0 : MR (dp->textH);
+	   idle = (Cx (dp->editField) == -1) ? 0 : DIALOG_TEXTH ((DialogPtr) dp);
 	   if (fp)
 	     fp2 = fp;
 	   else
@@ -249,7 +249,7 @@ P2 (PUBLIC pascal trap, void, ModalDialog, ProcPtr, fp,		/* IMI-415 */
 	 *item = CWC (-1);
        else
 	 {
-	   idle = (Cx (dp->editField) == -1) ? 0 : MR (dp->textH);
+	   idle = (Cx (dp->editField) == -1) ? 0 : DIALOG_TEXTH ((DialogPtr) dp);
 	   if (fp)
 	     fp2 = fp;
 	   else
@@ -312,11 +312,11 @@ P1(PUBLIC pascal trap, BOOLEAN, IsDialogEvent,		/* IMI-416 */
     dp = (DialogPeek) FrontWindow();
     if (dp && dp->window.windowKind == CWC(dialogKind)) {
         if (dp->editField != -1)
-            TEIdle(MR(dp->textH));
+            TEIdle(DIALOG_TEXTH ((DialogPtr) dp));
 	p.h = CW(evt->where.h);
 	p.v = CW(evt->where.v);
 /*-->*/ return evt->what != CWC(mouseDown) || (FindWindow(p,
-				&wp) == inContent && MR(wp.p) == (WindowPtr) dp);
+				&wp) == inContent && PPR(wp) == (WindowPtr) dp);
     }
     return FALSE;
 }
@@ -327,8 +327,8 @@ get_item_style_info (DialogPtr dp, int item_no,
 {
   AuxWinHandle aux_win_h;
   
-  aux_win_h = MR (*lookup_aux_win (dp));
-  if (aux_win_h && HxX (aux_win_h, dialogCItem))
+  aux_win_h = STARH (lookup_aux_win (dp));
+  if (aux_win_h && HxZ (aux_win_h, dialogCItem))
     {
       Handle items_color_info_h;
       item_color_info_t *items_color_info, *item_color_info;
@@ -406,32 +406,32 @@ ROMlib_drawiptext (DialogPtr dp, itmp ip, int item_no)
       
       *subsrc = '^';
       sp = subsrc + 1;
-      nh.p = (Handle) MR (ip->itmhand);
-      
+      HIDDEN_VAL_WRITE (nh, PPR (ip->itmhand));
+
       HandToHand (&nh);
-      
+
       for (*sp = '0', hp = (HIDDEN_Handle *) DAStrings_H;
 	   *sp != '4'; ++*sp, hp++)
 	{
-	  if (hp->p)
+	  if (HPTR_VAL (hp))
 	    {
 	      for (l = 0; l >= 0;
-		   l = Munger (nh.p, l,
+		   l = Munger (FROM_HIDDEN (nh), l,
 			  (Ptr) subsrc, (LONGINT) 2, STARH (STARH (hp)) + 1,
 			     (LONGINT) (unsigned char) *STARH (STARH (hp))))
 		;
 	    }
 	}
-      HLock (nh.p);
-      TextBox (STARH (nh.p), GetHandleSize (nh.p), &r, teFlushDefault);
-      HUnlock (nh.p);
-      DisposHandle (nh.p);
+      HLock (FROM_HIDDEN (nh));
+      TextBox (STARH (FROM_HIDDEN (nh)), GetHandleSize (FROM_HIDDEN (nh)), &r, teFlushDefault);
+      HUnlock (FROM_HIDDEN (nh));
+      DisposHandle (FROM_HIDDEN (nh));
     }
   else if (CB (ip->itmtype) & editText)
     {
       Handle text_h;
       
-      text_h = MR (ip->itmhand);
+      text_h = PPR (ip->itmhand);
       LOCK_HANDLE_EXCURSION_1
 	(text_h, 
 	 {
@@ -472,7 +472,7 @@ dialog_draw_item (DialogPtr dp, itmp itemp, int itemno)
     {
       Handle icon;
       
-      icon = MR (itemp->itmhand);
+      icon = PPR (itemp->itmhand);
       if (CICON_P (icon))
 	PlotCIcon (&itemp->itmr, (CIconHandle) icon);
       else
@@ -480,14 +480,14 @@ dialog_draw_item (DialogPtr dp, itmp itemp, int itemno)
     }
   else if (itemp->itmtype & picItem)
     {
-      DrawPicture ((PicHandle) MR (itemp->itmhand), &itemp->itmr);
+      DrawPicture ((PicHandle) PPR (itemp->itmhand), &itemp->itmr);
     }
   else
     {
       Handle h;
       
       /* useritem */
-      h = MR (itemp->itmhand);
+      h = PPR (itemp->itmhand);
       if (h)
 	CALLUSERITEM (dp, itemno, h);
     }
@@ -507,19 +507,19 @@ P1 (PUBLIC pascal trap, void, DrawDialog, DialogPtr, dp)	/* IMI-418 */
 	gp = thePort;
 	SetPort((GrafPtr) dp);
 	if (Cx(((DialogPeek)dp)->editField) != -1)
-	  TEDeactivate(MR(((DialogPeek)dp)->textH));
+	  TEDeactivate(DIALOG_TEXTH(dp));
 	DrawControls((WindowPtr) dp);
-	state = HGetState(MR(((DialogPeek)dp)->items));
-	HSetState(MR(((DialogPeek)dp)->items), state | LOCKBIT);
-	intp = (INTEGER *) STARH(MR(((DialogPeek)dp)->items));
+	state = HGetState(DIALOG_ITEMS(dp));
+	HSetState(DIALOG_ITEMS(dp), state | LOCKBIT);
+	intp = (INTEGER *) STARH(DIALOG_ITEMS(dp));
 	ip = (itmp)(intp + 1);
 	for (i = Cx (*intp), inum = 1; i-- >= 0; inum++, BUMPIP(ip))
 	  {
 	    dialog_draw_item (dp, ip, inum);
 	  }
 	if (Cx(((DialogPeek)dp)->editField) != -1)
-	  TEActivate(MR(((DialogPeek)dp)->textH));
-	HSetState(MR(((DialogPeek)dp)->items), state);
+	  TEActivate(DIALOG_TEXTH(dp));
+	HSetState(DIALOG_ITEMS(dp), state);
 	SetPort(gp);
       }
 }
@@ -530,7 +530,7 @@ P2(PUBLIC pascal trap, INTEGER, FindDItem, DialogPtr, dp,	/* IMIV-60 */
     INTEGER *intp, i, inum;
     itmp ip;
     
-    intp = (INTEGER *)STARH(MR(((DialogPeek)dp)->items));
+    intp = (INTEGER *)STARH(DIALOG_ITEMS(dp));
     ip = (itmp)(intp + 1);
     for (i =Cx( *intp), inum = 0; i-- >= 0; inum++, BUMPIP(ip))
 	if (PtInRect(pt, &ip->itmr))
@@ -550,9 +550,9 @@ P2(PUBLIC pascal trap, void, UpdtDialog, DialogPtr, dp,		/* IMIV-60 */
     SetPort((GrafPtr) dp);
     ShowWindow((WindowPtr) dp);
     DrawControls((WindowPtr) dp);
-    state = HGetState(MR(((DialogPeek)dp)->items));
-    HSetState(MR(((DialogPeek)dp)->items), state | LOCKBIT);
-    intp = (INTEGER *) STARH(MR(((DialogPeek)dp)->items));
+    state = HGetState(DIALOG_ITEMS(dp));
+    HSetState(DIALOG_ITEMS(dp), state | LOCKBIT);
+    intp = (INTEGER *) STARH(DIALOG_ITEMS(dp));
     ip = (itmp)(intp + 1);
     for (i = Cx (*intp), inum = 1; i-- >= 0; inum++, BUMPIP(ip))
       {
@@ -561,7 +561,7 @@ P2(PUBLIC pascal trap, void, UpdtDialog, DialogPtr, dp,		/* IMIV-60 */
 	    dialog_draw_item (dp, ip, inum);
 	  }
       }
-    HSetState(MR(((DialogPeek)dp)->items), state);
+    HSetState(DIALOG_ITEMS(dp), state);
     SetPort(gp);
 }
 
@@ -590,7 +590,7 @@ P3 (PUBLIC pascal trap, BOOLEAN, DialogSelect,		/* IMI-417 */
       localp.h = CW(localp.h);
       localp.v = CW(localp.v);
       SetPort(gp);
-      intp = (INTEGER *) STARH(MR(dp->items));
+      intp = (INTEGER *) STARH(DIALOG_ITEMS((DialogPtr)dp));
       iend = Cx(*intp) + 2;
       ip = (itmp)(intp + 1);
       for (i = 0;
@@ -605,13 +605,13 @@ P3 (PUBLIC pascal trap, BOOLEAN, DialogSelect,		/* IMI-417 */
 	  if (Cx(dp->editField) != i-1)
 	    ROMlib_dpntoteh(dp, i);
 	  TEClick(localp, (Cx(evt->modifiers)&shiftKey) ? TRUE : FALSE,
-		  MR(dp->textH));
+		  DIALOG_TEXTH ((DialogPtr) dp));
         }
       else if (CB(ip->itmtype) & ctrlItem)
 	{
 	  ControlHandle c;
 	  
-	  c = (ControlHandle) MR (ip->itmhand);
+	  c = (ControlHandle) PPR (ip->itmhand);
 	  if (CTL_HILITE (c) == INACTIVE
 	      || !TrackControl (c, localp,
 				CTL_ACTION (c)))
@@ -649,14 +649,14 @@ P3 (PUBLIC pascal trap, BOOLEAN, DialogSelect,		/* IMI-417 */
 			      "CW (*itemp) = %d", dp, CW (*itemp));
 	  retval = FALSE;
 	}
-      HSetState(MR(((DialogPeek) dp)->items), flags);
+      HSetState(DIALOG_ITEMS(dp), flags);
       break;
     case updateEvt:
       dp = (DialogPeek) (long) MR(evt->message);
       BeginUpdate((WindowPtr) dp);
       DrawDialog((DialogPtr) dp);
       if (dp->editField != -1)
-	TEUpdate(&dp->window.port.portRect, MR(dp->textH));
+	TEUpdate(&dp->window.port.portRect, DIALOG_TEXTH ((DialogPtr) dp));
       EndUpdate((WindowPtr) dp);
       break;
     case activateEvt:
@@ -664,51 +664,51 @@ P3 (PUBLIC pascal trap, BOOLEAN, DialogSelect,		/* IMI-417 */
       if (dp->editField != -1)
 	{
 	  if (Cx(evt->modifiers) & activeFlag)
-	    TEActivate(MR(dp->textH));
+	    TEActivate(DIALOG_TEXTH ((DialogPtr) dp));
 	  else
-	    TEDeactivate(MR(dp->textH));
+	    TEDeactivate(DIALOG_TEXTH ((DialogPtr) dp));
 	}
       break;
     }
-  dpp->p = (DialogPtr) RM (dp);
+  HPTR_WRITE (dpp, dp);
   return retval;
 }
 
 A1(PUBLIC, void, DlgCut, DialogPtr, dp)	/* IMI-418 */
 {
     if ((((DialogPeek) dp)->editField) != -1)
-        TECut(MR(((DialogPeek)dp)->textH));
+        TECut(DIALOG_TEXTH(dp));
 }
 
 A1(PUBLIC, void, DlgCopy, DialogPtr, dp)	/* IMI-418 */
 {
     if ((((DialogPeek) dp)->editField) != -1)
-        TECopy(MR(((DialogPeek)dp)->textH));
+        TECopy(DIALOG_TEXTH(dp));
 }
 
 A1(PUBLIC, void, DlgPaste, DialogPtr, dp)	/* IMI-418 */
 {
     if ((((DialogPeek) dp)->editField) != -1)
-        TEPaste(MR(((DialogPeek)dp)->textH));
+        TEPaste(DIALOG_TEXTH(dp));
 }
 
 A1(PUBLIC, void, DlgDelete, DialogPtr, dp)	/* IMI-418 */
 {
     if ((((DialogPeek) dp)->editField) != -1)
-        TEDelete(MR(((DialogPeek)dp)->textH));
+        TEDelete(DIALOG_TEXTH(dp));
 }
 
 
 void
 BEEPER (INTEGER n)
 {
-  if (DABeeper) {
-    if ((pascal void (*)(INTEGER))MR(DABeeper) == P_ROMlib_mysound)
+  if (DABeeper_H.pp) {
+    if ((pascal void (*)(INTEGER))GET_DABeeper() == P_ROMlib_mysound)
       C_ROMlib_mysound((n));
     else {
       HOOKSAVEREGS();
       ROMlib_hook(dial_soundprocnumber);
-      CToPascalCall((soundprocp)MR(DABeeper), CTOP_ROMlib_mysound, n);
+      CToPascalCall((soundprocp)GET_DABeeper(), CTOP_ROMlib_mysound, n);
       HOOKRESTOREREGS();
     }
   }

@@ -60,40 +60,40 @@ P6 (PUBLIC pascal trap, void, CopyBits,
 	 }
        else
 	 {
-	   RgnHandle savevisr;
-	   RgnHandle saveclipr;
+	   uint32_t savevisr;
+	   uint32_t saveclipr;
 	   RgnHandle big_region;
 	   QDProcsPtr gp;
-	   
+
 	   /* save away thePort fields */
 	   /* this saves the port bits (in the case of a GrafPort), and
 	      the portPixMap in the case of a CGrafPort (among other
 	      things */
-	   savevisr = PORT_VIS_REGION_X (thePort);
-	   saveclipr = PORT_CLIP_REGION_X (thePort);
-	   
+	   savevisr = PORT_VIS_REGION_X (thePort).pp;
+	   saveclipr = PORT_CLIP_REGION_X (thePort).pp;
+
 	   big_region = NewRgn ();
 	   SetRectRgn (big_region, -32767, -32767, 32767, 32767);
-	   PORT_VIS_REGION_X (thePort) = RM (big_region);
-	   PORT_CLIP_REGION_X (thePort) = RM (big_region);
-	   
+	   PACKED_ASSIGN (PORT_VIS_REGION_X (thePort), big_region);
+	   PACKED_ASSIGN (PORT_CLIP_REGION_X (thePort), big_region);
+
 	   /* give a warning of _StdBits or thePort's bitsProc has
 	      been patched out */
 	   gp = PORT_GRAF_PROCS (thePort);
 	   if (gp
-	       && MR (gp->bitsProc) != P_StdBits)
+	       && PPR (gp->bitsProc) != P_StdBits)
 	     warning_unexpected ("thePort bitsProc patched out!");
-	   
+
 	   if (tooltraptable[StdBits_TOOLTRAP_NUMBER]
 	       != toolstuff[StdBits_TOOLTRAP_NUMBER].orig)
 	     warning_unexpected ("_StdBits patched out!");
-	   
+
 	   ROMlib_bogo_stdbits (src_bitmap, dst_bitmap,
 				src_rect, dst_rect, mode, mask);
-	       
+
 	   /* restore fields */
-	   PORT_VIS_REGION_X (thePort) = savevisr;
-	   PORT_CLIP_REGION_X (thePort) = saveclipr;
+	   PORT_VIS_REGION_X (thePort).pp = savevisr;
+	   PORT_CLIP_REGION_X (thePort).pp = saveclipr;
 	   DisposeRgn (big_region);
 	 }
      });

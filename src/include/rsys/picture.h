@@ -15,18 +15,31 @@
 
 #define PICOP(x)	{ INTEGER op = CW(x); PICWRITE(&op, sizeof(op));  }
 
-#define PIC_SAVE_EXCURSION(body) { if (PORT_PIC_SAVE_X (thePort)) { body } }
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define PIC_SAVE_EXCURSION(body) { if (PORT_PIC_SAVE_X (thePort)) { body } }
+#else
+# define PIC_SAVE_EXCURSION(body) { if (PORT_PIC_SAVE_X (thePort).pp) { body } }
+#endif
 
-#define PICSAVEBEGIN(x)	if (thePort->picSave) {				\
-			    PICOP((x))
-
-#define PICSAVEBEGIN0()	if (thePort->picSave) {				\
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define PICSAVEBEGIN(x)  if (thePort->picSave) { PICOP((x))
+# define PICSAVEBEGIN0()  if (thePort->picSave) {
+#else
+# define PICSAVEBEGIN(x)  if (thePort->picSave.pp) { PICOP((x))
+# define PICSAVEBEGIN0()  if (thePort->picSave.pp) {
+#endif
 
 #define PICSAVEEND	}
 
-#define PAUSEDECL	Handle savepichand
-#define PAUSERECORDING	savepichand = thePort->picSave, thePort->picSave = 0
-#define RESUMERECORDING	thePort->picSave = savepichand
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define PAUSEDECL       Handle savepichand
+# define PAUSERECORDING  savepichand = thePort->picSave, thePort->picSave = 0
+# define RESUMERECORDING thePort->picSave = savepichand
+#else
+# define PAUSEDECL       uint32_t savepichand
+# define PAUSERECORDING  savepichand = thePort->picSave.pp, thePort->picSave.pp = 0
+# define RESUMERECORDING thePort->picSave.pp = savepichand
+#endif
 
 #define PAUSE_PIC_EXCURSION(body)		\
   {						\

@@ -104,7 +104,7 @@ typedef struct menu_elt
   ((*(HIDDEN_PixMapHandle *) ((char *) STARH (ml)			\
 			      + ML_LAST_MENU_OFFSET (ml)		\
 			      + sizeof (menu_elt)			\
-			      + sizeof (INTEGER) /* lastHMenu */)).p)
+			      + sizeof (INTEGER) /* lastHMenu */)).pp)
 
 #define ML_LAST_MENU_OFFSET(ml)		(CW (ML_LAST_MENU_OFFSET_X (ml)))
 #define ML_LAST_RIGHT(ml)		(CW (ML_LAST_RIGHT_X (ml)))
@@ -150,7 +150,11 @@ typedef HIDDEN_menulistp *mlhandle;
 #define MCENTRY_ITEM(entry)		(CW (MCENTRY_ITEM_X (entry)))
 
 
-#define MENULIST	((mlhandle) MR(MenuList))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define MENULIST	((mlhandle) MR(MenuList))
+#else
+# define MENULIST	((mlhandle) GET_MenuList())
+#endif
 
 #define MENULEFT    10
 
@@ -194,10 +198,27 @@ extern HIDDEN_Handle MBSaveLoc_H;
 extern HIDDEN_Handle MBDFHndl_H;
 #endif
 
-#define MBSaveLoc	(MBSaveLoc_H.p)
-#define MBDFHndl	(MBDFHndl_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define MBSaveLoc	(MBSaveLoc_H.p)
+# define MBDFHndl	(MBDFHndl_H.p)
+# define SET_MBDFHndl(v)  (MBDFHndl_H.p = RM(v))
+# define SET_MBSaveLoc(v) (MBSaveLoc_H.p = RM(v))
+#else
+# define MBDFHndl	(MBDFHndl_H.pp)
+# define MBSaveLoc	(MBSaveLoc_H.pp)
+# define SET_MBDFHndl(v)  (MBDFHndl_H.pp = RPP(v))
+# define SET_MBSaveLoc(v) (MBSaveLoc_H.pp = RPP(v))
+#endif
 
-#define MBSAVELOC ((mbdfheaderhand) MR(MBSaveLoc))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define MBSAVELOC ((mbdfheaderhand) MR(MBSaveLoc))
+# define GET_MBarHook() MR(MBarHook_H.p)
+# define GET_MenuHook() MR(MenuHook_H.p)
+#else
+# define MBSAVELOC ((mbdfheaderhand) PPR(MBSaveLoc_H))
+# define GET_MBarHook() ((ProcPtr)PPR(MBarHook_H))
+# define GET_MenuHook() ((ProcPtr)PPR(MenuHook_H))
+#endif
 
 #define SLOP        13
 

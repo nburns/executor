@@ -212,8 +212,8 @@ A9 (PRIVATE, void, xSeedFill, unsigned char *, srcp, unsigned char *, dstp,
     if (!useseeds)
 	transfer((INTEGER *) 0, (INTEGER *) dstp, 0, dstr, height,
 								width, Negate);
-    if (dstp >= (unsigned char *) MR(screenBitsX.baseAddr)) {
-	byteoff = dstp    - (unsigned char *) MR(screenBitsX.baseAddr);
+    if (dstp >= (unsigned char *) PPR(screenBitsX.baseAddr)) {
+	byteoff = dstp    - (unsigned char *) PPR(screenBitsX.baseAddr);
 	voff    = byteoff / CW(screenBitsX.rowBytes);
 	if (voff < CW(screenBitsX.bounds.bottom) - CW(screenBitsX.bounds.top))
 	  {
@@ -339,25 +339,25 @@ copy_mask_1 (BitMap *src_bm, BitMap *mask_bm, BitMap *dst_bm,
   mask_rgn = NewRgn ();
   if (BitMapToRegion (mask_rgn, mask_bm) == noErr)
     {
-      Handle save_pic_handle, save_graf_procs;
+      uint32_t save_pic_handle, save_graf_procs;
       RgnHandle mask_rect_rgn;
-      
+
       mask_rect_rgn = NewRgn ();
       RectRgn (mask_rect_rgn, mask_rect);
       SectRgn (mask_rgn, mask_rect_rgn, mask_rgn);
-      
+
       MapRgn (mask_rgn, mask_rect, dst_rect);
-      
-      save_pic_handle = PORT_PIC_SAVE_X (thePort);
-      save_graf_procs = (Handle) PORT_GRAF_PROCS_X (thePort);
-      
-      PORT_PIC_SAVE_X (thePort)   = RM (NULL);
-      PORT_GRAF_PROCS_X (thePort) = RM (NULL);
-      
+
+      save_pic_handle = PORT_PIC_SAVE_X (thePort).pp;
+      save_graf_procs = PORT_GRAF_PROCS_X (thePort).pp;
+
+      PACKED_ASSIGN0 (PORT_PIC_SAVE_X (thePort));
+      PACKED_ASSIGN0 (PORT_GRAF_PROCS_X (thePort));
+
       CopyBits (src_bm, dst_bm, src_rect, dst_rect, srcCopy, mask_rgn);
-      
-      PORT_PIC_SAVE_X (thePort)   = save_pic_handle;
-      PORT_GRAF_PROCS_X (thePort) = (void *) save_graf_procs;
+
+      PORT_PIC_SAVE_X (thePort).pp   = save_pic_handle;
+      PORT_GRAF_PROCS_X (thePort).pp = save_graf_procs;
       
       DisposeRgn (mask_rect_rgn);
       DisposeRgn (mask_rgn);
@@ -416,7 +416,7 @@ P6 (PUBLIC pascal trap, void, CopyMask,		/* IMIV-24 */
   row_bytes = (RECT_WIDTH (mask_rect) + 31) / 32 * 4;
   TEMP_ALLOC_ALLOCATE (mask_bits, temp_mask_bits,
 		       row_bytes * RECT_HEIGHT (mask_rect));
-  mask_bm.baseAddr = RM (mask_bits);
+  PACKED_ASSIGN (mask_bm.baseAddr, mask_bits);
   mask_bm.rowBytes = CW (row_bytes);
   mask_bm.bounds   = *mask_rect;
   

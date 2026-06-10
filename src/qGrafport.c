@@ -26,13 +26,13 @@ P1(PUBLIC pascal trap, void, InitGraf, Ptr, gp)
   PixMapHandle main_gd_pixmap;
 
 #if defined (BINCOMPAT)
-  (*(HIDDEN_Ptr *) (long) SYN68K_TO_US(a5)).p = RM (gp);
+  HPTR_WRITE ((HIDDEN_Ptr *) (long) SYN68K_TO_US(a5), gp);
 #endif /* BINCOMPAT */
 
   main_gd_pixmap = GD_PMAP (MR (MainDevice));
 
   /* screenBitsX flag bits must not be set */
-  screenBitsX.baseAddr = PIXMAP_BASEADDR_X (main_gd_pixmap);
+  PACKED_ASSIGN (screenBitsX.baseAddr, PPR (PIXMAP_BASEADDR_X (main_gd_pixmap)));
   screenBitsX.rowBytes = CW (PIXMAP_ROWBYTES (main_gd_pixmap) /
 			     PIXMAP_PIXEL_SIZE (main_gd_pixmap));
   screenBitsX.bounds = PIXMAP_BOUNDS (main_gd_pixmap);
@@ -47,14 +47,14 @@ P1(PUBLIC pascal trap, void, InitGraf, Ptr, gp)
        patinit(ltGray, 0x88228822);
        patinit(dkGray, 0x77dd77dd);
 
-       WMgrPort = RM ((WindowPtr) NewPtr (sizeof (GrafPort)));
-       OpenPort (MR (WMgrPort));
-    
-       WMgrCPort = (CWindowPtr) RM (NewPtr (sizeof (CGrafPort)));
-       OpenCPort (MR (WMgrCPort));
-    
-       thePortX = (GrafPtr) WMgrCPort;
-       ScrnBase = screenBitsX.baseAddr;
+       SET_WMgrPort ((WindowPtr) NewPtr (sizeof (GrafPort)));
+       OpenPort (GET_WMgrPort ());
+
+       SET_WMgrCPort ((CWindowPtr) NewPtr (sizeof (CGrafPort)));
+       OpenCPort (GET_WMgrCPort ());
+
+       thePortX = RPP (GET_WMgrCPort ());
+       SET_ScrnBase (PPR (screenBitsX.baseAddr));
     
        StuffHex((Ptr) arrowX.data,
 		(StringPtr) ("\100000040006000700078007c007e007f"
@@ -107,17 +107,17 @@ A1(PUBLIC, void, ROMlib_initport, GrafPtr, p)			/* INTERNAL */
   PORT_BK_COLOR_X (p)    = CLC (whiteColor);
   PORT_COLR_BIT_X (p)    = CWC (0);
   PORT_PAT_STRETCH_X (p) = CWC (0);
-  PORT_PIC_SAVE_X (p)    = CLC (0);
-  PORT_REGION_SAVE_X (p) = CLC (0);
-  PORT_POLY_SAVE_X (p)   = CLC (0);
-  PORT_GRAF_PROCS_X (p)  = CLC (0);
+  PACKED_ASSIGN0 (PORT_PIC_SAVE_X (p));
+  PACKED_ASSIGN0 (PORT_REGION_SAVE_X (p));
+  PACKED_ASSIGN0 (PORT_POLY_SAVE_X (p));
+  PACKED_ASSIGN0 (PORT_GRAF_PROCS_X (p));
 }
 
 P1(PUBLIC pascal trap, void, SetPort, GrafPtr, p)
 {
   if (p == NULL)
     warning_unexpected ("SetPort(NULL_STRING)");
-  thePortX = RM(p);
+  thePortX = RPP(p);
 }
 
 P1(PUBLIC pascal trap, void, InitPort, GrafPtr, p)
@@ -133,8 +133,8 @@ P1(PUBLIC pascal trap, void, InitPort, GrafPtr, p)
 
 P1(PUBLIC pascal trap, void, OpenPort, GrafPtr, p)
 {
-    PORT_VIS_REGION_X (p) = RM (NewRgn ());
-    PORT_CLIP_REGION_X (p) = RM (NewRgn ());
+    PACKED_ASSIGN (PORT_VIS_REGION_X (p), NewRgn ());
+    PACKED_ASSIGN (PORT_CLIP_REGION_X (p), NewRgn ());
     InitPort (p);
 }
 
@@ -168,7 +168,7 @@ P1(PUBLIC pascal trap, void, ClosePort, GrafPtr, p)
 
 P1(PUBLIC pascal trap, void, GetPort, HIDDEN_GrafPtr *, pp)
 {
-  (*pp).p = thePortX;
+  (*pp).pp = thePortX;
 }
 
 P1(PUBLIC pascal trap, void, GrafDevice, INTEGER, d)
@@ -225,8 +225,8 @@ P2 (PUBLIC pascal trap, void, SetOrigin, INTEGER, h, INTEGER, v)
   OffsetRect (&PORT_BOUNDS (thePort),   dh, dv);
   OffsetRect (&PORT_RECT (thePort),     dh, dv);
   OffsetRgn (PORT_VIS_REGION (thePort), dh, dv);
-  if (SaveVisRgn)
-    OffsetRgn (MR (SaveVisRgn), dh, dv);
+  if (GET_SaveVisRgn ())
+    OffsetRgn (GET_SaveVisRgn (), dh, dv);
 }
 
 P1(PUBLIC pascal trap, void, SetClip, RgnHandle, r)

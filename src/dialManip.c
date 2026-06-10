@@ -26,13 +26,13 @@ P4(PUBLIC pascal trap, void, ParamText, StringPtr, p0,		/* IMI-421 */
 				 StringPtr, p1, StringPtr, p2, StringPtr, p3)
 {
     if (p0)
-	PtrToXHand((Ptr) p0, MR(DAStrings_H[0].p), (LONGINT)U(p0[0])+1);
+	PtrToXHand((Ptr) p0, PPR(DAStrings_H[0]), (LONGINT)U(p0[0])+1);
     if (p1)
-	PtrToXHand((Ptr) p1, MR(DAStrings_H[1].p), (LONGINT)U(p1[0])+1);
+	PtrToXHand((Ptr) p1, PPR(DAStrings_H[1]), (LONGINT)U(p1[0])+1);
     if (p2)
-	PtrToXHand((Ptr) p2, MR(DAStrings_H[2].p), (LONGINT)U(p2[0])+1);
+	PtrToXHand((Ptr) p2, PPR(DAStrings_H[2]), (LONGINT)U(p2[0])+1);
     if (p3)
-	PtrToXHand((Ptr) p3, MR(DAStrings_H[3].p), (LONGINT)U(p3[0])+1);
+	PtrToXHand((Ptr) p3, PPR(DAStrings_H[3]), (LONGINT)U(p3[0])+1);
 }
 
 A3 (PUBLIC, itmp, ROMlib_dpnotoip, DialogPeek, dp,		/* INTERNAL */
@@ -64,7 +64,7 @@ A4 (PRIVATE, itmp, htoip, Handle, h,
   int16 *ip, i, nop;
   itmp retval;
   
-  for (wp = MR (WindowList); wp; wp = WINDOW_NEXT_WINDOW (wp))
+  for (wp = GET_WindowList (); wp; wp = WINDOW_NEXT_WINDOW (wp))
     {
       if (WINDOW_KIND_X (wp) == CWC (dialogKind)
 	  || WINDOW_KIND (wp) < 0)
@@ -79,7 +79,7 @@ A4 (PRIVATE, itmp, htoip, Handle, h,
 	  retval = (itmp) (ip + 1);
 	  for (i = CW (*ip) + 1, nop = 1; i --; BUMPIP (retval))
 	    {
-	      if (MR (retval->itmhand) == h)
+	      if (PPR (retval->itmhand) == h)
 		{
 		  *wp_return  = wp;
 		  *nop_return = nop;
@@ -113,11 +113,17 @@ P5(PUBLIC pascal trap, void, GetDItem, DialogPtr, dp,	/* IMI-421 */
 	   *(INTEGER *) (US_TO_SYN68K(itype)) = CW((INTEGER) ip->itmtype);
 	  }
 	if (item) /* We didn't test what happens when item is 0 on Mac */
-	  (*item).p = ip->itmhand;
+	  {
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+	    (*item).p = ip->itmhand;
+#else
+	    item->pp = ip->itmhand.pp;
+#endif
+	  }
 	if (r) /* test on Mac shows r will not be written if 0 */
 	  *r = ip->itmr;
       }
-    HSetState(MR(((DialogPeek) dp)->items), flags);
+    HSetState(DIALOG_ITEMS (dp), flags);
 }
 
 static void
@@ -145,7 +151,7 @@ settexth (DialogPeek dp, itmp ip, int item_no)
   length = GetHandleSize (item_text_h);
   TEP_LENGTH_X (tep) = CW (length);
   /* this is not a leak, always a duplicate */
-  TEP_HTEXT_X (tep) = RM (item_text_h);
+  PACKED_ASSIGN (TEP_HTEXT_X (tep), item_text_h);
   
   /* set up the text styles */
   {
@@ -261,7 +267,7 @@ P5(PUBLIC pascal trap, void, SetDItem, DialogPtr, dp,		/* IMI-421 */
     if (ip)
       {
 	ip->itmtype = CB(itype);
-	ip->itmhand = RM(item);
+	PACKED_ASSIGN (ip->itmhand, item);
 	ip->itmr = *r;
 	if (itemno - 1 == DIALOG_EDIT_FIELD (dp)
 	    && (itype & editText)
@@ -274,7 +280,7 @@ P5(PUBLIC pascal trap, void, SetDItem, DialogPtr, dp,		/* IMI-421 */
 	      warning_unexpected (NULL_STRING);
 	  }
       }
-    HSetState(MR(((DialogPeek) dp)->items), flags);
+    HSetState(DIALOG_ITEMS (dp), flags);
 }
 
 P2(PUBLIC pascal trap, void, GetIText, Handle, item,		/* IMI-422 */
@@ -355,7 +361,7 @@ A2(PUBLIC, void, ROMlib_dpntoteh, DialogPeek, dp, INTEGER, no)	/* INTERNAL */
     if (no == 0)
       {
 	/* special case ... find next */
-        intp = (INTEGER *) STARH (MR(dp->items));
+        intp = (INTEGER *) STARH (DIALOG_ITEMS((DialogPtr)dp));
         num =Cx (*intp) + 1;
         ip = ROMlib_dpnotoip (dp, no = Cx (dp->editField) + 1, &flags);
         do
@@ -376,10 +382,10 @@ A2(PUBLIC, void, ROMlib_dpntoteh, DialogPeek, dp, INTEGER, no)	/* INTERNAL */
     if (ip && (Cx (dp->editField) != no - 1))
       {
         if (Cx (dp->editField) != -1)
-	  TEDeactivate (MR(dp->textH));
+	  TEDeactivate (DIALOG_TEXTH((DialogPtr)dp));
 	settexth(dp, ip, no);
       }
-    HSetState (MR(((DialogPeek) dp)->items), flags);
+    HSetState (DIALOG_ITEMS(dp), flags);
 }
 
 P4(PUBLIC pascal trap, void, SelIText, DialogPtr, dp,		/* IMI-422 */
@@ -425,7 +431,7 @@ P2 (PUBLIC pascal trap, void, HideDItem, DialogPtr, dp,		/* IMIV-59 */
 	{
 	  ControlHandle ctl;
 	    
-	  ctl = (ControlHandle) MR (ip->itmhand);
+	  ctl = (ControlHandle) PPR (ip->itmhand);
 	  CTL_VIS (ctl) = 0;
 	  
 	  if (item == DIALOG_ADEF_ITEM (dp))
@@ -464,7 +470,7 @@ P2 (PUBLIC pascal trap, void, ShowDItem, DialogPtr, dp,		/* IMIV-59 */
 	{
 	  ControlHandle ctl;
 	  
-	  ctl = (ControlHandle) MR (ip->itmhand);
+	  ctl = (ControlHandle) PPR (ip->itmhand);
 	  CTL_VIS (ctl) = 255;
 	  
 	  if (item == DIALOG_ADEF_ITEM (dp))
@@ -480,7 +486,7 @@ P2 (PUBLIC pascal trap, void, ShowDItem, DialogPtr, dp,		/* IMIV-59 */
     {
       ControlHandle ctl;
       
-      ctl = (ControlHandle) MR (ip->itmhand);
+      ctl = (ControlHandle) PPR (ip->itmhand);
       ShowControl (ctl);
     }
   HSetState (DIALOG_ITEMS (dp), flags);

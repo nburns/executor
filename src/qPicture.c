@@ -27,9 +27,9 @@ PUBLIC PicHandle ROMlib_OpenPicture_helper (const Rect *pf,
     
     HidePen();
     pch = (piccachehand) NewHandle(sizeof(piccache));
-    PORT_PIC_SAVE_X (thePort) = (Handle) RM (pch);
+    PACKED_ASSIGN (PORT_PIC_SAVE_X (thePort), pch);
     ph = (PicHandle) NewHandle((Size) INITIALPICSIZE);
-    HxX(pch, pichandle) = RM(ph);
+    PACKED_ASSIGN (HxX(pch, pichandle), ph);
 
     HxX(ph, picSize) = CWC(10 + 16 * sizeof(INTEGER));
     HxX(ph, picFrame) = *pf;
@@ -67,8 +67,8 @@ PUBLIC PicHandle ROMlib_OpenPicture_helper (const Rect *pf,
 
     HxX(pch, picsize)		= CLC(INITIALPICSIZE);
     HxX(pch, pichowfar)		= CL((LONGINT) Hx(ph, picSize));
-    temprh		        = RM(NewRgn());
-    HxX(pch, picclip)		= temprh;
+    temprh		        = NewRgn();
+    PACKED_ASSIGN (HxX(pch, picclip), temprh);
     /* -32766 below is an attempt to force a reload */
     SetRectRgn(HxP(pch, picclip), -32766, -32766, 32767, 32767);
     PATASSIGN(HxX(pch, picbkpat),white);
@@ -185,7 +185,7 @@ PRIVATE void updatepnpat( void )
 {
     piccachehand pch;
 
-    pch = (piccachehand) MR(thePort->picSave);
+    pch = (piccachehand) PORT_PIC_SAVE (thePort);
 /* #warning Questionable code in updatepnpat */
     /* FIXME */
     if (CGrafPort_p (thePort))
@@ -199,7 +199,7 @@ PRIVATE void updatefillpat( void )
 {
     piccachehand pch;
 
-    pch = (piccachehand) MR(thePort->picSave);
+    pch = (piccachehand) PORT_PIC_SAVE (thePort);
     if (CGrafPort_p (thePort))
 /* #warning Questionable code in updatefillpat */
       updateapat (PIXPAT_1DATA (CPORT_FILL_PIXPAT (thePort)),
@@ -421,7 +421,7 @@ P0(PUBLIC pascal trap, void, ClosePicture)
 	SetHandleSize ((Handle) ph, Hx (pch, pichowfar));
 	DisposeRgn(HxP(pch, picclip));
 	DisposHandle((Handle) pch);
-	PORT_PIC_SAVE_X (thePort) = RM (NULL);
+	PACKED_ASSIGN0 (PORT_PIC_SAVE_X (thePort));
 	ShowPen();
     }
 }

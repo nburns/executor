@@ -103,7 +103,7 @@ P3(PUBLIC pascal trap, void, FrameRoundRect, Rect *, r, INTEGER, ow,
     {
       AuxWinHandle aux;
 
-      aux = MR (*lookup_aux_win (thePort));
+      aux = STARH (lookup_aux_win (thePort));
       if (aux && rect_matches_control_item (HxP(aux, awOwner), r))
 	do_rect = TRUE;
     }

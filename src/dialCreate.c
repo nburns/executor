@@ -30,7 +30,8 @@ char ROMlib_rcsid_dialCreate[] =
 #include "rsys/resource.h"
 #include "rsys/host.h"
 
-#define _PtrToHand(ptr, hand, len)			\
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define _PtrToHand(ptr, hand, len)			\
   ((void)						\
    ({							\
      HIDDEN_Handle __temp_handle;			\
@@ -38,6 +39,16 @@ char ROMlib_rcsid_dialCreate[] =
      PtrToHand ((Ptr) (ptr), &__temp_handle, len);	\
      *(hand) = RM (__temp_handle.p);			\
    }))
+#else
+# define _PtrToHand(ptr, hand, len)			\
+  ((void)						\
+   ({							\
+     HIDDEN_Handle __temp_handle;			\
+							\
+     PtrToHand ((Ptr) (ptr), &__temp_handle, len);	\
+     (hand)->pp = __temp_handle.pp;			\
+   }))
+#endif
 
 void
 dialog_create_item (DialogPeek dp, itmp dst, itmp src,
@@ -95,15 +106,15 @@ dialog_create_item (DialogPeek dp, itmp dst, itmp src,
 			    visible_p, 0, 0, 1,
 			    CB (dst->itmtype) & resCtrl, 0L);
 	}
-      dst->itmhand = (Handle) RM (ctl);
-      
+      PACKED_ASSIGN (dst->itmhand, ctl);
+
       ValidRect (&dst->itmr);
-      
+
       {
 	AuxWinHandle aux_win_h;
-	
-	aux_win_h = MR (*lookup_aux_win ((WindowPtr) dp));
-	if (aux_win_h && HxX (aux_win_h, dialogCItem))
+
+	aux_win_h = STARH (lookup_aux_win ((WindowPtr) dp));
+	if (aux_win_h && HxZ (aux_win_h, dialogCItem))
 	  {
 	    Handle item_color_info_h;
 	    item_color_info_t *item_color_info;
@@ -166,16 +177,16 @@ dialog_create_item (DialogPeek dp, itmp dst, itmp src,
 	  if (! h || CICON_P (h))
 	    warning_unexpected ("dubious icon handle");
 	}
-      dst->itmhand = RM (h);
+      PACKED_ASSIGN (dst->itmhand, h);
     }
   else if (CB (dst->itmtype) & picItem)
     {
-      dst->itmhand = (Handle) RM (GetPicture (res_id));
+      PACKED_ASSIGN (dst->itmhand, (Handle) GetPicture (res_id));
     }
   else
     {
       /* useritem */
-      dst->itmhand = CLC_NULL;
+      PACKED_ASSIGN0 (dst->itmhand);
     }
 }
 
@@ -218,10 +229,10 @@ ROMlib_new_dialog_common (DialogPtr dp,
     {
       AuxWinHandle aux_win_h;
       
-      aux_win_h = MR (*lookup_aux_win (dp));
+      aux_win_h = STARH (lookup_aux_win (dp));
       gui_assert (aux_win_h);
-      
-      HxX (aux_win_h, dialogCItem) = RM (item_color_table_h);
+
+      SETP (aux_win_h, dialogCItem, item_color_table_h);
     }
 
 #warning We no longer call TEStylNew, this helps LB password
@@ -251,17 +262,17 @@ ROMlib_new_dialog_common (DialogPtr dp,
 	 ***************************************************************/
 	   te = TENew (&emptyrect, &emptyrect);
 	 
-	 DIALOG_TEXTH_X (dp) = RM (te);
+	 PACKED_ASSIGN (DIALOG_TEXTH_X (dp), te);
 	 TEAutoView (TRUE, te);
-	 DisposHandle (TE_HTEXT (te));
-	 TE_HTEXT_X (te) = CLC_NULL;
+	 DisposHandle (HxP (te, hText));
+	 SETP0 (te, hText);
        }
        
        DIALOG_EDIT_FIELD_X (dp) = CWC (-1);
        DIALOG_EDIT_OPEN_X (dp) = CWC (0);
        DIALOG_ADEF_ITEM_X (dp) = CWC (1);
        
-       DIALOG_ITEMS_X (dp) = RM (items);
+       PACKED_ASSIGN (DIALOG_ITEMS_X (dp), items);
        if (items)
 	 {
 	   Point zero_pt;
@@ -451,7 +462,7 @@ P1(PUBLIC pascal trap, void, CloseDialog, DialogPtr, dp)	/* IMI-413 */
       while (i-- >= 0)
 	{
 	  if (CB (itp->itmtype) & (editText | statText))
-	    DisposHandle ((Handle) MR(itp->itmhand));
+	    DisposHandle (PPR (itp->itmhand));
 	  BUMPIP (itp);
 	}
     }
@@ -463,11 +474,11 @@ P1 (PUBLIC pascal trap, void, DisposDialog, DialogPtr, dp)	/* IMI-415 */
   TEHandle teh;
   
   CloseDialog (dp);
-  DisposHandle(MR(((DialogPeek)dp)->items));
+  DisposHandle(PPR(((DialogPeek)dp)->items));
   teh = DIALOG_TEXTH (dp);
   
   /* accounted for elsewhere */
-  TE_HTEXT_X (teh) = NULL;
+  SETP0 (teh, hText);
   TEDispose (teh);
   
   DisposPtr ((Ptr) dp);

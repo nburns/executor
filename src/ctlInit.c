@@ -35,10 +35,14 @@ P9(PUBLIC pascal trap, ControlHandle, NewControl, WindowPtr, wst, Rect *, r,
     Handle temph;
     
     retval = (ControlHandle) NewHandle((Size) sizeof(ControlRecord));
-    temph = RM(GetResource(TICK("CDEF"), procid>>4));
-    if (!(HxX(retval, contrlDefProc) = temph)) {
-        DisposHandle((Handle) retval);
-        return 0;
+    {
+        Handle native_h = GetResource(TICK("CDEF"), procid>>4);
+        temph = RM(native_h);
+        SETP (retval, contrlDefProc, native_h);
+        if (!HxZ (retval, contrlDefProc)) {
+            DisposHandle((Handle) retval);
+            return 0;
+        }
     }
 
     if ((procid>>4) == 0)
@@ -58,9 +62,9 @@ P9(PUBLIC pascal trap, ControlHandle, NewControl, WindowPtr, wst, Rect *, r,
     gp = thePort;
     SetPort ((GrafPtr) wst);
     
-    tmp = MR(AuxCtlHead);
+    tmp = GET_AuxCtlHead();
     auxctlhead = (AuxCtlHandle) NewHandle(sizeof(AuxCtlRec));
-    AuxCtlHead = RM(auxctlhead);
+    SET_AuxCtlHead(auxctlhead);
 
     HASSIGN_6
       (auxctlhead,
@@ -72,10 +76,10 @@ P9(PUBLIC pascal trap, ControlHandle, NewControl, WindowPtr, wst, Rect *, r,
        acRefCon, CLC (0));
     str255assign (CTL_TITLE (retval), title);
 
-    if (!HxX(auxctlhead, acCTable))
+    if (!HxZ(auxctlhead, acCTable))
       {
 	warning_unexpected ("no 'cctb', 0, probably old system file ");
-	HxX(auxctlhead, acCTable) = (CCTabHandle) RM (default_ctl_ctab);
+	SETP (auxctlhead, acCTable, default_ctl_ctab);
       }
 
     HASSIGN_11
@@ -92,7 +96,7 @@ P9(PUBLIC pascal trap, ControlHandle, NewControl, WindowPtr, wst, Rect *, r,
        contrlAction, CLC_NULL,
        contrlRfCon, CL (rc));
     
-    WINDOW_CONTROL_LIST_X (wst) = RM (retval);
+    PACKED_ASSIGN (WINDOW_CONTROL_LIST_X (wst), retval);
     
     
     CTL_CALL_EXCURSION
@@ -119,7 +123,7 @@ P2(PUBLIC pascal trap, ControlHandle, GetNewControl,		/* IMI-321 */
     wh = (HIDDEN_wp *) GetResource(TICK("CNTL"), cid);
     if (!wh)
         return 0;
-    if (!(*wh).p)
+    if (!HPTR_VAL (wh))
 	LoadResource((Handle) wh);
     ctab_res_h = ROMlib_getrestid (TICK ("cctb"), cid);
     retval = NewControl(wst, &(HxX(wh, _crect)),
@@ -138,26 +142,26 @@ P2 (PUBLIC pascal trap, void, SetCtlColor, ControlHandle, ctl, CCTabHandle, ctab
 
   if (ctl)
     {
-      aux_c = MR (*lookup_aux_ctl (ctl));
+      aux_c = DEREF_AUX_LOOKUP (lookup_aux_ctl (ctl));
       if (!aux_c)
 	{
 	  AuxCtlHandle t_aux_c;
-	  
+
 	  /* allocate one */
-	  t_aux_c = MR (AuxCtlHead);
+	  t_aux_c = GET_AuxCtlHead ();
 	  aux_c = (AuxCtlHandle) NewHandle (sizeof (AuxCtlRec));
-	  AuxCtlHead = RM (aux_c);
-	  HxX(aux_c, acNext) = RM (t_aux_c);
-	  HxX(aux_c, acOwner) = RM (ctl);
-	  
-	  HxX (aux_c, acCTable) = RM (ctab);
-	  
+	  SET_AuxCtlHead (aux_c);
+	  SETP (aux_c, acNext, t_aux_c);
+	  SETP (aux_c, acOwner, ctl);
+
+	  SETP (aux_c, acCTable, ctab);
+
 	  HxX(aux_c, acFlags) = 0;
 	  HxX(aux_c, acReserved) = 0;
 	  HxX(aux_c, acRefCon) = 0;
 	}
       else
-	HxX (aux_c, acCTable) = RM (ctab);
+	SETP (aux_c, acCTable, ctab);
 
       if (CTL_VIS (ctl))
 	Draw1Control (ctl);
@@ -184,18 +188,32 @@ P1(PUBLIC pascal trap, void, DisposeControl, ControlHandle, c)	/* IMI-321 */
        });
     
     for (t = (HIDDEN_ControlHandle *) &(((WindowPeek)(HxP(c, contrlOwner)))->controlList);
-	      (*t).p && STARH(t) != c; t = (HIDDEN_ControlHandle *) &((STARH(STARH(t)))->nextControl))
+	      HPTR_VAL(t) && STARH(t) != c;
+	      t = (HIDDEN_ControlHandle *) &((STARH(STARH(t)))->nextControl))
         ;
-    if ((*t).p)
-        (*t).p = HxX(c, nextControl);
-    for (auxhp = (HIDDEN_AuxCtlHandle *) &AuxCtlHead; (*auxhp).p && (STARH(STARH(auxhp)))->acOwner != c;
-					auxhp = (HIDDEN_AuxCtlHandle *) &(STARH(STARH(auxhp)))->acNext)
+    if (HPTR_VAL(t))
+        HPTR_COPY_FIELD(t, HxX(c, nextControl));
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+    for (auxhp = &AuxCtlHead_H;
+	 auxhp->p && (STARH(STARH(auxhp)))->acOwner != c;
+	 auxhp = (HIDDEN_AuxCtlHandle *) &(STARH(STARH(auxhp)))->acNext)
 	;
-    if ((*auxhp).p) {
+    if (auxhp->p) {
 	saveauxh = STARH(auxhp);
-	(*auxhp).p = STARH(STARH(auxhp))->acNext;
+	auxhp->p = STARH(STARH(auxhp))->acNext;
 	DisposHandle((Handle) saveauxh);
     }
+#else
+    for (auxhp = &AuxCtlHead_H;
+	 auxhp->pp && HxP(STARH(auxhp), acOwner) != c;
+	 auxhp = &HxX(STARH(auxhp), acNext))
+	;
+    if (auxhp->pp) {
+	saveauxh = STARH(auxhp);
+	auxhp->pp = HxX(STARH(auxhp), acNext).pp;
+	DisposHandle((Handle) saveauxh);
+    }
+#endif
 
     DisposHandle((Handle) c);
 }
@@ -204,7 +222,7 @@ P1(PUBLIC pascal trap, void, KillControls, WindowPtr, w)	/* IMI-321 */
 {
     ControlHandle c, t;
     
-    for (c = MR(((WindowPeek)w)->controlList); c ; ) {
+    for (c = WINDOW_CONTROL_LIST(w); c ; ) {
         t = c;
         c = HxP(c, nextControl);
         DisposeControl(t);

@@ -75,7 +75,7 @@ typedef struct PACKED {
   LONGINT fcleof;	/* LONGINT fcbEOF */
   LONGINT fcPLen;
   LONGINT fcbCrPs;
-  PACKED_MEMBER(VCB, *fcvptr);	/* VCB *fcbVPtr */
+  PACKED_MEMBER(VCB *, fcvptr);	/* VCB *fcbVPtr */
   PACKED_MEMBER(Ptr, fcbBfAdr);
   INTEGER fcbFlPos;
   LONGINT fcbClmpSize;
@@ -94,7 +94,11 @@ typedef struct PACKED {
   fcbrec fc[NFCB];
 } fcbhidden;
 
-#define ROMlib_fcblocks	(((fcbhidden *)MR(FCBSPtr))->fc)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define ROMlib_fcblocks  (((fcbhidden *)MR(FCBSPtr))->fc)
+#else
+# define ROMlib_fcblocks  (((fcbhidden *)GET_FCBSPtr())->fc)
+#endif
 
 typedef struct PACKED {	/* add new elements to the beginning of this struct */
   LONGINT magicword;
@@ -170,7 +174,7 @@ do									\
     if (a) {								\
 	register ProcPtr compp;						\
 									\
-	if ((compp = MR(((ParmBlkPtr) (pb))->ioParam.ioCompletion))) {	\
+	if ((compp = (ProcPtr) PPR(((ParmBlkPtr) (pb))->ioParam.ioCompletion))) {	\
 	    CALLCOMPLETION(pb, compp, err);					\
 	}								\
     }									\
@@ -316,8 +320,13 @@ getvolparams_info_t;
  *	 should also check into what we do when the first byte is zero.
  */
 
-#define UPDATE_IONAMEPTR_P(pb) \
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define UPDATE_IONAMEPTR_P(pb) \
 	((pb).ioNamePtr && ((pb).ioFDirIndex != 0 || !MR((pb).ioNamePtr)[0]))
+#else
+# define UPDATE_IONAMEPTR_P(pb) \
+	((pb).ioNamePtr.pp && ((pb).ioFDirIndex != 0 || !((StringPtr)PPR((pb).ioNamePtr))[0]))
+#endif
 
 /* After a pathname has been normalized, the offset of the first
    slash.  It's 2 under DOS because a normalized path is, e.g., C:/etc */

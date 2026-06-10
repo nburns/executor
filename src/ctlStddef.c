@@ -68,8 +68,8 @@ validate_colors_for_control (ControlHandle ctl)
   }
 #endif
   
-  t_aux_c = MR (*lookup_aux_ctl (ctl));
-  if (t_aux_c && HxX (t_aux_c, acCTable))
+  t_aux_c = DEREF_AUX_LOOKUP (lookup_aux_ctl (ctl));
+  if (t_aux_c && HxZ (t_aux_c, acCTable))
     {
       CTabHandle c_ctab;
       ColorSpec *c_ctab_table;
@@ -240,17 +240,17 @@ mapvar (int v)
 static void
 draw_push (ControlHandle c, int16 part)
 {
-  RgnHandle save;
+  __typeof__ (PORT_CLIP_REGION_X (CTL_OWNER (c))) save;
   int16 h, v;
   Rect r;
-  
+
   r = CTL_RECT (c);
   h = CW (r.right) - CW(r.left);
-  v = (CW (r.bottom) - CW (r.top)) / 2; 
+  v = (CW (r.bottom) - CW (r.top)) / 2;
   if (h > v)
     h = v;
   save = PORT_CLIP_REGION_X (CTL_OWNER (c));
-  PORT_CLIP_REGION_X (CTL_OWNER (c)) = RM (NewRgn ());
+  PACKED_ASSIGN (PORT_CLIP_REGION_X (CTL_OWNER (c)), NewRgn ());
   OpenRgn();
     FrameRoundRect (&r, h, v);
   CloseRgn (PORT_CLIP_REGION (CTL_OWNER (c)));
@@ -281,12 +281,12 @@ static void
 add_title (ControlHandle c)
 {
   WindowPtr control_owner;
-  RgnHandle save;
+  __typeof__ (PORT_CLIP_REGION_X ((WindowPtr) NULL)) save;
   Rect r;
-  
+
   control_owner = CTL_OWNER (c);
   save = PORT_CLIP_REGION_X (control_owner);
-  PORT_CLIP_REGION_X (control_owner) = RM (NewRgn ());
+  PACKED_ASSIGN (PORT_CLIP_REGION_X (control_owner), NewRgn ());
   r = CTL_RECT (c);
   RectRgn (PORT_CLIP_REGION (control_owner), &r);
   r.left = CW (CW (r.left) + 16);

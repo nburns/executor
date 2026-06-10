@@ -290,18 +290,24 @@ static inline GrafPtr ASSERT_NOT_CPORT(void *port)
 #define PIXMAP_CMP_SIZE(pixmap)		(Cx (PIXMAP_CMP_SIZE_X (pixmap)))
 #define PIXMAP_PLANE_BYTES(pixmap)	(Cx (PIXMAP_PLANE_BYTES_X (pixmap)))
 #define PIXMAP_TABLE(pixmap)		(PPR (PIXMAP_TABLE_X (pixmap)))
-#define PIXMAP_TABLE_AS_OFFSET(pixmap)	(CL ((int32) PIXMAP_TABLE_X (pixmap)))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define PIXMAP_TABLE_AS_OFFSET(pixmap)	(CL ((int32) PIXMAP_TABLE_X (pixmap)))
+#else
+# define PIXMAP_TABLE_AS_OFFSET(pixmap)	(CL ((int32) PIXMAP_TABLE_X (pixmap).pp))
+#endif
 
 #define WRAPPER_PIXMAP_FOR_COPY(wrapper_decl_name) \
   BitMap *wrapper_decl_name = (BitMap *) alloca (sizeof (BitMap))
 
-#define WRAPPER_SET_PIXMAP_X(wrapper, pixmap_h)	\
-  do						\
-    {						\
-      (wrapper)->rowBytes = CWC (3 << 14);	\
-      (wrapper)->baseAddr = (Ptr) (pixmap_h);	\
-    }						\
-  while (0)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define WRAPPER_SET_PIXMAP_X(wrapper, pixmap_h)	\
+  do { (wrapper)->rowBytes = CWC (3 << 14);		\
+       (wrapper)->baseAddr.p = (Ptr)(pixmap_h); } while (0)
+#else
+# define WRAPPER_SET_PIXMAP_X(wrapper, pixmap_h)	\
+  do { (wrapper)->rowBytes = CWC (3 << 14);		\
+       (wrapper)->baseAddr.pp = (uint32_t)(uintptr_t)(pixmap_h); } while (0)
+#endif
 
 /* PixPat accessors */
 enum pixpat_pattern_types
@@ -317,26 +323,30 @@ enum pixpat_pattern_types
 #define PIXPAT_1DATA(pixpat)		(HxX (pixpat, pat1Data))
 
 /* big endian byte order */
-#if 0
-#define PIXPAT_TYPE_X(pixpat)		(HxX (pixpat, patType))
-#define PIXPAT_MAP_X(pixpat)		(HxX (pixpat, patMap))
-#define PIXPAT_DATA_X(pixpat)		(HxX (pixpat, patData))
-#define PIXPAT_XDATA_X(pixpat)		(HxX (pixpat, patXData))
-#define PIXPAT_XVALID_X(pixpat)		(HxX (pixpat, patXValid))
-#define PIXPAT_XMAP_X(pixpat)		(HxX (pixpat, patXMap))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define PIXPAT_TYPE_X(pixpat)		(PPR ((pixpat)->p)->patType)
+# define PIXPAT_MAP_X(pixpat)		(PPR ((pixpat)->p)->patMap)
+# define PIXPAT_DATA_X(pixpat)		(PPR ((pixpat)->p)->patData)
+# define PIXPAT_XDATA_X(pixpat)		(PPR ((pixpat)->p)->patXData)
+# define PIXPAT_XVALID_X(pixpat)	(PPR ((pixpat)->p)->patXValid)
+# define PIXPAT_XMAP_X(pixpat)		(PPR ((pixpat)->p)->patXMap)
 #else
-#define PIXPAT_TYPE_X(pixpat)		(PPR ((pixpat)->p)->patType)
-#define PIXPAT_MAP_X(pixpat)		(PPR ((pixpat)->p)->patMap)
-#define PIXPAT_DATA_X(pixpat)		(PPR ((pixpat)->p)->patData)
-#define PIXPAT_XDATA_X(pixpat)		(PPR ((pixpat)->p)->patXData)
-#define PIXPAT_XVALID_X(pixpat)		(PPR ((pixpat)->p)->patXValid)
-#define PIXPAT_XMAP_X(pixpat)		(PPR ((pixpat)->p)->patXMap)
+# define PIXPAT_TYPE_X(pixpat)		(HxX (pixpat, patType))
+# define PIXPAT_MAP_X(pixpat)		(HxX (pixpat, patMap))
+# define PIXPAT_DATA_X(pixpat)		(HxX (pixpat, patData))
+# define PIXPAT_XDATA_X(pixpat)		(HxX (pixpat, patXData))
+# define PIXPAT_XVALID_X(pixpat)	(HxX (pixpat, patXValid))
+# define PIXPAT_XMAP_X(pixpat)		(HxX (pixpat, patXMap))
 #endif
 /* native byte order */
 #define PIXPAT_TYPE(pixpat)		(CW (PIXPAT_TYPE_X (pixpat)))
 #define PIXPAT_MAP(pixpat)		(PPR (PIXPAT_MAP_X (pixpat)))
 #define PIXPAT_DATA(pixpat)		(PPR (PIXPAT_DATA_X (pixpat)))
-#define PIXPAT_DATA_AS_OFFSET(pixpat)	(CL ((int32) PIXPAT_DATA_X (pixpat)))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define PIXPAT_DATA_AS_OFFSET(pixpat)	(CL ((int32) PIXPAT_DATA_X (pixpat)))
+#else
+# define PIXPAT_DATA_AS_OFFSET(pixpat)	(CL ((int32) PIXPAT_DATA_X (pixpat).pp))
+#endif
 #define PIXPAT_XDATA(pixpat)		(PPR (PIXPAT_XDATA_X (pixpat)))
 #define PIXPAT_XVALID(pixpat)		(CW (PIXPAT_XVALID_X (pixpat)))
 #define PIXPAT_XMAP(pixpat)		((PixMapHandle) PPR (PIXPAT_XMAP_X (pixpat)))
@@ -538,8 +548,13 @@ typedef BitMap blt_bitmap_t;
 extern void cursor_reset_current_cursor (void);
 
 #define IMV_XFER_MODE_P(mode)		((mode) >= blend && (mode) <= adMin)
-#define active_screen_addr_p(bitmap) \
-  ((bitmap)->baseAddr == PIXMAP_BASEADDR_X (GD_PMAP (PPR (MainDevice))))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define active_screen_addr_p(bitmap) \
+  ((bitmap)->baseAddr == PIXMAP_BASEADDR_X (GD_PMAP (MainDevice)))
+#else
+# define active_screen_addr_p(bitmap) \
+  ((bitmap)->baseAddr.pp == PIXMAP_BASEADDR_X (GD_PMAP (MainDevice)).pp)
+#endif
 
 /* gd flags */
 #define gdDevType 	0
@@ -637,7 +652,7 @@ extern const uint32 ROMlib_pixel_size_mask[];
 
 extern CTabHandle default_w_ctab;
 extern AuxWinHandle default_aux_win;
-extern AuxWinHandle *lookup_aux_win (WindowPtr w);
+extern HIDDEN_AuxWinHandle *lookup_aux_win (WindowPtr w);
 
 extern void ROMlib_color_init ();
 
@@ -732,7 +747,7 @@ extern void canonical_from_bogo_color (uint32 index,
 				       RGBColor *rgb_out);
 
 #define AVERAGE_COLOR(c1, c2, ratio, out) \
-  (average_color (PPR (TheGDevice), (c1), (c2), (ratio), (out)))
+  (average_color (TheGDevice, (c1), (c2), (ratio), (out)))
 
 extern Handle ROMlib_copy_handle (Handle);
 
@@ -740,13 +755,13 @@ extern Handle ROMlib_copy_handle (Handle);
 
 /* this probably belongs elsewhere as well */
 #define THEPORT_SAVE_EXCURSION(thePort_new, body)	\
-  do { GrafPtr thePort_saveX = thePortX;		\
+  do { typeof(thePortX) thePort_saveX = thePortX;	\
        SetPort (thePort_new);				\
        body						\
        thePortX = thePort_saveX; } while (0)
 
 #define THEGDEVICE_SAVE_EXCURSION(TheGDevice_new, body)	\
-  do { GDHandle TheGDevice_save = PPR (TheGDevice);	\
+  do { GDHandle TheGDevice_save = TheGDevice;		\
        SetGDevice (TheGDevice_new);			\
        body						\
        SetGDevice (TheGDevice_save); } while (0)

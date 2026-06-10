@@ -79,23 +79,30 @@ ctl_color_init (void)
     }
 #endif
   
-  HxX (default_aux_ctl, acNext)     = CLC_NULL;
-  HxX (default_aux_ctl, acOwner)    = CLC_NULL;
-  HxX (default_aux_ctl, acCTable)   = (CCTabHandle) RM (GetResource (TICK("cctb"), 0));
+  SETP0 (default_aux_ctl, acNext);
+  SETP0 (default_aux_ctl, acOwner);
+  SETP (default_aux_ctl, acCTable, GetResource (TICK("cctb"), 0));
   HxX (default_aux_ctl, acFlags)    = CWC (0);
   HxX (default_aux_ctl, acReserved) = CLC (0);
   HxX (default_aux_ctl, acRefCon)   = CLC (0);
 }
 
-AuxCtlHandle *
+HIDDEN_AuxCtlHandle *
 lookup_aux_ctl (ControlHandle ctl)
 {
-  AuxCtlHandle *t;
+  HIDDEN_AuxCtlHandle *t;
 
-  for (t = &AuxCtlHead;
-       *t && HxP (MR (*t), acOwner) != ctl;
-       t = &HxX (MR (*t), acNext))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+  for (t = (HIDDEN_AuxCtlHandle *) &AuxCtlHead_H;
+       t->p && HxP (MR (t->p), acOwner) != ctl;
+       t = (HIDDEN_AuxCtlHandle *) &HxX (MR (t->p), acNext))
     ;
+#else
+  for (t = &AuxCtlHead_H;
+       t->pp && HxP (STARH (t), acOwner) != ctl;
+       t = &HxX (STARH (t), acNext))
+    ;
+#endif
   return t;
 }
 
@@ -115,9 +122,13 @@ P2(PUBLIC pascal trap, void, SetCtlAction, ControlHandle, c,	/* IMI-328 */
 								  ProcPtr, a)
 {
   if ((LONGINT) a != CLC (-1))
-    HxX(c, contrlAction) = RM(a);
+    SETP (c, contrlAction, a);
   else
-    HxX(c, contrlAction) = (ProcPtr) CLC (-1);
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+    HxX (c, contrlAction) = (ProcPtr) CLC (-1);
+#else
+    HxX (c, contrlAction).pp = (uint32) CLC (-1);
+#endif
 }
 
 P1(PUBLIC pascal trap, ProcPtr, GetCtlAction, ControlHandle, c)	/* IMI-328 */
@@ -129,7 +140,7 @@ P1(PUBLIC pascal trap, INTEGER, GetCVariant, ControlHandle, c)	/* IMV-222 */
 {
     AuxCtlHandle h;
 
-    for (h = MR(AuxCtlHead) ; h != 0 && HxP(h, acOwner) != c ; h = HxP(h, acNext))
+    for (h = GET_AuxCtlHead() ; h != 0 && HxP(h, acOwner) != c ; h = HxP(h, acNext))
 	;
     return h != 0 ? Hx(h, acFlags) : 0;
 }
@@ -147,22 +158,24 @@ P2 (PUBLIC pascal trap, BOOLEAN, GetAuxCtl, ControlHandle, ctl,	/* IMV-222 */
 
   if (! ctl)
     {
-      aux_ctl->p = RM (default_aux_ctl);
+      HPTR_WRITE (aux_ctl, default_aux_ctl);
       return TRUE;
     }
   else
     {
-      AuxCtlHandle t;
+      HIDDEN_AuxCtlHandle *result;
+      AuxCtlHandle found;
 
-      t = *lookup_aux_ctl (ctl);
-      if (t)
+      result = lookup_aux_ctl (ctl);
+      found = DEREF_AUX_LOOKUP (result);
+      if (found)
 	{
-	  aux_ctl->p = t;
+	  HPTR_WRITE (aux_ctl, found);
 	  return FALSE;
 	}
       else
 	{
-	  aux_ctl->p = RM (default_aux_ctl);
+	  HPTR_WRITE (aux_ctl, default_aux_ctl);
 	  return TRUE;
 	}
     }
@@ -189,7 +202,7 @@ ROMlib_ctlcall (ControlHandle c, int16 i, int32 l)
   
   defproc = CTL_DEFPROC (c);
   
-  if (defproc->p == NULL)
+  if (!HPTR_VAL (defproc))
     LoadResource (defproc);
   
   cp = (ctlfuncp) STARH (defproc);

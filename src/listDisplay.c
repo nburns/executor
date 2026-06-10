@@ -20,7 +20,7 @@ P2(PUBLIC pascal trap, void, LDraw, Cell, cell,			/* IMIV-275 */
 					        ListHandle, list)
 {
     GrafPtr saveport;
-    RgnHandle saveclip;
+    uint32_t saveclip;
     Rect r;
     INTEGER *ip, off0, off1;
     BOOLEAN setit;
@@ -32,8 +32,8 @@ P2(PUBLIC pascal trap, void, LDraw, Cell, cell,			/* IMIV-275 */
 	setit = (CW(ip[0]) & 0x8000) && Hx(list, lActive);
 	saveport = thePort;
 	SetPort(HxP(list, port));
-	saveclip = PORT_CLIP_REGION_X (thePort);
-	PORT_CLIP_REGION_X (thePort) = RM (NewRgn ());
+	saveclip = PORT_CLIP_REGION_X (thePort).pp;
+	PACKED_ASSIGN(PORT_CLIP_REGION_X (thePort), NewRgn ());
 
 	C_LRect(&r, cell, list);
 	ClipRect(&r);
@@ -42,7 +42,7 @@ P2(PUBLIC pascal trap, void, LDraw, Cell, cell,			/* IMIV-275 */
 	LISTEND(list);
 
 	DisposeRgn (PORT_CLIP_REGION (thePort));
-	PORT_CLIP_REGION_X (thePort) = saveclip;
+	PORT_CLIP_REGION_X (thePort).pp = saveclip;
 	SetPort (saveport);
     }
 }
@@ -192,7 +192,7 @@ P2(PUBLIC pascal trap, void, LActivate, BOOLEAN, act,		/* IMIV-276 */
     ControlHandle ch;
     BOOLEAN sel;
     INTEGER *ip, off0, off1;
-    RgnHandle saveclip;
+    uint32_t saveclip;
     LISTDECL();
 
     if (!act ^ !Hx(list, lActive)) {
@@ -218,13 +218,13 @@ P2(PUBLIC pascal trap, void, LActivate, BOOLEAN, act,		/* IMIV-276 */
 		if ((ip = ROMlib_getoffp(c, list)) && (CW(*ip) & 0x8000)) {
 		    off0 = CW(ip[0]) & 0x7FFF;
 		    off1 = CW(ip[1]) & 0x7FFF;
-		    saveclip = PORT_CLIP_REGION_X (thePort);
-		    PORT_CLIP_REGION_X (thePort) = RM (NewRgn ());
+		    saveclip = PORT_CLIP_REGION_X (thePort).pp;
+		    PACKED_ASSIGN(PORT_CLIP_REGION_X (thePort), NewRgn ());
 		    C_LRect(&r, c, list);
 		    ClipRect(&r);
 		    LISTCALL(lHiliteMsg, sel, &r, c, off0, off1 - off0, list);
 		    DisposeRgn (PORT_CLIP_REGION (thePort));
-		    PORT_CLIP_REGION_X (thePort) = saveclip;
+		    PORT_CLIP_REGION_X (thePort).pp = saveclip;
 		}
 	    }
 	}

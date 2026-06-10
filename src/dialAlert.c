@@ -30,7 +30,7 @@ static icon_item_template_t icon_item_template =
 {
   /* item count - 1 */
   CWC (0),
-  CLC_NULL,
+  {0},
   { CWC (10), CWC (20), CWC (42), CWC (52), },
   CBC ((1 << 7) | (iconItem)),
   CBC (2),
@@ -75,7 +75,7 @@ P2 (PUBLIC pascal trap, INTEGER, Alert, INTEGER, id,		/* IMI-418 */
   LoadResource (ih);
   alert_ctab_res_h = ROMlib_getrestid (TICK ("actb"), Hx (ah, altiid));
   item_ctab_res_h = ROMlib_getrestid (TICK ("ictb"), Hx (ah, altiid));
-  h.p = ih;
+  HIDDEN_VAL_WRITE (h, ih);
   HandToHand (&h);
   
   THEGDEVICE_SAVE_EXCURSION
@@ -104,12 +104,12 @@ P2 (PUBLIC pascal trap, INTEGER, Alert, INTEGER, id,		/* IMI-418 */
 	 dp = ((DialogPeek)
 	       NewCDialog  (NULL, &adjusted_rect,
 			    (StringPtr) "", FALSE, dBoxProc,
-			    (WindowPtr) -1, FALSE, 0L, h.p));
+			    (WindowPtr) -1, FALSE, 0L, FROM_HIDDEN (h)));
        else
 	 dp = ((DialogPeek)
 	       NewDialog  (NULL, &adjusted_rect,
 			   (StringPtr) "", FALSE, dBoxProc,
-			   (WindowPtr) -1, FALSE, 0L, h.p));
+			   (WindowPtr) -1, FALSE, 0L, FROM_HIDDEN (h)));
        
        if (color_p)
 	 {
@@ -124,10 +124,10 @@ P2 (PUBLIC pascal trap, INTEGER, Alert, INTEGER, id,		/* IMI-418 */
 	     {
 	       AuxWinHandle aux_win_h;
 	       
-	       aux_win_h = MR (*lookup_aux_win (DIALOG_WINDOW (dp)));
+	       aux_win_h = STARH (lookup_aux_win (DIALOG_WINDOW (dp)));
 	       gui_assert (aux_win_h);
 	       
-	       HxX (aux_win_h, dialogCItem) = RM (item_ctab_res_h);
+	       SETP (aux_win_h, dialogCItem, item_ctab_res_h);
 	     }
 	 }
        

@@ -28,26 +28,26 @@ P1(PUBLIC pascal trap, void, CharExtra, Fixed, Extra)	/* IMV-77 */
 
 P1(PUBLIC pascal trap, void, SetStdCProcs, CQDProcs *, cProcs) /* IMV-77 */
 {
-    cProcs->textProc		= RM((Ptr) P_StdText);
-    cProcs->lineProc		= RM((Ptr) P_StdLine);
-    cProcs->rectProc		= RM((Ptr) P_StdRect);
-    cProcs->rRectProc		= RM((Ptr) P_StdRRect);
-    cProcs->ovalProc		= RM((Ptr) P_StdOval);
-    cProcs->arcProc		= RM((Ptr) P_StdArc);
-    cProcs->polyProc		= RM((Ptr) P_StdPoly);
-    cProcs->rgnProc		= RM((Ptr) P_StdRgn);
-    cProcs->bitsProc		= RM((Ptr) P_StdBits);
-    cProcs->commentProc		= RM((Ptr) P_StdComment);
-    cProcs->txMeasProc		= RM((Ptr) P_StdTxMeas);
-    cProcs->getPicProc		= RM((Ptr) P_StdGetPic);
-    cProcs->putPicProc		= RM((Ptr) P_StdPutPic);
-    cProcs->opcodeProc		= RM ((Ptr) 0)	/* ??? */	;
-    cProcs->newProc1Proc	= RM ((Ptr) 0)	/* ??? */	;
-    cProcs->newProc2Proc	= RM ((Ptr) 0)	/* ??? */	;
-    cProcs->newProc3Proc	= RM ((Ptr) 0)	/* ??? */	;
-    cProcs->newProc4Proc	= RM ((Ptr) 0)	/* ??? */	;
-    cProcs->newProc5Proc	= RM ((Ptr) 0)	/* ??? */	;
-    cProcs->newProc6Proc	= RM ((Ptr) 0)	/* ??? */	;
+    PACKED_ASSIGN (cProcs->textProc,    (Ptr) P_StdText);
+    PACKED_ASSIGN (cProcs->lineProc,    (Ptr) P_StdLine);
+    PACKED_ASSIGN (cProcs->rectProc,    (Ptr) P_StdRect);
+    PACKED_ASSIGN (cProcs->rRectProc,   (Ptr) P_StdRRect);
+    PACKED_ASSIGN (cProcs->ovalProc,    (Ptr) P_StdOval);
+    PACKED_ASSIGN (cProcs->arcProc,     (Ptr) P_StdArc);
+    PACKED_ASSIGN (cProcs->polyProc,    (Ptr) P_StdPoly);
+    PACKED_ASSIGN (cProcs->rgnProc,     (Ptr) P_StdRgn);
+    PACKED_ASSIGN (cProcs->bitsProc,    (Ptr) P_StdBits);
+    PACKED_ASSIGN (cProcs->commentProc, (Ptr) P_StdComment);
+    PACKED_ASSIGN (cProcs->txMeasProc,  (Ptr) P_StdTxMeas);
+    PACKED_ASSIGN (cProcs->getPicProc,  (Ptr) P_StdGetPic);
+    PACKED_ASSIGN (cProcs->putPicProc,  (Ptr) P_StdPutPic);
+    PACKED_ASSIGN0 (cProcs->opcodeProc);    /* ??? */
+    PACKED_ASSIGN0 (cProcs->newProc1Proc);  /* ??? */
+    PACKED_ASSIGN0 (cProcs->newProc2Proc);  /* ??? */
+    PACKED_ASSIGN0 (cProcs->newProc3Proc);  /* ??? */
+    PACKED_ASSIGN0 (cProcs->newProc4Proc);  /* ??? */
+    PACKED_ASSIGN0 (cProcs->newProc5Proc);  /* ??? */
+    PACKED_ASSIGN0 (cProcs->newProc6Proc);  /* ??? */
 }
 
 P3 (PUBLIC pascal trap, void, GetCPixel, INTEGER, h, INTEGER, v,
@@ -62,7 +62,7 @@ P3 (PUBLIC pascal trap, void, GetCPixel, INTEGER, h, INTEGER, v,
   int pixval;
   int bpp;
   
-  temp_pm.baseAddr      = RM ((Ptr) temp_fbuf);
+  PACKED_ASSIGN (temp_pm.baseAddr, (Ptr) temp_fbuf);
   temp_pm.bounds.top    = CWC (0);
   temp_pm.bounds.bottom = CWC (1);
   temp_pm.bounds.left   = CWC (0);
@@ -81,7 +81,7 @@ P3 (PUBLIC pascal trap, void, GetCPixel, INTEGER, h, INTEGER, v,
       bpp = 1;
       ctab = validate_relative_bw_ctab ();
     }
-  temp_pm.pmTable = RM (ctab);
+  PACKED_ASSIGN (temp_pm.pmTable, ctab);
   pixmap_set_pixel_fields (&temp_pm, bpp);
   
   src_rect.top    = CW (v);
@@ -201,8 +201,8 @@ P8 (PUBLIC pascal trap, void, SeedCFill, BitMap *, srcbp, BitMap *, dstbp,
 {
   MatchRec mr;
   LONGINT save_ref_con;
-  Handle save_pic_handle;
-  QDProcsPtr save_graf_procs;
+  uint32_t save_pic_handle;
+  uint32_t save_graf_procs;
   GDHandle gdev;
   RGBColor pixel;
   BitMap temp_bitmap1, temp_bitmap2;
@@ -234,17 +234,17 @@ P8 (PUBLIC pascal trap, void, SeedCFill, BitMap *, srcbp, BitMap *, dstbp,
   save_ref_con   = GD_REF_CON_X (gdev);
   GD_REF_CON_X (gdev) = (int32) RM (&mr);
   
-  save_pic_handle = PORT_PIC_SAVE_X (thePort);
-  save_graf_procs = PORT_GRAF_PROCS_X (thePort);
-  
-  PORT_PIC_SAVE_X (thePort)   = CLC (0);
-  PORT_GRAF_PROCS_X (thePort) = CLC (0);
-  GD_SEARCH_PROC_X (gdev)     = CLC (0);
+  save_pic_handle = PORT_PIC_SAVE_X (thePort).pp;
+  save_graf_procs = PORT_GRAF_PROCS_X (thePort).pp;
+
+  PACKED_ASSIGN0 (PORT_PIC_SAVE_X (thePort));
+  PACKED_ASSIGN0 (PORT_GRAF_PROCS_X (thePort));
+  PACKED_ASSIGN0 (GD_SEARCH_PROC_X (gdev));
   AddSearch (matchprocp);
-  
+
   width  = RECT_WIDTH (srcrp);
   height = RECT_HEIGHT (srcrp);
-  
+
   temp_rect.top = temp_rect.left = CWC (0);
   temp_rect.right = CW (width);
   temp_rect.bottom = CW (height);
@@ -252,28 +252,28 @@ P8 (PUBLIC pascal trap, void, SeedCFill, BitMap *, srcbp, BitMap *, dstbp,
   row_words = (width + 15) / 16;
   temp_bitmap1.rowBytes = CW (row_words * 2);
   TEMP_ALLOC_ALLOCATE (t, temp_bitmap1_bits, row_words * 2 * height);
-  temp_bitmap1.baseAddr = RM (t);
-  memset (MR (temp_bitmap1.baseAddr), '\377', row_words * 2 * height);
+  PACKED_ASSIGN (temp_bitmap1.baseAddr, t);
+  memset (PPR (temp_bitmap1.baseAddr), '\377', row_words * 2 * height);
   temp_bitmap1.bounds = temp_rect;
-  
+
   CopyBits (srcbp, &temp_bitmap1, srcrp, &temp_rect, srcCopy, NULL);
-  
+
   DelSearch (matchprocp);
   GD_REF_CON_X (gdev) = save_ref_con;
 
   temp_bitmap2 = temp_bitmap1;
   TEMP_ALLOC_ALLOCATE (t, temp_bitmap2_bits, row_words * 2 * height);
-  temp_bitmap2.baseAddr = RM (t);
-  
-  SeedFill (MR (temp_bitmap1.baseAddr),
-	    MR (temp_bitmap2.baseAddr),
+  PACKED_ASSIGN (temp_bitmap2.baseAddr, t);
+
+  SeedFill (PPR (temp_bitmap1.baseAddr),
+	    PPR (temp_bitmap2.baseAddr),
 	    row_words * 2, row_words * 2,
 	    height, row_words, seedh, seedv);
 
   CopyBits (&temp_bitmap2, dstbp, &temp_rect, dstrp, srcCopy, NULL);
-  
-  PORT_PIC_SAVE_X (thePort)   = save_pic_handle;
-  PORT_GRAF_PROCS_X (thePort) = save_graf_procs;
+
+  PORT_PIC_SAVE_X (thePort).pp   = save_pic_handle;
+  PORT_GRAF_PROCS_X (thePort).pp = save_graf_procs;
 
   TEMP_ALLOC_FREE (temp_bitmap1_bits);
   TEMP_ALLOC_FREE (temp_bitmap2_bits);
@@ -285,8 +285,8 @@ P7 (PUBLIC pascal trap, void, CalcCMask, BitMap *, srcbp, BitMap *, dstbp,
 {
   MatchRec mr;
   LONGINT save_ref_con;
-  Handle save_pic_handle;
-  QDProcsPtr save_graf_procs;
+  uint32_t save_pic_handle;
+  uint32_t save_graf_procs;
   GDHandle gdev;
   BitMap temp_bitmap1, temp_bitmap2;
   Rect temp_rect;
@@ -315,17 +315,17 @@ P7 (PUBLIC pascal trap, void, CalcCMask, BitMap *, srcbp, BitMap *, dstbp,
   save_ref_con   = GD_REF_CON_X (gdev);
   GD_REF_CON_X (gdev) = (int32) RM (&mr);
   
-  save_pic_handle = PORT_PIC_SAVE_X (thePort);
-  save_graf_procs = PORT_GRAF_PROCS_X (thePort);
-  
-  PORT_PIC_SAVE_X (thePort)   = CLC (0);
-  PORT_GRAF_PROCS_X (thePort) = CLC (0);
-  GD_SEARCH_PROC_X (gdev)     = CLC (0);
+  save_pic_handle = PORT_PIC_SAVE_X (thePort).pp;
+  save_graf_procs = PORT_GRAF_PROCS_X (thePort).pp;
+
+  PACKED_ASSIGN0 (PORT_PIC_SAVE_X (thePort));
+  PACKED_ASSIGN0 (PORT_GRAF_PROCS_X (thePort));
+  PACKED_ASSIGN0 (GD_SEARCH_PROC_X (gdev));
   AddSearch (matchprocp);
-  
+
   width  = RECT_WIDTH (srcrp);
   height = RECT_HEIGHT (srcrp);
-  
+
   temp_rect.top = temp_rect.left = CWC (0);
   temp_rect.right = CW (width);
   temp_rect.bottom = CW (height);
@@ -333,28 +333,28 @@ P7 (PUBLIC pascal trap, void, CalcCMask, BitMap *, srcbp, BitMap *, dstbp,
   row_words = (width + 15) / 16;
   temp_bitmap1.rowBytes = CW (row_words * 2);
   TEMP_ALLOC_ALLOCATE (t, temp_bitmap1_bits, row_words * 2 * height);
-  temp_bitmap1.baseAddr = RM (t);
-  memset (MR (temp_bitmap1.baseAddr), '\377', row_words * 2 * height);
+  PACKED_ASSIGN (temp_bitmap1.baseAddr, t);
+  memset (PPR (temp_bitmap1.baseAddr), '\377', row_words * 2 * height);
   temp_bitmap1.bounds = temp_rect;
-  
+
   CopyBits (srcbp, &temp_bitmap1, srcrp, &temp_rect, srcCopy, NULL);
-  
+
   DelSearch (matchprocp);
   GD_REF_CON_X (gdev) = save_ref_con;
 
   temp_bitmap2 = temp_bitmap1;
   TEMP_ALLOC_ALLOCATE (t, temp_bitmap2_bits, row_words * 2 * height);
-  temp_bitmap2.baseAddr = RM (t);
-  
-  CalcMask (MR (temp_bitmap1.baseAddr),
-	    MR (temp_bitmap2.baseAddr),
+  PACKED_ASSIGN (temp_bitmap2.baseAddr, t);
+
+  CalcMask (PPR (temp_bitmap1.baseAddr),
+	    PPR (temp_bitmap2.baseAddr),
 	    row_words * 2, row_words * 2,
 	    height, row_words);
 
   CopyBits (&temp_bitmap2, dstbp, &temp_rect, dstrp, srcCopy, NULL);
-  
-  PORT_PIC_SAVE_X (thePort)   = save_pic_handle;
-  PORT_GRAF_PROCS_X (thePort) = save_graf_procs;
+
+  PORT_PIC_SAVE_X (thePort).pp   = save_pic_handle;
+  PORT_GRAF_PROCS_X (thePort).pp = save_graf_procs;
 
   TEMP_ALLOC_FREE (temp_bitmap1_bits);
   TEMP_ALLOC_FREE (temp_bitmap2_bits);

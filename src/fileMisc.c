@@ -89,19 +89,19 @@ A2(PUBLIC, OSErr, ufsPBGetFCBInfo, FCBPBPtr, pb,	/* INTERNAL */
     } else if (Cx(pb->ioFCBIndx) > 0) {
 	for (count = 0, i = 0; i < NFCB && count < Cx(pb->ioFCBIndx); i++)
 	    if (ROMlib_fcblocks[i].fdfnum && (!pb->ioVRefNum ||
-		       ROMlib_fcblocks[i].fcvptr->vcbVRefNum == pb->ioVRefNum))
+		       PPR(ROMlib_fcblocks[i].fcvptr)->vcbVRefNum == pb->ioVRefNum))
 		count++;
 	if (count == Cx(pb->ioFCBIndx)) {
 	    fp = ROMlib_fcblocks+i-1;
-	    rn = (Ptr) fp - MR(FCBSPtr);
+	    rn = (Ptr) fp - (Ptr)GET_FCBSPtr();
 	} else
 	    err = paramErr;
     } else
 	err = paramErr;
     if (err == noErr) {
-	if (pb->ioNamePtr)
-	    str255assign(MR(pb->ioNamePtr), fp->fcname);
-	pb->ioVRefNum    = MR(fp->fcvptr)->vcbVRefNum;
+	if (PPR(pb->ioNamePtr))
+	    str255assign((StringPtr)PPR(pb->ioNamePtr), fp->fcname);
+	pb->ioVRefNum    = PPR(fp->fcvptr)->vcbVRefNum;
 	pb->ioRefNum     = CW(rn);
 	pb->ioFCBFlNm    = fp->fdfnum;
 	pb->ioFCBFlags   = (fp->fcflags << 8) | (unsigned char)fp->fcbTypByt;
@@ -109,8 +109,8 @@ A2(PUBLIC, OSErr, ufsPBGetFCBInfo, FCBPBPtr, pb,	/* INTERNAL */
 	pb->ioFCBEOF     = fp->fcleof;
 	pb->ioFCBPLen    = fp->fcleof;
 	pb->ioFCBCrPs    = lseek(fp->fcfd, 0, L_INCR) - FORKOFFSET(fp);
-	pb->ioFCBVRefNum = MR(fp->fcvptr)->vcbVRefNum;	/* what's this? */
-	pb->ioFCBClpSiz  = MR(fp->fcvptr)->vcbClpSiz;
+	pb->ioFCBVRefNum = PPR(fp->fcvptr)->vcbVRefNum;	/* what's this? */
+	pb->ioFCBClpSiz  = PPR(fp->fcvptr)->vcbClpSiz;
 	pb->ioFCBParID   = fp->fcparid;
     }
     return err;
@@ -181,13 +181,13 @@ ROMlib_addtodq (ULONGINT drvsize, const char *devicename, INTEGER partition,
     THz saveZone;
     static boolean_t seen_floppy = FALSE;
 
-    saveZone = TheZone;
-    TheZone = SysZone;
+    saveZone = GET_TheZone();
+    SET_TheZone(GET_SysZone());
 #if !defined(LETGCCWAIL)
     dqp = (DrvQExtra *) 0;
 #endif
     dno = 0;
-    for (dp = (DrvQEl *) MR(DrvQHdr.qHead); dp; dp = (DrvQEl *) MR(dp->qLink)) {
+    for (dp = (DrvQEl *) PPR(DrvQHdr.qHead); dp; dp = (DrvQEl *) PPR(dp->qLink)) {
 	dqp = (DrvQExtra *) ((char *)dp - sizeof(LONGINT));
 	if (dqp->partition == CW(partition) &&
 		      slashstrcmp((char *) dqp->devicename, devicename) == 0) {
@@ -242,7 +242,7 @@ ROMlib_addtodq (ULONGINT drvsize, const char *devicename, INTEGER partition,
 	  }
 	Enqueue((QElemPtr) &dqp->dq, &DrvQHdr);
     }
-    TheZone = saveZone;
+    SET_TheZone(saveZone);
     return dqp;
 }
 
@@ -821,10 +821,10 @@ A0(PUBLIC, void, ROMlib_fileinit)				/* INTERNAL */
 
     CurDirStore = CLC(2);
 
-    savezone = TheZone;
-    TheZone = SysZone;
-    FCBSPtr = RM(NewPtr((Size) sizeof(fcbhidden)));
-    ((fcbhidden *)MR(FCBSPtr))->nbytes = CW(sizeof(fcbhidden));
+    savezone = GET_TheZone();
+    SET_TheZone(GET_SysZone());
+    SET_FCBSPtr(NewPtr((Size) sizeof(fcbhidden)));
+    ((fcbhidden *)GET_FCBSPtr())->nbytes = CW(sizeof(fcbhidden));
 
     for (i = 0 ; i < NFCB ; i++) {
 	ROMlib_fcblocks[i].fdfnum      = 0;
@@ -833,7 +833,7 @@ A0(PUBLIC, void, ROMlib_fileinit)				/* INTERNAL */
 	ROMlib_fcblocks[i].fcbSBlk     = 0;
 	ROMlib_fcblocks[i].fcPLen      = 0;
 	ROMlib_fcblocks[i].fcbCrPs     = 0;
-	ROMlib_fcblocks[i].fcbBfAdr    = 0;
+	PACKED_ASSIGN0(ROMlib_fcblocks[i].fcbBfAdr);
 	ROMlib_fcblocks[i].fcbFlPos    = 0;
 	ROMlib_fcblocks[i].fcbClmpSize = CLC(1);
 	ROMlib_fcblocks[i].fcbFType    = 0;
@@ -846,10 +846,10 @@ A0(PUBLIC, void, ROMlib_fileinit)				/* INTERNAL */
 
 #define NWDENTRIES	40
     wdlen = NWDENTRIES * sizeof(wdentry) + sizeof(INTEGER);
-    WDCBsPtr = RM(NewPtr((Size) wdlen));
-    TheZone = savezone;
-    memset (MR(WDCBsPtr), 0, wdlen);
-    *(INTEGER *)MR(WDCBsPtr) = CW(wdlen);
+    SET_WDCBsPtr(NewPtr((Size) wdlen));
+    SET_TheZone(savezone);
+    memset (GET_WDCBsPtr(), 0, wdlen);
+    *(INTEGER *)GET_WDCBsPtr() = CW(wdlen);
 
     ROMlib_ConfigurationFolder = copystr(getenv(CONFIGURATIONFOLDER));
     ROMlib_SystemFolder        = copystr(getenv(SYSTEMFOLDER));
@@ -1034,7 +1034,7 @@ A0(PUBLIC, void, ROMlib_fileinit)				/* INTERNAL */
 	    fprintf(stderr, "Couldn't find '%s'\n", ROMlib_SystemFolder);
 	    exit(1);
 	}
-	cpb.hFileInfo.ioNamePtr   = RM((StringPtr) SYSMACNAME);
+	PACKED_ASSIGN (cpb.hFileInfo.ioNamePtr, (StringPtr) SYSMACNAME);
 	cpb.hFileInfo.ioVRefNum   = -1;
 	cpb.hFileInfo.ioDirID     = CL((LONGINT) ST_INO (sbuf));
     } else {
@@ -1042,13 +1042,13 @@ A0(PUBLIC, void, ROMlib_fileinit)				/* INTERNAL */
 	sysname = alloca(sysnamelen);
 	*sysname = sysnamelen - 2;	/* don't count first byte or nul */
 	sprintf(sysname+1, "%s:%s", ROMlib_SystemFolder, SYSMACNAME+1);
-	cpb.hFileInfo.ioNamePtr   = (StringPtr) RM(sysname);
+	PACKED_ASSIGN (cpb.hFileInfo.ioNamePtr, sysname);
 	cpb.hFileInfo.ioVRefNum   = 0;
 	cpb.hFileInfo.ioDirID     = 0;
     }
     cpb.hFileInfo.ioFDirIndex = CWC (0);
     if (PBGetCatInfo(&cpb, FALSE) == noErr) {
-	wpb.ioNamePtr  = 0;
+	PACKED_ASSIGN0 (wpb.ioNamePtr);
 	wpb.ioVRefNum  = cpb.hFileInfo.ioVRefNum;
 	wpb.ioWDProcID = TICKX("unix");
 	wpb.ioWDDirID  = cpb.hFileInfo.ioFlParID;
@@ -1206,11 +1206,11 @@ PRNTOFPERR (INTEGER prn, OSErr *errp)
   fcbrec *retval;
   OSErr err;
 
-  if (prn < 0 || prn >= CW(*(short *)MR(FCBSPtr)) || (prn % 94) != 2) {
+  if (prn < 0 || prn >= CW(*(short *)GET_FCBSPtr()) || (prn % 94) != 2) {
     retval = 0;
     err = rfNumErr;
   } else {
-    retval = (fcbrec *) ((char *) MR(FCBSPtr) + prn);
+    retval = (fcbrec *) ((char *) GET_FCBSPtr() + prn);
     if (!retval->fdfnum) {
       retval = 0;
       err = rfNumErr;

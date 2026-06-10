@@ -426,9 +426,24 @@ extern INTEGER 	DefVRefNum;
 extern INTEGER 	FSFCBLen;
 #endif
 
-#define FCBSPtr		(FCBSPtr_H.p)
-#define DefVCBPtr	(DefVCBPtr_H.p)
-#define WDCBsPtr	(WDCBsPtr_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define FCBSPtr      (FCBSPtr_H.p)
+# define DefVCBPtr    (DefVCBPtr_H.p)
+# define WDCBsPtr     (WDCBsPtr_H.p)
+# define GET_FCBSPtr()    MR(FCBSPtr_H.p)
+# define SET_FCBSPtr(v)   (FCBSPtr_H.p = RM(v))
+# define GET_DefVCBPtr()  ((VCBPtr) MR(DefVCBPtr_H.p))
+# define SET_DefVCBPtr(v) (DefVCBPtr_H.p = RM(v))
+# define GET_WDCBsPtr()   MR(WDCBsPtr_H.p)
+# define SET_WDCBsPtr(v)  (WDCBsPtr_H.p = RM(v))
+#else
+# define GET_FCBSPtr()    ((Ptr) PPR(FCBSPtr_H))
+# define SET_FCBSPtr(v)   (FCBSPtr_H.pp = RPP(v))
+# define GET_DefVCBPtr()  ((VCBPtr) PPR(DefVCBPtr_H))
+# define SET_DefVCBPtr(v) (DefVCBPtr_H.pp = RPP(v))
+# define GET_WDCBsPtr()   ((Ptr) PPR(WDCBsPtr_H))
+# define SET_WDCBsPtr(v)  (WDCBsPtr_H.pp = RPP(v))
+#endif
 
 extern OSErr FSOpen( StringPtr filen, INTEGER vrn, INTEGER *rn ); 
 extern OSErr OpenRF( StringPtr filen, INTEGER vrn, INTEGER *rn ); 

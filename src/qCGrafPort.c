@@ -31,28 +31,28 @@ P1 (PUBLIC pascal trap, void, OpenCPort,
   
   /* allocate storage for new CGrafPtr members, including portPixMap,
      pnPixPat, fillPixPat, bkPixPat, and grafVar */
-  CPORT_PIXMAP_X (port) = RM (NewPixMap ());
-  
+  PACKED_ASSIGN (CPORT_PIXMAP_X (port), NewPixMap ());
+
   /* Free up the empty color table, since we're not going to use it. */
   DisposHandle ((Handle) PIXMAP_TABLE (CPORT_PIXMAP (port)));
-  
+
   temp_pixpat = NewPixPat ();
   PIXPAT_TYPE_X (temp_pixpat) = CWC (pixpat_type_orig);
-  CPORT_PEN_PIXPAT_X (port) = RM (temp_pixpat);
-  
+  PACKED_ASSIGN (CPORT_PEN_PIXPAT_X (port), temp_pixpat);
+
   temp_pixpat = NewPixPat ();
   PIXPAT_TYPE_X (temp_pixpat) = CWC (pixpat_type_orig);
-  CPORT_FILL_PIXPAT_X (port) = RM (temp_pixpat);
-  
+  PACKED_ASSIGN (CPORT_FILL_PIXPAT_X (port), temp_pixpat);
+
   temp_pixpat = NewPixPat ();
   PIXPAT_TYPE_X (temp_pixpat) = CWC (pixpat_type_orig);
-  CPORT_BK_PIXPAT_X (port) = RM (temp_pixpat);
-  
-  CPORT_GRAFVARS_X (port) = RM (NewHandleClear (sizeof (GrafVars)));
-  
+  PACKED_ASSIGN (CPORT_BK_PIXPAT_X (port), temp_pixpat);
+
+  PACKED_ASSIGN (CPORT_GRAFVARS_X (port), NewHandleClear (sizeof (GrafVars)));
+
   /* allocate storage for members also present in GrafPort */
-  PORT_VIS_REGION_X (port) = RM (NewRgn ());
-  PORT_CLIP_REGION_X (port) = RM (NewRgn ());
+  PACKED_ASSIGN (PORT_VIS_REGION_X (port), NewRgn ());
+  PACKED_ASSIGN (PORT_CLIP_REGION_X (port), NewRgn ());
   
   InitCPort (port);
 }
@@ -101,10 +101,10 @@ P1 (PUBLIC pascal trap, void, InitCPort,
   RGBBackColor (&ROMlib_white_rgb_color);
   PORT_COLR_BIT_X (p)    = CWC (0);
   PORT_PAT_STRETCH_X (p) = CWC (0);
-  PORT_PIC_SAVE_X (p)    = CLC_NULL;
-  PORT_REGION_SAVE_X (p) = CLC_NULL;
-  PORT_POLY_SAVE_X (p)   = CLC_NULL;
-  PORT_GRAF_PROCS_X (p)  = CLC_NULL;
+  PACKED_ASSIGN0 (PORT_PIC_SAVE_X (p));
+  PACKED_ASSIGN0 (PORT_REGION_SAVE_X (p));
+  PACKED_ASSIGN0 (PORT_POLY_SAVE_X (p));
+  PACKED_ASSIGN0 (PORT_GRAF_PROCS_X (p));
 
   PenPat (black);
   BackPat (white);
@@ -121,8 +121,8 @@ P1 (PUBLIC pascal trap, void, InitCPort,
      and all other fields are zero'd */
   
   /* A test case shows that grafVars is allocated only if it was NULL. */
-  if (CPORT_GRAFVARS_X (p) == CLC_NULL)
-    CPORT_GRAFVARS_X (p) = RM (NewHandleClear (sizeof (GrafVars)));
+  if (CPORT_GRAFVARS_X (p).pp == 0)
+    PACKED_ASSIGN (CPORT_GRAFVARS_X (p), NewHandleClear (sizeof (GrafVars)));
 
   /* #warning "p->grafVars not initialized" */
 
@@ -145,7 +145,7 @@ P1 (PUBLIC pascal trap, void, InitCPort,
 
 P1 (PUBLIC pascal trap, void, SetPortPix, PixMapHandle, pixmap)
 {
-  CPORT_PIXMAP_X (theCPort) = RM (pixmap);
+  PACKED_ASSIGN (CPORT_PIXMAP_X (theCPort), pixmap);
 }
 
 static const LONGINT high_bits_to_colors[2][2][2] =
@@ -252,7 +252,7 @@ P1 (PUBLIC pascal trap, void, PenPixPat,
       if (old_pen && (PIXPAT_TYPE_X (old_pen) == CWC (pixpat_type_orig)))
 	DisposPixPat (old_pen);
 	
-      CPORT_PEN_PIXPAT_X (theCPort) = RM (new_pen);
+      PACKED_ASSIGN (CPORT_PEN_PIXPAT_X (theCPort), new_pen);
     }
   else
     PATASSIGN (PORT_PEN_PAT (thePort), PIXPAT_1DATA (new_pen));
@@ -272,7 +272,7 @@ P1 (PUBLIC pascal trap, void, BackPixPat,
       if (old_bk && PIXPAT_TYPE_X (old_bk) == CWC (pixpat_type_orig))
 	DisposPixPat (old_bk);
       
-      CPORT_BK_PIXPAT_X (theCPort) = RM (new_bk);
+      PACKED_ASSIGN (CPORT_BK_PIXPAT_X (theCPort), new_bk);
     }
   else
     PATASSIGN (PORT_BK_PAT (thePort), PIXPAT_1DATA (new_bk));
@@ -294,7 +294,7 @@ ROMlib_fill_pixpat (PixPatHandle new_fill)
 	DisposPixPat (old_fill);
 #endif
       
-      CPORT_FILL_PIXPAT_X (theCPort) = RM (new_fill);
+      PACKED_ASSIGN (CPORT_FILL_PIXPAT_X (theCPort), new_fill);
     }
   else
     PATASSIGN (PORT_BK_PAT (thePort), PIXPAT_1DATA (new_fill));
@@ -359,8 +359,7 @@ P0 (PUBLIC pascal trap, PixMapHandle, NewPixMap)
     }
 
   /* The ColorTable is set to an empty ColorTable (IMV-70). */
-  PIXMAP_TABLE_X (pixmap)
-    = (CTabHandle) RM (NewHandleClear (sizeof (ColorTable)));
+  PACKED_ASSIGN (PIXMAP_TABLE_X (pixmap), NewHandleClear (sizeof (ColorTable)));
   
   HUnlock ((Handle) pixmap);
   return pixmap;
@@ -388,7 +387,7 @@ P2 (PUBLIC pascal trap, void, CopyPixMap,
 /* #warning "determine actual CopyPixMap behavior" */
   *(STARH (dst)) = *(STARH (src));
   
-  PIXMAP_TABLE_X (dst) = RM (dst_ctab);
+  PACKED_ASSIGN (PIXMAP_TABLE_X (dst), dst_ctab);
   ROMlib_copy_ctab (PIXMAP_TABLE (src), dst_ctab);
 }
 
@@ -432,7 +431,7 @@ P1 (PUBLIC pascal trap, PixPatHandle, GetPixPat, INTEGER, pixpat_id)
   pixpat_res = (pixpat_res_handle) GetResource (TICK ("ppat"), pixpat_id);
   if (pixpat_res == NULL)
     return (PixPatHandle) NULL;
-  if (pixpat_res->p == NULL)
+  if (pixpat_res->pp == 0)
     LoadResource ((Handle) pixpat_res);
   
   pixpat = (PixPatHandle) NewHandle (sizeof (PixPat));
@@ -457,23 +456,23 @@ P1 (PUBLIC pascal trap, PixPatHandle, GetPixPat, INTEGER, pixpat_id)
       }
   }
   
-  gui_assert ((int) PIXPAT_MAP_X (pixpat) == CLC (sizeof (PixPat)));
-  
-  PIXPAT_MAP_X (pixpat) = RM (patmap);
-  
+  gui_assert ((int) PIXPAT_MAP_X (pixpat).pp == (int) CLC (sizeof (PixPat)));
+
+  PACKED_ASSIGN (PIXPAT_MAP_X (pixpat), patmap);
+
   PIXPAT_XVALID_X (pixpat) = CWC (-1);
-  
+
   xdata = NewHandle (sizeof (xdata_t));
   memset (STARH (xdata), 0, sizeof (xdata_t));
-  PIXPAT_XDATA_X (pixpat)  = RM (xdata);
-  PIXPAT_XMAP_X (pixpat)   = CLC_NULL;
+  PACKED_ASSIGN (PIXPAT_XDATA_X (pixpat), xdata);
+  PACKED_ASSIGN0 (PIXPAT_XMAP_X (pixpat));
   
-  pixpat_data_offset = PIXPAT_DATA_AS_OFFSET (pixpat);
-  pixpat_data_size = (PIXMAP_TABLE_AS_OFFSET (patmap)
+  pixpat_data_offset = (int) PIXPAT_DATA_AS_OFFSET (pixpat);
+  pixpat_data_size = ((int) PIXMAP_TABLE_AS_OFFSET (patmap)
 		      - pixpat_data_offset);
   
   HLock((Handle) pixpat);
-  PIXPAT_DATA_X (pixpat) = RM (NewHandle (pixpat_data_size));
+  PACKED_ASSIGN (PIXPAT_DATA_X (pixpat), NewHandle (pixpat_data_size));
   HUnlock((Handle) pixpat);
   
   BlockMove ((Ptr) ((char *) STARH (pixpat_res) + pixpat_data_offset),
@@ -493,7 +492,7 @@ P1 (PUBLIC pascal trap, PixPatHandle, GetPixPat, INTEGER, pixpat_id)
        /* SetHandleSize ((Handle) PIXMAP_TABLE (patmap), ctab_size); */
        
        HLock ((Handle) patmap);
-       PIXMAP_TABLE_X (patmap) = (CTabHandle) RM (NewHandle (ctab_size));
+       PACKED_ASSIGN (PIXMAP_TABLE_X (patmap), NewHandle (ctab_size));
        HUnlock ((Handle) patmap);
        
        BlockMove ((Ptr) ctab_ptr, 
@@ -521,12 +520,12 @@ P1 (PUBLIC pascal trap, void, DisposPixPat,
     {
       /* ##### determine which of these checks are necessary, and which
 	 should be asserts that the handles are non-NULL */
-      if (PIXPAT_MAP_X (pixpat_h))
+      if (PIXPAT_MAP_X (pixpat_h).pp)
 	DisposPixMap (PIXPAT_MAP (pixpat_h));
-      if (PIXPAT_DATA_X (pixpat_h))
+      if (PIXPAT_DATA_X (pixpat_h).pp)
 	DisposHandle (PIXPAT_DATA (pixpat_h));
       /* We ignore the xmap field, so no need to free it. */
-      if (PIXPAT_XDATA_X (pixpat_h))
+      if (PIXPAT_XDATA_X (pixpat_h).pp)
 	xdata_free ((xdata_handle_t) PIXPAT_XDATA (pixpat_h));
       
       DisposHandle ((Handle) pixpat_h);

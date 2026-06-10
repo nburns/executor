@@ -45,8 +45,8 @@ PRIVATE OSErr PBFInfoHelper(changeop op, fileParam *pb, LONGINT dirid,
     if (err == noErr) {
 	switch (op) {
 	case GetOp:
-	    if (CW(pb->ioFDirIndex) > 0 && pb->ioNamePtr)
-		str255assign(MR(pb->ioNamePtr), catkeyp->ckrCName);
+	    if (CW(pb->ioFDirIndex) > 0 && pb->ioNamePtr.pp)
+		str255assign((StringPtr)PPR(pb->ioNamePtr), catkeyp->ckrCName);
 	    pb->ioFlAttrib = CB (open_attrib_bits (CL (frp->filFlNum), vcbp,
 						   &pb->ioFRefNum));
 	    pb->ioFlAttrib |= frp->filFlags & CB (INHERITED_FLAG_BITS);
@@ -141,17 +141,14 @@ ROMlib_fcbrename (HVCB *vcbp, LONGINT swapped_parid, StringPtr oldnamep,
 {
   short length;
   filecontrolblock *fcbp, *efcbp;
-  HVCB *swapped_vcbp;
-
-  swapped_vcbp = RM (vcbp);
-  length = CW(*(short *)MR(FCBSPtr));
-  fcbp = (filecontrolblock *) ((short *)MR(FCBSPtr)+1);
-  efcbp = (filecontrolblock *) ((char *)MR(FCBSPtr) + length);
+  length = CW(*(short *)GET_FCBSPtr());
+  fcbp = (filecontrolblock *) ((short *)GET_FCBSPtr()+1);
+  efcbp = (filecontrolblock *) ((char *)GET_FCBSPtr() + length);
   for (;fcbp < efcbp;
        fcbp = (filecontrolblock *) ((char *)fcbp + CW(FSFCBLen)))
     {
       if (fcbp->fcbDirID == swapped_parid
-	  && fcbp->fcbVPtr == swapped_vcbp
+	  && (HVCB *)PPR(fcbp->fcbVPtr) == vcbp
 	  && RelString (fcbp->fcbCName, oldnamep, FALSE, TRUE) == 0)
 	str255assign (fcbp->fcbCName, newnamep);
     }
@@ -168,7 +165,7 @@ renamehelper(ioParam *pb, BOOLEAN async, LONGINT dirid, filekind kind)
   if (err == noErr)
     {
       npb = *pb;
-      npb.ioNamePtr = (StringPtr) (long) pb->ioMisc;
+      PACKED_ASSIGN(npb.ioNamePtr, (StringPtr)(long)MR(pb->ioMisc));
       err = ROMlib_findvcbandfile(&npb, dirid, &btparamrec2, &kind, FALSE);
       if (err != fnfErr)
 	{
@@ -206,8 +203,8 @@ renamehelper(ioParam *pb, BOOLEAN async, LONGINT dirid, filekind kind)
     {
       StringPtr nameptr;
 
-      nameptr = MR(pb->ioNamePtr);
-      if (!pb->ioNamePtr
+      nameptr = (StringPtr)PPR(pb->ioNamePtr);
+      if (!nameptr
 	  || (ROMlib_indexn((char *)nameptr+1, ':', nameptr[0])
 	      == (char *) nameptr + nameptr[0]))
 	{

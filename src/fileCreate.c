@@ -28,7 +28,7 @@ A4(PUBLIC, OSErr, Create, StringPtr, filen, INTEGER, vrn,	/* IMIV-112 */
     OSErr temp;
     LONGINT t;
 
-    pbr.fileParam.ioNamePtr = RM(filen);
+    PACKED_ASSIGN(pbr.fileParam.ioNamePtr, filen);
     pbr.fileParam.ioVRefNum = CW(vrn);
     pbr.fileParam.ioFVersNum = 0;
 
@@ -60,7 +60,7 @@ A2(PUBLIC, OSErr, FSDelete, StringPtr, filen, INTEGER, vrn)	/* IMIV-113 */
 {
     ParamBlockRec pbr;
 
-    pbr.fileParam.ioNamePtr = RM(filen);
+    PACKED_ASSIGN(pbr.fileParam.ioNamePtr, filen);
     pbr.fileParam.ioVRefNum = CW(vrn);
     pbr.fileParam.ioFVersNum = 0;
     return(PBDelete(&pbr, 0));

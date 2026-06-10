@@ -124,7 +124,7 @@ A3(PUBLIC, OSErr, FSOpen, StringPtr, filen, INTEGER, vrn,	/* IMIV-109 */
     ParamBlockRec pbr;
     OSErr temp;
 
-    pbr.ioParam.ioNamePtr = RM(filen);
+    PACKED_ASSIGN(pbr.ioParam.ioNamePtr, filen);
     pbr.ioParam.ioVRefNum = CW(vrn);
     pbr.ioParam.ioVersNum = 0;
     pbr.ioParam.ioPermssn = fsCurPerm;
@@ -141,7 +141,7 @@ A3(PUBLIC, OSErr, OpenRF, StringPtr, filen, INTEGER, vrn,	/* IMIV-109 */
     ParamBlockRec pbr;
     OSErr temp;
 
-    pbr.ioParam.ioNamePtr = RM(filen);
+    PACKED_ASSIGN(pbr.ioParam.ioNamePtr, filen);
     pbr.ioParam.ioVRefNum = CW(vrn);
     pbr.ioParam.ioVersNum = 0;
     pbr.ioParam.ioPermssn = fsCurPerm;
@@ -159,7 +159,7 @@ A3(PUBLIC, OSErr, FSRead, INTEGER, rn, LONGINT *, count,	/* IMIV-109 */
     OSErr temp;
 
     pbr.ioParam.ioRefNum = CW(rn);
-    pbr.ioParam.ioBuffer = RM(buffp);
+    PACKED_ASSIGN(pbr.ioParam.ioBuffer, buffp);
     pbr.ioParam.ioReqCount = CL(*count);
     pbr.ioParam.ioPosMode = CWC(fsAtMark);
     temp = PBRead(&pbr, 0);
@@ -188,7 +188,7 @@ A3(PUBLIC, OSErr, FSWrite, INTEGER, rn, LONGINT *, count,	/* IMIV-110 */
     OSErr temp;
 
     pbr.ioParam.ioRefNum = CW(rn);
-    pbr.ioParam.ioBuffer = RM(buffp);
+    PACKED_ASSIGN(pbr.ioParam.ioBuffer, buffp);
     pbr.ioParam.ioReqCount = CL(*count);
     pbr.ioParam.ioPosMode = CWC(fsAtMark);
     temp = PBWrite(&pbr, 0);
@@ -303,15 +303,15 @@ A2(PUBLIC, VCB *, vlookupbyname, const char *, namep,  const char *, endp)
     int n;
 
     n = endp - namep;
-    for (retval = (VCB *)MR(VCBQHdr.qHead); retval;
-					    retval = (VCB *) MR(retval->qLink))
+    for (retval = (VCB *)PPR(VCBQHdr.qHead); retval;
+					    retval = (VCB *) PPR(retval->qLink))
 	if (n == retval->vcbVN[0] &&
 			     strncmp(namep, (char *) retval->vcbVN+1, n) == 0)
 	    return retval;
 
 #if defined (MSDOS) || defined (CYGWIN32)
-    for (retval = (VCB *)MR(VCBQHdr.qHead); retval;
-					    retval = (VCB *) MR(retval->qLink))
+    for (retval = (VCB *)PPR(VCBQHdr.qHead); retval;
+					    retval = (VCB *) PPR(retval->qLink))
 	if (n == retval->vcbVN[0] &&
 	                  strncasecmp(namep, (char *) retval->vcbVN+1, n) == 0)
 	    return retval;
@@ -323,8 +323,8 @@ A1(PRIVATE, VCB *, vlookupbydrive, INTEGER, drive)
 {
     VCB *retval;
 
-    for (retval = (VCB *)MR(VCBQHdr.qHead); retval;
-					    retval = (VCB *) MR(retval->qLink))
+    for (retval = (VCB *)PPR(VCBQHdr.qHead); retval;
+					    retval = (VCB *) PPR(retval->qLink))
 	if (drive == Cx(retval->vcbDrvNum))
 	    return retval;
     return 0;
@@ -444,10 +444,10 @@ A4(PRIVATE, char *, dirindex, char *, dir, LONGINT, index, BOOLEAN, nodirectorie
 #define MAXNAMLEN	1024
 #endif /* !defined(MAXNAMLEN) */
 
-        saveZone = TheZone;
-	TheZone = SysZone;
+        saveZone = GET_TheZone ();
+	SET_TheZone (GET_SysZone ());
 	cachedir = malloc (dirnamelen+1+MAXNAMLEN+1);
-	TheZone = saveZone;
+	SET_TheZone (saveZone);
 	if (!cachedir)
 /*-->*/	    return 0;
 	strcpy(cachedir, dir);
@@ -556,7 +556,7 @@ A5(PUBLIC, VCB *, ROMlib_breakoutioname, ParmBlkPtr, pb,	/* INTERNAL */
     *therestp = 0;
     if (fullpathp)
 	*fullpathp = FALSE;
-    if ((p = (unsigned char *) MR(pb->ioParam.ioNamePtr))) {
+    if ((p = (unsigned char *) PPR(pb->ioParam.ioNamePtr))) {
 	if (p[0] > 1 && p[1] != ':') {
 	    if ((colon = pstr_index_after(p, ':', SLASH_CHAR_OFFSET))) {
 	        retval = vlookupbyname((char *) p+1, colon);
@@ -582,13 +582,13 @@ A5(PUBLIC, VCB *, ROMlib_breakoutioname, ParmBlkPtr, pb,	/* INTERNAL */
 	    if (ISWDNUM(v)) {
 		wdp = WDNUMTOWDP(v);
 		*diridp = CL(wdp->dirid);
-		retval  = MR(wdp->vcbp);
+		retval  = (VCB *) PPR(wdp->vcbp);
 	    } else
 		retval = ROMlib_vcbbyvrn(v);
 	}
 	if (!retval && (usedefault ||
-			 (!pb->ioParam.ioNamePtr && !pb->ioParam.ioVRefNum))) {
-	    retval  = MR(DefVCBPtr);
+			 (!PPR(pb->ioParam.ioNamePtr) && !pb->ioParam.ioVRefNum))) {
+	    retval  = GET_DefVCBPtr();
 	    *diridp = CL(DefDirID);
         }
     }
@@ -735,8 +735,8 @@ A9(PUBLIC, OSErr, ROMlib_nami, ParmBlkPtr, pb, LONGINT, dir,	/* INTERNAL */
 	endname = &temp3;
     fnamep = 0;
     if (indextype != NoIndex) {
-        savenamep = MR(pb->ioParam.ioNamePtr);
-        pb->ioParam.ioNamePtr = 0;
+        savenamep = (StringPtr) PPR(pb->ioParam.ioNamePtr);
+        PACKED_ASSIGN0 (pb->ioParam.ioNamePtr);
     }
 #if !defined (LETGCCWAIL)
     else
@@ -833,7 +833,7 @@ loop:
 /*-->*/	return err;
       }
     if (indextype != NoIndex)
-       pb->ioParam.ioNamePtr = RM(savenamep);
+       PACKED_ASSIGN (pb->ioParam.ioNamePtr, savenamep);
     if (indextype == FDirIndex && (index = Cx(pb->fileParam.ioFDirIndex)) > 0) {
 	free (therest);
 	therest = 0;
@@ -843,8 +843,8 @@ loop:
 	    fs_err_hook (err);
 /*-->*/	    return err;
 	}
-	if (pb->ioParam.ioNamePtr)
-	    fnamep = MR(pb->ioParam.ioNamePtr);
+	if (PPR(pb->ioParam.ioNamePtr))
+	    fnamep = (StringPtr) PPR(pb->ioParam.ioNamePtr);
 	else
 	    fnamep = fname;
 	fnamep[0] = strlen(fn);
@@ -1051,14 +1051,14 @@ static int n = 0;
 *pprn = 2 + 94 * n++;
 return noErr;
 #endif
-    length =CW( *(short *)MR(FCBSPtr));
-    fcbp = (fcbrec *) ((short *)MR(FCBSPtr)+1);
-    efcbp = (fcbrec *) ((char *)MR(FCBSPtr) + length);
+    length =CW( *(short *)GET_FCBSPtr());
+    fcbp = (fcbrec *) ((short *)GET_FCBSPtr()+1);
+    efcbp = (fcbrec *) ((char *)GET_FCBSPtr() + length);
     for (;fcbp < efcbp && fcbp->fdfnum;
 			      fcbp = (fcbrec *) ((char *)fcbp + Cx(FSFCBLen)))
         ;
     if (fcbp < efcbp) {
-        *pprn = (char *) fcbp - (char *) MR(FCBSPtr);
+        *pprn = (char *) fcbp - (char *) GET_FCBSPtr();
         err = noErr;
     } else
         err = tmfoErr;
@@ -1086,8 +1086,8 @@ A4(PRIVATE, OSErr, PBOpenForkD, ParmBlkPtr, pb, BOOLEAN, a,
     pb->ioParam.ioRefNum = CWC(0);	/* in case some goofy program,
 					   like StuffIt Lite decides to
 					   ignore error codes */
-    savezone = TheZone;
-    TheZone = SysZone;
+    savezone = GET_TheZone ();
+    SET_TheZone (GET_SysZone ());
     pathname = 0;
 /*
  * We have to pass in sbuf below or we won't be weaseled like we should be.
@@ -1096,7 +1096,7 @@ A4(PRIVATE, OSErr, PBOpenForkD, ParmBlkPtr, pb, BOOLEAN, a,
 			       TRUE, &vcbp, (struct stat *) &sbuf)) == noErr) {
 	err = getprn(&prn);
 	if (err == noErr) {
-	    fp = (fcbrec *) (MR(FCBSPtr) + prn);
+	    fp = (fcbrec *) (GET_FCBSPtr() + prn);
 	    fp->fdfnum = CL((LONGINT) ST_INO(sbuf));
 	    fp->fcfd = -1;
 	    fp->fcflags = 0;
@@ -1172,7 +1172,7 @@ A4(PRIVATE, OSErr, PBOpenForkD, ParmBlkPtr, pb, BOOLEAN, a,
 		      }
 		    if (err == noErr)
 			err = ROMlib_geteofostype(fp);
-		    fp->fcvptr = RM((VCB *) vcbp);
+		    PACKED_ASSIGN(fp->fcvptr, (VCB *) vcbp);
 		    pb->ioParam.ioRefNum = CW(prn);
 		    namelen = strlen (filename);
 		    namelen -= ROMlib_UNIX7_to_Mac (filename, namelen);
@@ -1190,7 +1190,7 @@ A4(PRIVATE, OSErr, PBOpenForkD, ParmBlkPtr, pb, BOOLEAN, a,
 
     if (pathname)
 	free (pathname);
-    TheZone = savezone;
+    SET_TheZone (savezone);
     fs_err_hook (err);
     return err;
 }
@@ -1221,7 +1221,7 @@ A2(PUBLIC trap, OSErrRET, OpenDeny, HParmBlkPtr, pb,		/* IMV-397 */
     OSErr retval;
 
     block.ioParam.ioCompletion = pb->ioParam.ioCompletion;
-    block.ioParam.ioNamePtr    = pb->ioParam.ioNamePtr;
+    PACKED_ASSIGN (block.ioParam.ioNamePtr, PPR(pb->ioParam.ioNamePtr));
     block.ioParam.ioVRefNum    = pb->ioParam.ioVRefNum;
     block.ioParam.ioVersNum    = 0;
     switch (pb->ioParam.ioPermssn & 3) {
@@ -1492,9 +1492,9 @@ A2(PUBLIC, OSErr, ufsPBRead, ParmBlkPtr, pb, BOOLEAN, a) /* INTERNAL */
 
 	    if (Cx(pb->ioParam.ioPosOffset) + rc > Cx(fp->fcleof))
 		rc = Cx(fp->fcleof) - Cx(pb->ioParam.ioPosOffset);
-	    nread = read(fd, (char *)(MR(pb->ioParam.ioBuffer)), rc);
+	    nread = read(fd, (char *)(PPR(pb->ioParam.ioBuffer)), rc);
 	    ROMlib_destroy_blocks((syn68k_addr_t)
-			         (long) US_TO_SYN68K(MR(pb->ioParam.ioBuffer)),
+			         (long) US_TO_SYN68K(PPR(pb->ioParam.ioBuffer)),
 				  rc, TRUE);
 	    if (nread == -1) {
 		pb->ioParam.ioActCount = 0;
@@ -1553,7 +1553,7 @@ A2(PUBLIC, OSErr, ufsPBWrite, ParmBlkPtr, pb, BOOLEAN, a) /* INTERNAL */
 		err =  ROMlib_seteof(fp);
 	    }
 	    if (err == noErr) {
-		nwrite = write(fd, (char *)(MR(pb->ioParam.ioBuffer)), rc);
+		nwrite = write(fd, (char *)(PPR(pb->ioParam.ioBuffer)), rc);
 		if (nwrite == -1) {
 		    pb->ioParam.ioActCount = 0;
 		    err = ioErr;

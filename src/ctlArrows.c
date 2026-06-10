@@ -153,7 +153,7 @@ validate_colors_for_control (ControlHandle ctl)
   for (i = 0; i <= 14; i ++)
     ctl_ctab_colors[i] = default_ctl_colors[i].rgb;
   
-  t_aux_c = MR (*lookup_aux_ctl (ctl));
+  t_aux_c = STARH (lookup_aux_ctl (ctl));
   if (t_aux_c && HxZ (t_aux_c, acCTable))
     {
       CTabHandle c_ctab;
@@ -665,9 +665,12 @@ save_and_switch_to_color_port_if_needed (save_t *sp)
 
       sp->port = thePort;
       sp->cp = * (CGrafPtr) thePort;
-      wp = (CGrafPtr) MR (wmgr_port);
-      sp->cp.portPixMap = (PixMapHandle) CopyMacHandle ((Handle) wp->portPixMap);
-      PIXMAP_BOUNDS (PPR (sp->cp.portPixMap)) = thePort->portBits.bounds;
+      wp = (CGrafPtr) PPR (WMgrCPort_H);
+      {
+	PixMapHandle pm = (PixMapHandle) MR (CopyMacHandle ((Handle)(uintptr_t) wp->portPixMap.pp));
+	PACKED_ASSIGN (sp->cp.portPixMap, pm);
+	PIXMAP_BOUNDS (pm) = thePort->portBits.bounds;
+      }
       sp->cp.portVersion = wp->portVersion;
       sp->cp.grafVars = wp->grafVars;
       sp->cp.chExtra = wp->chExtra;
@@ -788,8 +791,7 @@ P4 (PUBLIC pascal, LONGINT, cdef16, /* IMI-328 */
 	  }
       break;
     case initCntl:
-      temph = RM((Handle) NewRgn());
-      HxX(c, contrlData) = temph;
+      SETP(c, contrlData, (Handle) NewRgn());
       thumb_rect(c, &tempr);
       LocalToGlobalRect (&tempr);
 #if 1

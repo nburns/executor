@@ -22,7 +22,7 @@ char ROMlib_rcsid_dialItem[] =
     HIDDEN_Handle __item_handle;					\
 									\
     GetDItem (dp, item_no, item_type, &__item_handle, item_rect);	\
-    *(item_h) = MR (__item_handle.p);					\
+    *(item_h) = FROM_HIDDEN (__item_handle);				\
   })
   
 
@@ -219,7 +219,7 @@ ShortenDITL (DialogPtr dp, int16 n_items)
 		       DIALOG_EDIT_OPEN_X (dp) = CWC (0);
 		     }
 		   
-		   DisposHandle ((Handle) MR (itemp->itmhand));
+		   DisposHandle ((Handle) PPR (itemp->itmhand));
 		   /* when editText items are drawn, the box around
 		      them is inset `-3', so we also need to do that
 		      when erasing */
@@ -228,13 +228,13 @@ ShortenDITL (DialogPtr dp, int16 n_items)
 		 }
 	       else if (itemp->itmtype & ctrlItem)
 		 {
-		   DisposeControl ((ControlHandle) MR (itemp->itmhand));
+		   DisposeControl ((ControlHandle) PPR (itemp->itmhand));
 		 }
 	       else if (itemp->itmtype & iconItem)
 		 {
 		   Handle icon;
 		   
-		   icon = itemp->itmhand;
+		   icon = PPR (itemp->itmhand);
 		   if (CICON_P (icon))
 		     DisposeCIcon ((CIconHandle) icon);
 		   erase_p = TRUE;

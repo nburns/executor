@@ -171,7 +171,7 @@ P2(PUBLIC pascal trap, void, ShowHide, WindowPtr, w, BOOLEAN, flag)
 	   WINDCALL (w, wDraw, 0);
 	   CopyRgn (WINDOW_CONT_REGION (w), WINDOW_UPDATE_REGION (w));
 	   
-	   aux_w = MR (*lookup_aux_win (w));
+	   aux_w = STARH (lookup_aux_win (w));
 	   w_ctab = HxP (aux_w, awCTable);
 	   if (w_ctab)
 	     {

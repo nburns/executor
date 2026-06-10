@@ -77,7 +77,7 @@ GetDControl (DialogPtr dp, INTEGER itemno)
   INTEGER unused;
 
   GetDItem (dp, itemno, &unused, &h, NULL);
-  retval = (ControlHandle) MR (h.p);
+  retval = (ControlHandle) FROM_HIDDEN (h);
   return retval;
 }
 
@@ -89,7 +89,7 @@ GetDIText (DialogPtr dp, INTEGER itemno)
   INTEGER unused;
 
   GetDItem(dp, itemno, &unused, &h, NULL);
-  retval = MR (h.p);
+  retval = FROM_HIDDEN (h);
 
   return retval;
 }
@@ -124,7 +124,7 @@ P2(PUBLIC pascal, void,  ROMlib_myjobproc, DialogPtr, dp, INTEGER, itemno)
 	THPrint hPrint;
 	INTEGER num_copies;
 
-	hPrint = MR (((TPPrDlg)dp)->hPrintUsr);
+	hPrint = (THPrint) PPR (((TPPrDlg)dp)->hPrintUsr);
 	ch = GetDControl (dp, PRINT_ALL_RADIO_NO);
 	if (GetCtlValue (ch))
 	  {
@@ -345,7 +345,7 @@ update_ROMlib_printer_vars (TPPrDlg dp)
     free (ROMlib_port);
   ROMlib_port = find_item_key ((DialogPtr) dp, LAYOUT_PORT_MENU_NO);
 
-  ROMlib_set_default_resolution (MR (dp->hPrintUsr), 72, 72);
+  ROMlib_set_default_resolution ((THPrint) PPR (dp->hPrintUsr), 72, 72);
 
   if (strcmp (ROMlib_printer, "PostScript File") == 0)
     {
@@ -617,7 +617,7 @@ P3(PUBLIC, pascal BOOLEAN,  ROMlib_stlfilterproc, DialogPeek, dp,
 	  {
 	    ControlHandle ch;
 
-	    ch = (ControlHandle) MR (h.p);
+	    ch = (ControlHandle) FROM_HIDDEN (h);
 	    if (TrackControl (ch, localp, NULL))
 	      {
 		*ith = CWC (OK);
@@ -830,11 +830,11 @@ P1(PUBLIC pascal trap, TPPrDlg, PrJobInit, THPrint, hPrint)
 
 	    adjust_print_name ((DialogPtr) retval);
 
-	    retval->pFltrProc = RM((ProcPtr) P_ROMlib_numsonlyfilterproc);
+	    PACKED_ASSIGN(retval->pFltrProc, (ProcPtr) P_ROMlib_numsonlyfilterproc);
 				    /* TODO: Get this from the right place */
-	    retval->pItemProc = RM((ProcPtr) P_ROMlib_myjobproc);
+	    PACKED_ASSIGN(retval->pItemProc, (ProcPtr) P_ROMlib_myjobproc);
 				    /* TODO: Get this from the right place */
-	    retval->hPrintUsr = RM(hPrint);
+	    PACKED_ASSIGN(retval->hPrintUsr, hPrint);
 	} else {
 	    DisposPtr((Ptr) retval);
 	    retval = 0;
@@ -958,7 +958,7 @@ adjust_menu_common (TPPrDlg dlg, INTEGER item, heading_t heading, ini_key_t defk
 
 		GetDItem ((DialogPtr) dlg, item, &unused, &h, &r);
 		r.right = CW (CW (r.left) + max_wid + 38);
-		SetDItem ((DialogPtr) dlg, item, ctrlItem, MR (h.p), &r);
+		SetDItem ((DialogPtr) dlg, item, ctrlItem, FROM_HIDDEN (h), &r);
 		SizeControl (ch, CW (r.right) - CW (r.left), 
 			         CW (r.bottom) - CW (r.top));
 	      }
@@ -1110,7 +1110,7 @@ P1(PUBLIC pascal trap, TPPrDlg, PrStlInit, THPrint, hPrint)
 	    GetDItem ((DialogPtr) retval, LAYOUT_PRINTER_TYPE_LABEL_NO,
 		      &item_type, &hh, &r);
 
-	    h = MR (hh.p);
+	    h = FROM_HIDDEN (hh);
 	    GetIText (h, str);
 	    orig = StringWidth (str);
 	    new = StringWidth (new_type_label);
@@ -1132,9 +1132,9 @@ P1(PUBLIC pascal trap, TPPrDlg, PrStlInit, THPrint, hPrint)
 	  set_default_orientation (retval); /* must be called after paper
 					       menu is adjusted */
 
-	  retval->pFltrProc = RM((ProcPtr) P_ROMlib_stlfilterproc);
-	  retval->pItemProc = RM((ProcPtr) P_ROMlib_mystlproc);
-	  retval->hPrintUsr = RM(hPrint);
+	  PACKED_ASSIGN(retval->pFltrProc, (ProcPtr) P_ROMlib_stlfilterproc);
+	  PACKED_ASSIGN(retval->pItemProc, (ProcPtr) P_ROMlib_mystlproc);
+	  PACKED_ASSIGN(retval->hPrintUsr, hPrint);
 	} else {
 	    DisposPtr((Ptr) retval);
 	    retval = 0;
@@ -1162,7 +1162,7 @@ P2(PUBLIC pascal trap, BOOLEAN, PrDlgMain, THPrint, hPrint, ProcPtr, initfptr)
     ROMlib_updatenextpagerect((comRect *) &Hx(hPrint, rPaper));
 #endif /* defined(NEXTSTEP) */
     if ((prrecptr = CALLPRINITPROC(hPrint, initfptr))) {
-      if (!SUNPATH_HACK || (((pritemprocp) MR(prrecptr->pItemProc)
+      if (!SUNPATH_HACK || (((pritemprocp) PPR(prrecptr->pItemProc)
 			     != (pritemprocp) P_ROMlib_myjobproc) ||
 			    strcmp (ROMlib_printer, WIN32_TOKEN) != 0))
 	{
@@ -1170,21 +1170,21 @@ P2(PUBLIC pascal trap, BOOLEAN, PrDlgMain, THPrint, hPrint, ProcPtr, initfptr)
 	  SelectWindow((WindowPtr) prrecptr);
 	}
         do {
-	    if (SUNPATH_HACK && (((pritemprocp) MR(prrecptr->pItemProc)
+	    if (SUNPATH_HACK && (((pritemprocp) PPR(prrecptr->pItemProc)
 				  == (pritemprocp) P_ROMlib_myjobproc) &&
 				 strcmp (ROMlib_printer, WIN32_TOKEN) == 0))
 	      item = 1;
 	    else
 	      {
-		ModalDialog((ProcPtr) MR(prrecptr->pFltrProc), &item);
+		ModalDialog((ProcPtr) PPR(prrecptr->pFltrProc), &item);
 		item = CW(item);
 	      }
-	    CALLPRITEMPROC(prrecptr, item, MR(prrecptr->pItemProc));
+	    CALLPRITEMPROC(prrecptr, item, PPR(prrecptr->pItemProc));
 
 #if defined (CYGWIN32)
 	    /* Don't allow them to continue Win32 stuff if we can't
 	       initialize the Win32 subsystem */
-	    if (((pritemprocp) MR(prrecptr->pItemProc)
+	    if (((pritemprocp) PPR(prrecptr->pItemProc)
 		 == (pritemprocp) P_ROMlib_myjobproc)
 		&& item == 1
 		&& strcmp (ROMlib_printer, WIN32_TOKEN) == 0

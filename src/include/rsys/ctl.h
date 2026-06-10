@@ -38,21 +38,30 @@ extern AuxCtlHandle default_aux_ctl;
 #define CTL_ACTION_X(ctl)	(HxX (ctl, contrlAction))
 #define CTL_REF_CON_X(ctl)	(HxX (ctl, contrlRfCon))
 
-#define CTL_NEXT_CONTROL(ctl)	(MR (CTL_NEXT_CONTROL_X (ctl)))
-#define CTL_OWNER(ctl)		(MR (CTL_OWNER_X (ctl)))
+#define CTL_NEXT_CONTROL(ctl)	(PPR (CTL_NEXT_CONTROL_X (ctl)))
+#define CTL_OWNER(ctl)		(PPR (CTL_OWNER_X (ctl)))
 #define CTL_VIS(ctl)		(CTL_VIS_X (ctl))
 #define CTL_HILITE(ctl)		((uint8) CTL_HILITE_X (ctl))
 #define CTL_VALUE(ctl)		(CW (CTL_VALUE_X (ctl)))
 #define CTL_MIN(ctl)		(CW (CTL_MIN_X (ctl)))
 #define CTL_MAX(ctl)		(CW (CTL_MAX_X (ctl)))
-#define CTL_DEFPROC(ctl)	(MR (CTL_DEFPROC_X (ctl)))
+#define CTL_DEFPROC(ctl)	(PPR (CTL_DEFPROC_X (ctl)))
 #define CTL_DATA(ctl)		((RgnHandle) PPR (CTL_DATA_X (ctl)))
-#define CTL_ACTION(ctl)		(MR (CTL_ACTION_X (ctl)))
-#define CTL_ACTION_AS_LONG(ctl)	(CL ((LONGINT) CTL_ACTION_X (ctl)))
+#define CTL_ACTION(ctl)		(PPR (CTL_ACTION_X (ctl)))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define CTL_ACTION_AS_LONG(ctl)  (CL ((LONGINT) CTL_ACTION_X (ctl)))
+#else
+# define CTL_ACTION_AS_LONG(ctl)  (CL ((LONGINT) (CTL_ACTION_X (ctl)).pp))
+#endif
 #define CTL_REF_CON(ctl)	(CL (CTL_REF_CON_X (ctl)))
 
 extern CTabHandle default_ctl_ctab;
-extern AuxCtlHandle *lookup_aux_ctl (ControlHandle ctl);
+extern HIDDEN_AuxCtlHandle *lookup_aux_ctl (ControlHandle ctl);
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define DEREF_AUX_LOOKUP(p)  MR((p)->p)
+#else
+# define DEREF_AUX_LOOKUP(p)  STARH(p)
+#endif
 
 extern int32 C_cdef0    (int16 var, ControlHandle ctl, int16 mess,
 			 int32 param);
@@ -85,7 +94,7 @@ extern LONGINT ROMlib_ctlcall (ControlHandle c, INTEGER i, LONGINT l);
 #define POPUP_MENU_ID_X(popup)		(HxX (popup, menu_id))
 
 #define POPUP_MENU_ID(popup)		(CW (POPUP_MENU_ID_X (popup)))
-#define POPUP_MENU(popup)		(MR (POPUP_MENU_X (popup)))
+#define POPUP_MENU(popup)		(PPR (POPUP_MENU_X (popup)))
 
 #define POPUP_TITLE_WIDTH(popup)	(HxX (popup, title_width))
 #define POPUP_FLAGS(popup)		(HxX (popup, flags))

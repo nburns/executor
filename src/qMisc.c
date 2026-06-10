@@ -56,7 +56,7 @@ P2 (PUBLIC pascal trap, BOOLEAN, GetPixel, INTEGER, h, INTEGER, v)
   
   gui_assert (! CGrafPort_p (thePort));
   
-  temp_bm.baseAddr      = RM ((Ptr) temp_fbuf);
+  PACKED_ASSIGN (temp_bm.baseAddr, (Ptr) temp_fbuf);
   temp_bm.bounds.top    = CWC (0);
   temp_bm.bounds.bottom = CWC (1);
   temp_bm.bounds.left   = CWC (0);

@@ -54,7 +54,7 @@ A3 (PUBLIC, OSErr, GetFInfo, StringPtr, filen, INTEGER, vrn,	/* IMIV-113 */
   ParamBlockRec pbr;
   OSErr temp;
   
-  pbr.fileParam.ioNamePtr   = RM (filen);
+  PACKED_ASSIGN (pbr.fileParam.ioNamePtr, filen);
   pbr.fileParam.ioVRefNum   = CW (vrn);
   pbr.fileParam.ioFVersNum  = 0;
   pbr.fileParam.ioFDirIndex = CWC (0);
@@ -77,7 +77,7 @@ PUBLIC OSErr HGetFInfo (INTEGER vref, LONGINT dirid, Str255 name,
   OSErr retval;
 
   memset (&pbr, 0, sizeof pbr);
-  pbr.fileParam.ioNamePtr = RM (name);
+  PACKED_ASSIGN (pbr.fileParam.ioNamePtr, name);
   pbr.fileParam.ioVRefNum = CW (vref);
   pbr.fileParam.ioDirID = CL (dirid);
   retval = PBHGetFInfo (&pbr, FALSE);
@@ -100,7 +100,7 @@ A3(PUBLIC, OSErr, SetFInfo, StringPtr, filen, INTEGER, vrn,	/* IMIV-114 */
     OSErr temp;
     LONGINT t;
 
-    pbr.fileParam.ioNamePtr = RM(filen);
+    PACKED_ASSIGN (pbr.fileParam.ioNamePtr, filen);
     pbr.fileParam.ioVRefNum = CW(vrn);
     pbr.fileParam.ioFVersNum = 0;
     pbr.fileParam.ioFDirIndex = CWC (0);
@@ -124,7 +124,7 @@ A2(PUBLIC, OSErr, SetFLock, StringPtr, filen, INTEGER, vrn)	/* IMIV-114 */
 {
     ParamBlockRec pbr;
 
-    pbr.fileParam.ioNamePtr = RM(filen);
+    PACKED_ASSIGN (pbr.fileParam.ioNamePtr, filen);
     pbr.fileParam.ioVRefNum = CW(vrn);
     pbr.fileParam.ioFVersNum = 0;
     return(PBSetFLock(&pbr, 0));
@@ -134,7 +134,7 @@ A2(PUBLIC, OSErr, RstFLock, StringPtr, filen, INTEGER, vrn)	/* IMIV-114 */
 {
     ParamBlockRec pbr;
 
-    pbr.fileParam.ioNamePtr = RM(filen);
+    PACKED_ASSIGN (pbr.fileParam.ioNamePtr, filen);
     pbr.fileParam.ioVRefNum = CW(vrn);
     pbr.fileParam.ioFVersNum = 0;
     return(PBRstFLock(&pbr, 0));
@@ -145,10 +145,10 @@ A3(PUBLIC, OSErr, Rename, StringPtr, filen, INTEGER, vrn,	/* IMIV-114 */
 {
     ParamBlockRec pbr;
 
-    pbr.ioParam.ioNamePtr = RM(filen);
+    PACKED_ASSIGN (pbr.ioParam.ioNamePtr, filen);
     pbr.ioParam.ioVRefNum = CW(vrn);
     pbr.ioParam.ioVersNum = 0;
-    pbr.ioParam.ioMisc = RM((LONGINT) (long) newf);
+    pbr.ioParam.ioMisc = (LONGINT) RPP(newf);
     return(PBRename(&pbr, 0));
 }
 
@@ -279,7 +279,7 @@ open_attrib_bits (LONGINT file_id, VCB *vcbp, INTEGER *refnump)
   for (i = 0; i < NFCB; i++)
     {
       if (CL(ROMlib_fcblocks[i].fdfnum) == file_id
-	  && MR(ROMlib_fcblocks[i].fcvptr) == vcbp)
+	  && (VCB*)PPR(ROMlib_fcblocks[i].fcvptr) == vcbp)
 	{
 	  if (*refnump == 0)
 	    *refnump = CW(i * 94 + 2);
@@ -312,8 +312,8 @@ A5(PUBLIC, OSErr, ROMlib_PBGetSetFInfoD, ParmBlkPtr, pb,	/* INTERNAL */
     LONGINT errval;
     INTEGER tozeroout;
 
-    savezone = TheZone;
-    TheZone = SysZone;
+    savezone = GET_TheZone();
+    SET_TheZone(GET_SysZone());
     pathname = 0;
     rpathname = 0;
 
@@ -416,7 +416,7 @@ A5(PUBLIC, OSErr, ROMlib_PBGetSetFInfoD, ParmBlkPtr, pb,	/* INTERNAL */
 		--temp_name[0];
 	      }
 #endif
-	    name_ptr = (StringPtr) MR (pb->fileParam.ioNamePtr);
+	    name_ptr = (StringPtr) PPR (pb->fileParam.ioNamePtr);
 	    name_ptr[0] = MIN (31, temp_name[0]);
 	    BlockMove ((Ptr) temp_name + 1, (Ptr) name_ptr + 1, name_ptr [0]);
 	  }
@@ -543,7 +543,7 @@ theend:
 	free (pathname);
     if (rpathname)
 	free (rpathname);
-    TheZone = savezone;
+    SET_TheZone(savezone);
     return err;
 }
 
@@ -561,11 +561,20 @@ A2(PUBLIC, OSErr, ufsPBHGetFInfo, HParmBlkPtr, pb,	/* INTERNAL */
     ProcPtr compsave;
 
     d = pb->fileParam.ioDirID;
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
     TRANSFER_ASSIGN (compsave, pb->ioParam.ioCompletion);
     pb->ioParam.ioCompletion = 0;
+#else
+    compsave = (ProcPtr) PPR (pb->ioParam.ioCompletion);
+    PACKED_ASSIGN0 (pb->ioParam.ioCompletion);
+#endif
     err = ROMlib_PBGetSetFInfoD((ParmBlkPtr) pb, a, Get, &d, FALSE);
     pb->fileParam.ioDirID = d;
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
     TRANSFER_ASSIGN (pb->ioParam.ioCompletion, compsave);
+#else
+    PACKED_ASSIGN (pb->ioParam.ioCompletion, compsave);
+#endif
     return err;
 }
 

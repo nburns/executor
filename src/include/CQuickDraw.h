@@ -463,9 +463,9 @@ extern HIDDEN_GDHandle	DeviceList_H;
 
 #else
 
-#  define TheGDevice	((typeof (TheGDevice_H.type[0]))(TheGDevice_H.pp))
-#  define MainDevice	((typeof MainDevice_H.type[0])(MainDevice_H.p))
-#  define DeviceList	((typeof DeviceList_H.type[0])(DeviceList_H.p))
+#  define TheGDevice	PPR(TheGDevice_H)
+#  define MainDevice	PPR(MainDevice_H)
+#  define DeviceList	PPR(DeviceList_H)
 
 #endif
 

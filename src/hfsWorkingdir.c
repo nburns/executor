@@ -42,30 +42,30 @@ PUBLIC OSErr ROMlib_mkwd(WDPBPtr pb, HVCB *vcbp, LONGINT dirid, LONGINT procid)
     THz saveZone;
 
     firstfreep = 0;
-    for (wdp = (wdentry *) (MR(WDCBsPtr) + sizeof(INTEGER)),
-	       ewdp = (wdentry *) (MR(WDCBsPtr) +CW(*(INTEGER *)MR(WDCBsPtr)));
+    for (wdp = (wdentry *) ((char *)GET_WDCBsPtr() + sizeof(INTEGER)),
+	       ewdp = (wdentry *) ((char *)GET_WDCBsPtr() + CW(*(INTEGER *)GET_WDCBsPtr()));
 							  wdp != ewdp; wdp++) {
-	if (!firstfreep && !wdp->vcbp)
+	if (!firstfreep && !wdp->vcbp.pp)
 	    firstfreep = wdp;
-	if (MR(wdp->vcbp) == vcbp && CL(wdp->dirid) == dirid &&
+	if ((HVCB *)PPR(wdp->vcbp) == vcbp && CL(wdp->dirid) == dirid &&
 						   CL(wdp->procid) == procid) {
 	    pb->ioVRefNum = CW(WDPTOWDNUM(wdp));
 /*-->*/	    return noErr;
 	}
     }
     if (!firstfreep) {
-	n_wd_bytes = CW(*(INTEGER *) MR(WDCBsPtr));
+	n_wd_bytes = CW(*(INTEGER *) GET_WDCBsPtr());
 	new_n_wd_bytes = (n_wd_bytes - sizeof(INTEGER)) * 2 + sizeof(INTEGER);
-	saveZone = TheZone;
-	TheZone = SysZone;
+	saveZone = GET_TheZone();
+	SET_TheZone(GET_SysZone());
 	newptr = NewPtr(new_n_wd_bytes);
-	SysZone = TheZone;
+	SET_TheZone(saveZone);
 	if (!newptr)
 	    retval = tmwdoErr;
 	else {
-	    BlockMove( MR(WDCBsPtr), newptr, n_wd_bytes);
-	    DisposPtr( MR(WDCBsPtr) );
-	    WDCBsPtr = RM(newptr);
+	    BlockMove( GET_WDCBsPtr(), newptr, n_wd_bytes);
+	    DisposPtr( GET_WDCBsPtr() );
+	    SET_WDCBsPtr(newptr);
 	    *(INTEGER *) newptr = CW(new_n_wd_bytes);
 	    firstfreep = (wdentry *) (newptr + n_wd_bytes);
 	    retval = noErr;
@@ -73,7 +73,7 @@ PUBLIC OSErr ROMlib_mkwd(WDPBPtr pb, HVCB *vcbp, LONGINT dirid, LONGINT procid)
     } else
 	retval = noErr;
     if (retval == noErr) {
-	firstfreep->vcbp = RM(vcbp);
+	PACKED_ASSIGN(firstfreep->vcbp, vcbp);
 	firstfreep->dirid = CL(dirid);
 	firstfreep->procid = CL(procid);
 	pb->ioVRefNum = CW(WDPTOWDNUM(firstfreep));
@@ -100,7 +100,7 @@ PUBLIC OSErr hfsPBOpenWD(WDPBPtr pb, BOOLEAN async)
     retval = ROMlib_cleancache(vcbp);
     if (retval != noErr)
 	PBRETURN(pb, retval);
-    namep = MR (pb->ioNamePtr);
+    namep = (StringPtr)PPR(pb->ioNamePtr);
     if (kind == directory && namep && namep[0])
 	dirid =
 	      CL(((directoryrec *) DATAPFROMKEY(btparamrec.foundp))->dirDirID);
@@ -120,7 +120,7 @@ PUBLIC OSErr hfsPBCloseWD(WDPBPtr pb, BOOLEAN async)
     if (ISWDNUM(Cx(pb->ioVRefNum))) {
 	wdp = WDNUMTOWDP(Cx(pb->ioVRefNum));
 	if (wdp)
-	    wdp->vcbp = 0;
+	    PACKED_ASSIGN0(wdp->vcbp);
 	else
 	    retval = nsvErr;
     }
@@ -140,22 +140,22 @@ PUBLIC OSErr hfsPBGetWDInfo(WDPBPtr pb, BOOLEAN async)
     wdp = 0;
     if (Cx(pb->ioWDIndex) > 0) {
 	i = Cx(pb->ioWDIndex);
-	wdp = (wdentry *) (MR(WDCBsPtr) + sizeof(INTEGER));
-	ewdp = (wdentry *) (MR(WDCBsPtr) + CW(*(INTEGER *)MR(WDCBsPtr)));
+	wdp = (wdentry *) ((char *)GET_WDCBsPtr() + sizeof(INTEGER));
+	ewdp = (wdentry *) ((char *)GET_WDCBsPtr() + CW(*(INTEGER *)GET_WDCBsPtr()));
 	if (Cx(pb->ioVRefNum) < 0) {
 	    for (;wdp != ewdp; wdp++)
-		if (wdp->vcbp && MR(wdp->vcbp)->vcbVRefNum == pb->ioVRefNum && --i <= 0)
+		if (wdp->vcbp.pp && ((HVCB *)PPR(wdp->vcbp))->vcbVRefNum == pb->ioVRefNum && --i <= 0)
 		    break;
 	} else if (pb->ioVRefNum == 0) {
 	    for (;wdp != ewdp && i > 1; ++wdp)
-	      if (wdp->vcbp)
+	      if (wdp->vcbp.pp)
 		--i;
 	} else /* if (Cx(pb->ioVRefNum) > 0 */ {
 	    for (;wdp != ewdp; wdp++)
-		if (MR(wdp->vcbp)->vcbDrvNum == pb->ioVRefNum && --i <= 0)
+		if (((HVCB *)PPR(wdp->vcbp))->vcbDrvNum == pb->ioVRefNum && --i <= 0)
 		    break;
 	}
-	if (wdp == ewdp || !wdp->vcbp)
+	if (wdp == ewdp || !wdp->vcbp.pp)
 	    wdp = 0;
     } else if (ISWDNUM(Cx(pb->ioVRefNum)))
 	wdp = WDNUMTOWDP(Cx(pb->ioVRefNum));
@@ -163,24 +163,24 @@ PUBLIC OSErr hfsPBGetWDInfo(WDPBPtr pb, BOOLEAN async)
 	vcbp = ROMlib_findvcb(Cx(pb->ioVRefNum), (StringPtr) 0, (LONGINT *) 0,
 									 TRUE);
 	if (vcbp) {
-	    if (pb->ioNamePtr)
-		str255assign(MR(pb->ioNamePtr), (StringPtr) vcbp->vcbVN);
+	    if (pb->ioNamePtr.pp)
+		str255assign((StringPtr)PPR(pb->ioNamePtr), (StringPtr) vcbp->vcbVN);
 	    pb->ioWDProcID  = 0;
 	    pb->ioVRefNum   = pb->ioWDVRefNum = vcbp->vcbVRefNum;
-	    pb->ioWDDirID   = CL((vcbp == MR(DefVCBPtr)) ? DefDirID : 2);
+	    pb->ioWDDirID   = CL((vcbp == GET_DefVCBPtr()) ? DefDirID : 2);
 	    foundelsewhere = TRUE;
 	}
     }
 	
     if (!foundelsewhere) {
 	if (wdp) {
-	    if (pb->ioNamePtr)
-		str255assign(MR(pb->ioNamePtr),
-					     (StringPtr) MR(wdp->vcbp)->vcbVN);
+	    if (pb->ioNamePtr.pp)
+		str255assign((StringPtr)PPR(pb->ioNamePtr),
+					     (StringPtr) ((HVCB *)PPR(wdp->vcbp))->vcbVN);
 	    if (Cx(pb->ioWDIndex) > 0)
-		pb->ioVRefNum = MR(wdp->vcbp)->vcbVRefNum;
+		pb->ioVRefNum = ((HVCB *)PPR(wdp->vcbp))->vcbVRefNum;
 	    pb->ioWDProcID = wdp->procid;
-	    pb->ioWDVRefNum = MR(wdp->vcbp)->vcbVRefNum;
+	    pb->ioWDVRefNum = ((HVCB *)PPR(wdp->vcbp))->vcbVRefNum;
 	    pb->ioWDDirID   = wdp->dirid;
 	} else
 	    retval = nsvErr;
@@ -213,7 +213,7 @@ PUBLIC void ROMlib_adjustdirid(LONGINT *diridp, HVCB *vcbp, INTEGER vrefnum)
     
     if (*(ULONGINT *) diridp <= 1 && ISWDNUM(vrefnum)) {
 	wdp = WDNUMTOWDP(vrefnum);
-	if (MR(wdp->vcbp) == vcbp)
+	if ((HVCB *)PPR(wdp->vcbp) == vcbp)
 	    *diridp = CL(wdp->dirid);
     } else if (*diridp == 0 && !vrefnum /* vcbp == CL(DefVCBPtr) */)
 	*diridp = CL(DefDirID);

@@ -71,12 +71,12 @@ A2(PUBLIC trap, OSErrRET, PBGetFCBInfo, FCBPBPtr, pb, BOOLEAN, async)
     INTEGER i;
     
     if ((i = CW(pb->ioFCBIndx)) > 0) {
-	fcbp  = (filecontrolblock *) (MR(FCBSPtr) + sizeof(INTEGER));
-	efcbp = (filecontrolblock *) (MR(FCBSPtr) + CW(*(INTEGER *)MR(FCBSPtr)));
+	fcbp  = (filecontrolblock *) ((char *)GET_FCBSPtr() + sizeof(INTEGER));
+	efcbp = (filecontrolblock *) ((char *)GET_FCBSPtr() + CW(*(INTEGER *)GET_FCBSPtr()));
 	if (CW(pb->ioVRefNum) < 0) {
 	    for (;fcbp != efcbp; fcbp++)
 		if (fcbp->fcbFlNum &&
-		        MR(fcbp->fcbVPtr)->vcbVRefNum == pb->ioVRefNum && --i <= 0)
+		        ((HVCB *)PPR(fcbp->fcbVPtr))->vcbVRefNum == pb->ioVRefNum && --i <= 0)
 		    break;
 	} else if (pb->ioVRefNum == 0) {
 	    for (;fcbp != efcbp && (fcbp->fcbFlNum == 0 || --i > 0); fcbp++)
@@ -84,24 +84,24 @@ A2(PUBLIC trap, OSErrRET, PBGetFCBInfo, FCBPBPtr, pb, BOOLEAN, async)
 	} else /* if (CW(pb->ioVRefNum) > 0 */ {
 	    for (;fcbp != efcbp; fcbp++)
 		if (fcbp->fcbFlNum &&
-		         MR(fcbp->fcbVPtr)->vcbDrvNum == pb->ioVRefNum && --i <= 0)
+		         ((HVCB *)PPR(fcbp->fcbVPtr))->vcbDrvNum == pb->ioVRefNum && --i <= 0)
 		    break;
 	}
 	if (fcbp == efcbp)
 	    PBRETURN(pb, fnOpnErr);
-	pb->ioRefNum = CW((char *) fcbp - (char *) MR(FCBSPtr));
+	pb->ioRefNum = CW((char *) fcbp - (char *) GET_FCBSPtr());
     } else {
 	fcbp = ROMlib_refnumtofcbp(CW(pb->ioRefNum));
 	if (!fcbp)
 	    PBRETURN(pb, rfNumErr);
     }
-    if (pb->ioNamePtr)
-	str255assign(MR(pb->ioNamePtr), fcbp->fcbCName);
+    if (pb->ioNamePtr.pp)
+	str255assign((StringPtr)PPR(pb->ioNamePtr), fcbp->fcbCName);
     pb->ioFCBFlNm = fcbp->fcbFlNum;
     pb->ioFCBFlags = CW((fcbp->fcbMdRByt <<8) | (unsigned char) fcbp->fcbTypByt);
     pb->ioFCBStBlk = fcbp->fcbSBlk;
     pb->ioFCBEOF = fcbp->fcbEOF;
-    if (MR(fcbp->fcbVPtr)->vcbCTRef) {
+    if (((HVCB *)PPR(fcbp->fcbVPtr))->vcbCTRef) {
 	pb->ioFCBCrPs = fcbp->fcbCrPs;	/* HFS */
 	pb->ioFCBPLen = fcbp->fcbPLen;
     } else {
@@ -109,7 +109,7 @@ A2(PUBLIC trap, OSErrRET, PBGetFCBInfo, FCBPBPtr, pb, BOOLEAN, async)
 						   FORKOFFSET((fcbrec *) fcbp));
 	pb->ioFCBPLen = fcbp->fcbEOF;
     }
-    pb->ioFCBVRefNum = MR(fcbp->fcbVPtr)->vcbVRefNum;
+    pb->ioFCBVRefNum = ((HVCB *)PPR(fcbp->fcbVPtr))->vcbVRefNum;
     if (CW(pb->ioFCBIndx) <= 0 || pb->ioVRefNum == 0)
 	pb->ioVRefNum = pb->ioFCBVRefNum;
     pb->ioFCBClpSiz = fcbp->fcbClmpSize;

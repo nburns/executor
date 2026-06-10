@@ -67,12 +67,31 @@ extern LONGINT 	MenuDisable;
 extern INTEGER 	MBarHeight;
 #endif
 
-#define MenuList	(MenuList_H.p)
-#define MBarHook	(MBarHook_H.p)
-#define MenuHook	(MenuHook_H.p)
-#define MBDFHndl	(MBDFHndl_H.p)
-#define MBSaveLoc	(MBSaveLoc_H.p)
-#define MenuCInfo	(MenuCInfo_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define MenuList	(MenuList_H.p)
+# define MBarHook	(MBarHook_H.p)
+# define MenuHook	(MenuHook_H.p)
+# define MBDFHndl	(MBDFHndl_H.p)
+# define MBSaveLoc	(MBSaveLoc_H.p)
+# define MenuCInfo	(MenuCInfo_H.p)
+# define GET_MenuList()		(MenuList_H.p)
+# define SET_MenuList(v)	(MenuList_H.p = RM(v))
+# define GET_MBDFHndl()		(MBDFHndl_H.p)
+# define GET_MenuCInfo()	(MenuCInfo_H.p)
+# define SET_MenuCInfo(v)	(MenuCInfo_H.p = RM(v))
+#else
+# define MenuList	(MenuList_H.pp)
+# define MBarHook	(MBarHook_H.pp)
+# define MenuHook	(MenuHook_H.pp)
+# define MBDFHndl	(MBDFHndl_H.pp)
+# define MBSaveLoc	(MBSaveLoc_H.pp)
+# define MenuCInfo	(MenuCInfo_H.pp)
+# define GET_MenuList()		((Handle)PPR(MenuList_H))
+# define SET_MenuList(v)	(MenuList_H.pp = RPP(v))
+# define GET_MBDFHndl()		((Handle)PPR(MBDFHndl_H))
+# define GET_MenuCInfo()	((MCTableHandle)PPR(MenuCInfo_H))
+# define SET_MenuCInfo(v)	(MenuCInfo_H.pp = RPP(v))
+#endif
 
 #if !defined (__STDC__)
 extern void DrawMenuBar(); 

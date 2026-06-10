@@ -129,7 +129,7 @@ validate_colors_for_window (GrafPtr w)
   for (i = 0; i <= 12; i ++)
     color_window_colors[i] = default_color_win_ctab[i].rgb;
   
-  t_aux_w = MR (*lookup_aux_win (w));
+  t_aux_w = STARH (lookup_aux_win (w));
   if (t_aux_w && HxX (t_aux_w, awCTable))
     {
       CTabHandle w_ctab;
