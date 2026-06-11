@@ -1,2 +1,4 @@
-build
+build/
 build-sdl/
+syn68k-prefix/
+autom4te.cache/

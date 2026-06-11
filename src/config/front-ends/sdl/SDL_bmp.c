@@ -545,7 +545,7 @@ SDL_BMP_read_helper (dib_read_obj_t *obj)
     }
   
   /* Create a compatible surface, note that the colors are RGB ordered */
-  surface = SDL_AllocSurface(SDL_SWSURFACE,	
+  surface = SDL_CreateRGBSurface(SDL_SWSURFACE,
 		     biWidth, biHeight, desired_bit_depth, Rmask, Gmask,
 			     Bmask, 0);
   if ( surface == NULL )
@@ -568,9 +568,9 @@ SDL_BMP_read_helper (dib_read_obj_t *obj)
 	  palette->colors[ui].g = obj->readle8(obj);
 	  palette->colors[ui].r = obj->readle8(obj);
 	  if ( biSize == 12 )
-	    palette->colors[ui].unused = 0;
+	    palette->colors[ui].a = 0;
 	  else
-	    palette->colors[ui].unused = obj->readle8(obj);
+	    palette->colors[ui].a = obj->readle8(obj);
 	}	
       palette->ncolors = biClrUsed;
     }
@@ -1039,7 +1039,7 @@ int SDL_BMP_write_helper (SDL_Surface *surfp, dib_write_obj_t *obj)
 	  SDL_Surface *temp_surface;
 
 	  /* Convert to 24 bits per pixel */
-	  temp_surface = SDL_AllocSurface(SDL_SWSURFACE,
+	  temp_surface = SDL_CreateRGBSurface(SDL_SWSURFACE,
 					  surfp->w, surfp->h, 24,
 					  0x00FF0000, 0x0000FF00, 0x000000FF,
 					  0);

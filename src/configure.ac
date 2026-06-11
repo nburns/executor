@@ -106,13 +106,23 @@ AC_ARG_WITH(sound,
                AC_MSG_ERROR([Must use --with-sound=sdl or --with-sound=x])
              fi])
 
-AC_DEFINE([FORCE_EXPERIMENTAL_PACKED_MACROS], [0], [Enable the macros that store Macintosh addresses in a union of a 32-bit unsigned int and an array of zero pointers; this currently doesn't work, but eventually it is how we'll support 64-bit architectures])
+AC_CHECK_SIZEOF([char *])
 
 AC_ARG_WITH(incomplete-packed-macros,
             [AS_HELP_STRING([--with-incomplete-packed-macros],
                             [use macros that will eventually allow 64-bit ports of Executor (but will not work yet)])],
-        [if test x"$withval" = xyes; then AC_DEFINE([FORCE_EXPERIMENTAL_PACKED_MACROS], [1])
-fi])
+        [packed_macros="$withval"],
+        [if test "$ac_cv_sizeof_char_p" = 8; then
+           packed_macros=yes
+         else
+           packed_macros=no
+         fi])
+
+if test x"$packed_macros" = xyes; then
+  AC_DEFINE([FORCE_EXPERIMENTAL_PACKED_MACROS], [1], [Enable 64-bit HIDDEN_* pointer packing macros])
+else
+  AC_DEFINE([FORCE_EXPERIMENTAL_PACKED_MACROS], [0], [Enable 64-bit HIDDEN_* pointer packing macros])
+fi
 
 if test x$host_os = xcygwin32; then
   # None of this is tested yet
@@ -180,8 +190,6 @@ AM_CONDITIONAL([CONFIG_OS_NEXT], [test x$host_os = xnext])
 AM_CONDITIONAL([CONFIG_SOUND_DJGPP], [test x$sound_config = xdjgpp])
 AM_CONDITIONAL([CONFIG_SOUND_LINUX], [test x$sound_config = xlinux])
 AM_CONDITIONAL([CONFIG_SOUND_SDL], [test x$sound_config = xsdl])
-
-AC_CHECK_SIZEOF([char *])
 
 AC_CONFIG_FILES([Makefile])
 

@@ -241,7 +241,7 @@ extern uint32 ROMlib_offset;
 #elif SIZEOF_CHAR_P == 8
 
 extern uint64 ROMlib_offset;
-#define SYN68K_TO_US(addr) ((uint16 *) ((uint64)(uint32)addr + ROMlib_offset)) /* uint16 * only the default. */
+#define SYN68K_TO_US(addr) ((uint16 *) ((uint64)(uint32)addr + (*(volatile uint64 *)&ROMlib_offset)))
 #define US_TO_SYN68K(addr) ((uint32) ((long) (addr) - ROMlib_offset))
 
 #else
