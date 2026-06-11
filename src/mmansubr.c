@@ -386,7 +386,7 @@ ROMlib_sledgehammer_zone (THz zone, boolean_t print_p,
 		state = HANDLE_STATE (handle, block);
 		fprintf (stderr, "REL  %p; H:%p P:%p S:%08lx %c%c%c\n",
 			 block,
-			 handle, MR (handle->p),
+			 handle, STARH (handle),
 			 (unsigned long) LSIZE (block),
 			 state & LOCKBIT  ? 'L' : ' ',
 			 state & PURGEBIT ? 'P' : ' ',

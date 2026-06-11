@@ -31,18 +31,20 @@ cd build-sdl && make 2>&1 | grep " error:" | grep -v "^make\["
 
 ## Current status
 
-Phases 1 and 4 are done. Remaining work is Phase 2 → 3 → 5 → 7 (runtime).
+Phases 1, 2, and 4 are done. Remaining work is Phase 3 → 5 → 7 (runtime).
 
 | Phase | What | Status |
 |---|---|---|
 | 1 | Header GET_/SET_ aliases for undeclared low globals | ✓ Done |
-| 2 | Direct `.p` member access on HIDDEN_* types | **Next** |
-| 3 | Union arithmetic on HIDDEN_* values | After Phase 2 |
+| 2 | Direct `.p` member access on HIDDEN_* types | ✓ Done |
+| 3 | Header macro aliases + union arithmetic | **Next** |
 | 4 | SDL_bmp.c SDL2 API fixes | ✓ Done |
-| 5 | Misc: alias.c, dump.c, crc.c | After Phase 3 |
+| 5 | Misc: alias.c, dump.c | After Phase 3 |
 | 7 | Runtime testing with skel volume | After Phase 5 |
 
-Run `./errors.sh` from the repo root to see current errors grouped by category. Note that clang stops at 20 errors per TU, so later errors in each file are hidden until earlier ones are fixed.
+Current error count: ~74 (up from 54 before Phase 2 — fixing Phase 2 source errors unmasked Phase 3 header macro errors that were previously hidden by clang's 20-error-per-TU limit).
+
+Run `./errors.sh` from the repo root to see current errors grouped by category.
 
 ## The HIDDEN_* pointer system (root cause of all Phase 2/3 errors)
 

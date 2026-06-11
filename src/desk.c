@@ -125,7 +125,7 @@ P1(PUBLIC pascal trap, BOOLEAN, SystemEdit, INTEGER, editcmd)
     return retval;
 }
 
-#define rntodctlh(rn)	(MR(MR(UTableBase)[-((rn)+1)].p))
+#define rntodctlh(rn)	PPR(MR(UTableBase)[-((rn)+1)])
 #define itorn(i)	((-i)-1)
 
 P0(PUBLIC pascal trap, void, SystemTask)
@@ -134,7 +134,7 @@ P0(PUBLIC pascal trap, void, SystemTask)
     INTEGER i;
 
     for (i = 0; i < CW(UnitNtryCnt); ++i) {
-	dctlh = MR(MR(UTableBase)[i].p);
+	dctlh = PPR(MR(UTableBase)[i]);
 	if ((HxX(dctlh, dCtlFlags) & CWC(NEEDTIMEBIT)) &&
 				      TickCount() >= Hx(dctlh, dCtlCurTicks)) {
 	    Control(itorn(i), accRun, (Ptr) 0);
@@ -204,7 +204,7 @@ P1(PUBLIC pascal trap, void, SystemMenu, LONGINT, menu)
     DCtlHandle dctlh;
 
     for (i = 0; i < CW(UnitNtryCnt); ++i) {
-	dctlh = MR(MR(UTableBase)[i].p);
+	dctlh = PPR(MR(UTableBase)[i]);
 	if (HxX(dctlh, dCtlMenu) == MBarEnable) {
 	    menu = CL(menu);
 	    Control(itorn(i), accMenu, (Ptr) &menu);

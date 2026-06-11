@@ -5,14 +5,16 @@
 | Phase | What | State |
 |---|---|---|
 | 1 | Header GET_/SET_ aliases for undeclared low globals | ✓ Done |
-| 2 | Direct `.p` member access on HIDDEN_* types | **Next** |
-| 3 | Union arithmetic on HIDDEN_* values | After Phase 2 |
+| 2 | Direct `.p` member access on HIDDEN_* types | ✓ Done |
+| 3 | Header macro aliases + union arithmetic | **Next** |
 | 4 | SDL_bmp.c SDL2 API fixes | ✓ Done |
-| 5 | Misc: alias.c macro, dump.c casts, crc.c | After Phase 3 |
+| 5 | Misc: alias.c macro, dump.c casts | After Phase 3 |
 | 7 | Runtime testing with skel volume | After Phase 5 |
 | 6 | arm64 JIT for syn68k | Optional / large project |
 
 Build is configured in `build-sdl/` with `FORCE_EXPERIMENTAL_PACKED_MACROS 1` and SDL2 front-end. Run `./errors.sh` to see current errors grouped by category.
+
+Current error count (post-Phase-2): ~74 total. Most are Phase 3 header macro errors now visible after Phase 2 fixes unmasked them.
 
 ---
 
@@ -24,64 +26,56 @@ The fix layer (`STARH`, `HPTR_WRITE`, `GET_`/`SET_` macros, etc.) is defined in 
 
 ---
 
-## Phase 2 — Direct `.p` member access
+## Phase 2 — Direct `.p` member access ✓ Done
 
-Errors come from two sources:
+All direct `h->p` / `val.p` accesses on HIDDEN_* types in the 23 source files have been converted to the portable accessor macros. See macro cheat sheet below.
 
-1. **Header macros** with 32-bit-only `.p` aliases (no 64-bit `#else` branch). Headers still needing 64-bit branches:
+Files fixed: `executor.c`, `osevent.c`, `mmansubr.c`, `syserr.c`, `crc.c`, `iu.c`, `appearance.c`, `emustubs.c`, `toolutil.c`, `icon.c`, `system_error.c`, `aboutbox.c`, `toolevent.c`, `stdfile.c`, `segment.c`, `font.c`, `osutil.c`, `device.c`, `desk.c`, `launch.c`, `main.c`.
+
+Note: `scrap.c` and `mman.c` had no direct `.p` in source — all their errors came from header macros (Phase 3).
+
+---
+
+## Phase 3 — Header macro aliases + union arithmetic
+
+Two sub-problems, both must be fixed to clear the remaining ~74 errors:
+
+### 3a — Header macros with 32-bit-only `.p` aliases
+
+Headers still needing 64-bit GET_/SET_ branches:
 
 | Header | Globals |
 |---|---|
-| `DeviceMgr.h` | `UTableBase`, `VIA`, `UnitNtryCnt` |
+| `DeviceMgr.h` | `UTableBase`, `VIA` |
 | `QuickDraw.h` | `JInitCrsr`, `JHideCursor`, `JShowCursor`, `JShieldCursor`, `JSetCrsr`, `JCrsrObscure`, `JUnknown574`, `JCrsrTask`, `ScrnBase`, `Key1Trans`, `Key2Trans` |
 | `rsys/jumpvectors.h` | `JFLUSH`, `JResUnknown1`, `JResUnknown2` |
 | `MenuMgr.h` | `MenuList`, `MBarHook`, `MenuHook`, `MBDFHndl`, `MBSaveLoc`, `MenuCInfo` |
 | `SysErr.h` | `DSAlertTab` |
-| `rsys/misc.h` | `nilhandle` |
+| `rsys/misc.h` | `nilhandle`, `dodusesit` |
 | `TextEdit.h` | `TEDoText`, `TEScrpHandle` |
+| `rsys/mman_private.h` | `HANDLE_TO_BLOCK` macro uses `(handle)->p` |
+| `ScrapMgr.h` | `ScrapHandle`, `ScrapName` |
+| `SoundMgr.h` / low globals | `SoundBase` |
+| `AppleEvents.h` | `AE_info` |
+| `FontMgr.h` | `fontHandle` field in `FMOutput` |
 
 Pattern (same as Phase 1):
 ```c
-# define FooGlobal       GET_FooGlobal()
-# define GET_FooGlobal() ((FooType) PPR(FooGlobal_H))
+# define FooGlobal        GET_FooGlobal()
+# define GET_FooGlobal()  ((FooType) PPR(FooGlobal_H))
 # define SET_FooGlobal(v) (FooGlobal_H.pp = RPP(v))
 ```
 
-2. **Explicit `.p` in source** — 23 files with direct `h->p` / `val.p` access on HIDDEN_ types.
+`UTableBase` and `VIA` also need SET_ variants since they appear as lvalues in `device.c` and `launch.c`.
 
-Substitution rules:
-
-| Old | New | Notes |
-|---|---|---|
-| `MR(h->p)` or `h->p` read | `STARH(h)` | h is HIDDEN_T * |
-| `h->p = RM(expr)` | `HPTR_WRITE(h, expr)` | drop the RM |
-| `h->p = NULL/CLC(0)` | `HPTR_WRITE0(h)` | |
-| `MR(val.p)` or `val.p` as pointer | `FROM_HIDDEN(val)` | val is HIDDEN_T value |
-| `val.p` as Mac uint32 | `HIDDEN_VAL(val)` | |
-| `val.p = RM(expr)` | `HIDDEN_VAL_WRITE(val, expr)` | drop the RM |
-| `val.p = 0/NULL` | `HIDDEN_VAL_WRITE0(val)` | |
-| `sizeof(someHidden.p)` | `sizeof(Ptr)` | one instance: `main.c:1939` |
-
-**Failing files** (by error count):
-```
-launch.c (13)  executor.c (9)  main.c (8)    osutil.c (8)
-syserr.c (7)   toolevent.c (7) toolutil.c (7) segment.c (7)
-scrap.c (6)    device.c (5)    font.c (4)    stdfile.c (4)
-desk.c (3)     emustubs.c (3)  icon.c (3)    mman.c (3)
-mmansubr.c (3) osevent.c (3)   system_error.c (3) appearance.c (2)
-aboutbox.c (1) crc.c (1)       iu.c (1)
-```
-
-**CAUTION:** `.p` also exists on non-HIDDEN types (`obj->u.cfdib.p` in SDL_bmp.c, `rp.p` in qStdLine.c, etc.). Scope rewrites to the 23 files above only.
-
----
-
-## Phase 3 — Union arithmetic errors
+### 3b — Union arithmetic errors
 
 `HIDDEN_*` values used in comparisons or arithmetic fail with:
 ```
 error: invalid operands to binary expression ('int' and 'union ...')
 ```
+
+Files: `dump.c`, `gestalt.c`, `font.c` (fontHandle field), `device.c` (ioNamePtr in FileMgr.h).
 
 Fix: use `HIDDEN_VAL(x)` for integer comparisons, `PPR(x)` to get the native pointer, or `HxZ`/`HxP` for handle field access.
 
@@ -91,7 +85,7 @@ Fix: use `HIDDEN_VAL(x)` for integer comparisons, `PPR(x)` to get the native poi
 
 - `alias.c:469` — macro expands to undeclared `n`; check `N()` macro definition and include guards
 - `dump.c` — union/pointer type errors from HIDDEN_* fields used in printf-style accessors; fix case by case
-- `crc.c` — similar
+- `crc.c` — was listed here but Phase 2 fixes resolved it
 
 ---
 

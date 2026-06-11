@@ -1936,8 +1936,8 @@ A2 (PUBLIC, int, main, int, argc, char **, argv)
 
   SET_TheZone(SysZone);
   UTableBase =
-    (DCtlHandlePtr) (long) RM (NewPtr (sizeof (UTableBase[0].p) * NDEVICES));
-  memset (MR (UTableBase), 0, sizeof (UTableBase[0].p) * NDEVICES);
+    (DCtlHandlePtr) (long) RM (NewPtr (sizeof (Ptr) * NDEVICES));
+  memset (MR (UTableBase), 0, sizeof (Ptr) * NDEVICES);
   UnitNtryCnt = CW (NDEVICES);
   SET_TheZone(ApplZone);
 

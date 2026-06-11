@@ -39,7 +39,7 @@ char ROMlib_rcsid_system_error[] =
     HIDDEN_ControlHandle bogo_c;		\
 						\
     retval = FindControl (arg0, arg1, &bogo_c);	\
-    *(arg2) = MR (bogo_c.p);			\
+    *(arg2) = FROM_HIDDEN(bogo_c);		\
 						\
     retval;					\
   })

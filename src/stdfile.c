@@ -137,7 +137,7 @@ A1(PRIVATE, INTEGER, movealert, INTEGER, id)
     Rect *rp;
     
     h = GetResource(TICK("ALRT"), id);
-    if (!(*h).p)
+    if (!h->pp)
 	LoadResource(h);
     rp = (Rect *) STARH(h);
     dh = CW(rp->right)  - CW(rp->left);
@@ -847,14 +847,14 @@ P2(PUBLIC, pascal void,  ROMlib_filebox, DialogPeek, dp, INTEGER, which)
 
     GetPenState(&ps);
     PenNormal();
-    
-    h.p = NULL;
+
+    HIDDEN_VAL_WRITE0(h);
     GetDItem((DialogPtr) dp, which, &i, &h, &r);
 /*    h.p = CL(h.p); we don't really use h */
     switch (which) {
     case getNmList:
     case putNmList:
-        if (h.p)
+        if (HIDDEN_VAL(h))
 	    FrameRect(&r);
 	flupdate(WINDFL(dp), GetCtlValue(WINDFL(dp)->flsh),
 							WINDFL(dp)->flnmlin);
@@ -868,11 +868,11 @@ P2(PUBLIC, pascal void,  ROMlib_filebox, DialogPeek, dp, INTEGER, which)
 	width = CW(r.right) - CW(r.left);
 	diskname = getdiskname( &ejectable, NULL );
 	GetDItem((DialogPtr) dp, putEject, &i, &ejhand, &r2);
-	ejhand.p = MR(ejhand.p);
+	ControlHandle ejhand_native = FROM_HIDDEN(ejhand);
 	if (ejectable)
-	    HiliteControl((ControlHandle) ejhand.p, 0);
+	    HiliteControl(ejhand_native, 0);
 	else
-	    HiliteControl((ControlHandle) ejhand.p, 255);
+	    HiliteControl(ejhand_native, 255);
 	strwidth = StringWidth(diskname) + 2 + 16 + 3;
 	offset = (width - strwidth) / 2;
 	if (offset < 3)
@@ -1120,17 +1120,17 @@ P3(PUBLIC, pascal INTEGER,  ROMlib_stdffilt, DialogPeek, dp,
 	case NUMPAD_ENTER:
 	case '\r' :
 	    GetDItem((DialogPtr) dp, CW(dp->aDefItem), &i, (HIDDEN_Handle *) &h, &r);
-	    h.p = MR(h.p);
-	    if (Hx(h.p, contrlVis) && U(Hx(h.p, contrlHilite)) != 255)
+	    ControlHandle h_ctl = (ControlHandle) FROM_HIDDEN(h);
+	    if (Hx(h_ctl, contrlVis) && U(Hx(h_ctl, contrlHilite)) != 255)
 	      {
 		prefix[0] = 0;
 		oldticks = -1000;
 		*ith = CW(opentoken);
 		retval = -1;
 #if !defined(NEXTSTEP)
-		HiliteControl(h.p, inButton);
+		HiliteControl(h_ctl, inButton);
 		Delay((LONGINT)5, (LONGINT *) 0);
-		HiliteControl(h.p, 0);
+		HiliteControl(h_ctl, 0);
 #endif
 	      }
 	    break;
@@ -1205,8 +1205,8 @@ P3(PUBLIC, pascal INTEGER,  ROMlib_stdffilt, DialogPeek, dp,
 	p.v = CW(p.v);
 	if (PtInRect(p, &fl->flrect)) {
 	    GetDItem((DialogPtr) dp, getOpen, &i, (HIDDEN_Handle *) &h, &r);
-	    h.p = MR(h.p);
-	    flmouse(fl, evt->where, h.p);
+	    Handle h_native = FROM_HIDDEN(h);
+	    flmouse(fl, evt->where, h_native);
 	    ticks = TickCount();
 	    if (fl->flsel != -1 && savesel == fl->flsel &&
 					 (ticks < oldticks + CL(DoubleTime))) {
@@ -1229,9 +1229,9 @@ P3(PUBLIC, pascal INTEGER,  ROMlib_stdffilt, DialogPeek, dp,
 	    retval = -1;
 	} else {
 	    GetDItem((DialogPtr) dp, getOpen, &i, (HIDDEN_Handle *) &h, &r);
-	    h.p = MR(h.p);
-	    if ((part = TestControl(h.p, p)) &&
-			     TrackControl(h.p, p, (ProcPtr) 0)) {
+	    ControlHandle h_ctl = (ControlHandle) FROM_HIDDEN(h);
+	    if ((part = TestControl(h_ctl, p)) &&
+			     TrackControl(h_ctl, p, (ProcPtr) 0)) {
 		prefix[0] = 0;
 		oldticks = -1000;
 		*ith = CWC(opentoken);
@@ -1892,13 +1892,13 @@ A4(PRIVATE, void, transformsfpdialog, DialogPtr, dp, Point *, offset,
     for (j = 1 ; j <= numitems ; j++) {
 	GetDItem(dp, j, &i, &h, &r);
 	i = CW(i);
-	h.p = MR(h.p);
+	Handle h_native = FROM_HIDDEN(h);
 	if (!getting || CW(r.bottom) > CW(scrollrect->top)) {
 	    r.top = CW(CW(r.top) + (extrasizeneeded));
 	    r.bottom = CW(CW(r.bottom) + (extrasizeneeded));
 	    if (i <= 7 && i >= 4)	/* It's a control */
-		MoveControl((ControlHandle) h.p, CW(r.left), CW(r.top));
-	    SetDItem(dp, j, i, h.p, &r);
+		MoveControl((ControlHandle) h_native, CW(r.left), CW(r.top));
+	    SetDItem(dp, j, i, h_native, &r);
 	}
     }
     windheight = CW(dp->portRect.bottom) - CW(dp->portRect.top) + extrasizeneeded;
@@ -1936,8 +1936,8 @@ void adjustdrivebutton(DialogPtr dp)
     count = 2;	/* always allow the user to hit the drive button */
 #endif /* defined(MSDOS) */
     GetDItem(dp, putDrive, &i, &drhand, &r);	/* putDrive == getDrive */
-    drhand.p = MR(drhand.p);
-    HiliteControl((ControlHandle) drhand.p, count > 1 ? 0 : 255);
+    ControlHandle dr_ctl = (ControlHandle) FROM_HIDDEN(drhand);
+    HiliteControl(dr_ctl, count > 1 ? 0 : 255);
 }
 
 A1(PRIVATE, void, doeject, DialogPtr, dp)

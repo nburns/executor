@@ -50,14 +50,14 @@ A1(PUBLIC trap, OSErrRET, HandToHand, HIDDEN_Handle *, hp)
     Handle nh;
     Size s;
     OSErr err;
-	
-    if (!hp->p)
+
+    if (!hp->pp)
       {
 	warning_unexpected ("hp = %p", hp);
 /*-->*/ return nilHandleErr;
       }
 
-    s = GetHandleSize((*hp).p);
+    s = GetHandleSize(FROM_HIDDEN(*hp));
     if ((err = MemError()))
 /*-->*/	return(err);
 
@@ -65,8 +65,8 @@ A1(PUBLIC trap, OSErrRET, HandToHand, HIDDEN_Handle *, hp)
     if ((err = MemError()))
 /*-->*/	return(err);
 
-    BlockMove(STARH((*hp).p), STARH(nh), s);
-    (*hp).p = nh;
+    BlockMove(STARH(hp), *nh, s);
+    HPTR_WRITE(hp, nh);
     return noErr;
 }
 
@@ -83,10 +83,10 @@ A3(PUBLIC trap, OSErrRET, PtrToHand, Ptr, p, HIDDEN_Handle *, h, LONGINT, s)
     nh = NewHandle(s);
     if ((err = MemError()))
 	return(err);
-    BlockMove(p, STARH(nh), s);
+    BlockMove(p, *nh, s);
     if ((err = MemError()))
 	return(err);
-    (*h).p = nh;
+    HPTR_WRITE(h, nh);
     return(noErr);
 }
 
@@ -788,10 +788,10 @@ A2(PUBLIC trap, void, Enqueue, QElemPtr, e, QHdrPtr, h)
     virtual_int_state_t block;
 
     block = block_virtual_ints ();
-    for (qpp = (HIDDEN_QElemPtr *) &h->qHead; (*qpp).p && MR((*qpp).p) != e;
-					qpp = (HIDDEN_QElemPtr *) MR((*qpp).p))
+    for (qpp = (HIDDEN_QElemPtr *) &h->qHead; qpp->pp && STARH(qpp) != e;
+					qpp = (HIDDEN_QElemPtr *) STARH(qpp))
 	;
-    if (!(*qpp).p) {
+    if (!qpp->pp) {
 	e->evQElem.qLink = 0;
 	if (h->qTail)
 	    MR(h->qTail)->evQElem.qLink = RM(e);
@@ -810,11 +810,11 @@ A2(PUBLIC trap, OSErrRET, Dequeue, QElemPtr, e, QHdrPtr, h)
 	
     retval = qErr;
     block = block_virtual_ints ();
-    for (qpp = (HIDDEN_QElemPtr *) &h->qHead; (*qpp).p && MR((*qpp).p) != e;
-					qpp = (HIDDEN_QElemPtr *) MR((*qpp).p))
+    for (qpp = (HIDDEN_QElemPtr *) &h->qHead; qpp->pp && STARH(qpp) != e;
+					qpp = (HIDDEN_QElemPtr *) STARH(qpp))
 	;
-    if ((*qpp).p) {
-	(*qpp).p = e->evQElem.qLink;
+    if (qpp->pp) {
+	qpp->pp = e->evQElem.qLink.pp;
 	if (MR(h->qTail) == e)
 	    h->qTail = qpp == (HIDDEN_QElemPtr *) &h->qHead ? (QElemPtr) 0 : RM((QElemPtr) qpp);
 	retval = noErr;

@@ -77,8 +77,8 @@ invalidate_all_widths (void)
   hp = (HIDDEN_Handle *) STARH (wlh);
   for (i = 0; i < n_entries; ++i)
     {
-      DisposHandle (MR (hp[i].p));
-      hp[i].p = CLC (0);
+      DisposHandle (FROM_HIDDEN(hp[i]));
+      HIDDEN_VAL_WRITE0(hp[i]);
     }
   HUnlock (wlh);
 }
@@ -204,8 +204,8 @@ A1(PRIVATE, BOOLEAN, widthlistmatch, FMInput *, fmip)
     HIDDEN_WHandle *whp, *ewhp;
 
     for (whp = (HIDDEN_WHandle *) STARH(WIDTHLISTHAND), ewhp = whp + MAXTABLES; whp != ewhp; whp++) {
-	if ((*whp).p && (LONGINT) (long) (*whp).p != (LONGINT) -1) {
-	    WidthPtr = (*(MR((*whp).p))).p;
+	if (HIDDEN_VAL(*whp) && (LONGINT) (long) HIDDEN_VAL(*whp) != (LONGINT) -1) {
+	    WidthPtr = HIDDEN_VAL(*(FROM_HIDDEN(*whp)));
 	    if (WIDTHPTR->aFID  == fmip->family &&
 				  WIDTHPTR->aSize     == fmip->size       &&
 			   (char) WIDTHPTR->aFace     == (char) fmip->face &&
@@ -217,8 +217,8 @@ A1(PRIVATE, BOOLEAN, widthlistmatch, FMInput *, fmip)
 				  WIDTHPTR->fSize     != -1 &&
 				  WIDTHPTR->fSize     !=  0 &&
 				 !WIDTHPTR->usedFam   == !FractEnable) {
-		WidthTabHandle = (WidthTableHandle) (*whp).p;
-		HLock((Handle) MR(WidthTabHandle));
+		WidthTabHandle = (WidthTableHandle) HIDDEN_VAL(*whp);
+		HLock((Handle) FROM_HIDDEN(WidthTabHandle_H));
 		return TRUE;
 	    }
 	}

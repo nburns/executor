@@ -868,8 +868,8 @@ PRIVATE void reset_low_globals(void)
 	save58            = *(LONGINT *) SYN68K_TO_US(0x58);
 	save5C            = *(LONGINT *) SYN68K_TO_US(0x5C);
 	saveVIA           = VIA;
-	saveSCCRd	  = SCCRd_H.p;
-	saveSCCWr	  = SCCWr_H.p;
+	saveSCCRd	  = FROM_HIDDEN(SCCRd_H);
+	saveSCCWr	  = FROM_HIDDEN(SCCWr_H);
 	saveSoundBase     = SoundBase;
 	saveAppParmHandle = AppParmHandle;
 	saveVCBQHdr       = VCBQHdr;
@@ -1009,8 +1009,8 @@ PRIVATE void reset_low_globals(void)
 	VCBQHdr       = saveVCBQHdr;
 	Lo3Bytes      = saveLo3Bytes;
 	VIA           = saveVIA;
-	SCCRd_H.p     = saveSCCRd;
-	SCCWr_H.p     = saveSCCWr;
+	HIDDEN_VAL_WRITE(SCCRd_H, saveSCCRd);
+	HIDDEN_VAL_WRITE(SCCWr_H, saveSCCWr);
 	SoundBase     = saveSoundBase;
 	Ticks_UL.u    = saveTicks;
 	SysZone       = saveSysZone;
@@ -1151,9 +1151,9 @@ PRIVATE void reset_low_globals(void)
 
     {
       int i;
-      
+
       for (i = 0; i < (int) NELEM (AppPacks_H); ++i)
-	AppPacks_H[i].p = 0;
+	HIDDEN_VAL_WRITE0(AppPacks_H[i]);
     }
     SysEvtMask = CWC(~(1L<< keyUp)); /* EVERYTHING except keyUp */
     SdVolume = 7; /* for Beebop 2 */

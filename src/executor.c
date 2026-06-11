@@ -582,8 +582,8 @@ PUBLIC void executor_main( void )
 
 #define SCC_SIZE 1024
 
-    SCCRd_H.p = RM(NewPtrSysClear (SCC_SIZE));
-    SCCWr_H.p = RM(NewPtrSysClear (SCC_SIZE));
+    HPTR_WRITE(&SCCRd_H, NewPtrSysClear (SCC_SIZE));
+    HPTR_WRITE(&SCCWr_H, NewPtrSysClear (SCC_SIZE));
     
     setup28();
 

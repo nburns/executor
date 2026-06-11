@@ -47,7 +47,7 @@ A4(PUBLIC, OSErr, ROMlib_dispatch, ParmBlkPtr, p,		/* INTERNAL */
     if (devicen < 0 || devicen >= NDEVICES)
 	retval = badUnitErr;
     else if (UTableBase == (DCtlHandlePtr) (long) CLC(0xFFFFFFFF) ||
-		(h = MR(MR(UTableBase)[devicen].p)) == 0 || (*h).p == 0)
+		(h = FROM_HIDDEN(MR(UTableBase)[devicen])) == 0 || h->pp == 0)
 	retval =  unitEmptyErr;
     else {
 	HLock((Handle) h);
@@ -151,7 +151,7 @@ A4(PUBLIC, OSErr, ROMlib_dispatch, ParmBlkPtr, p,		/* INTERNAL */
 		/* NOTE: It's not clear whether we should zero out this
 		   field or just check for DRIVEROPEN bit up above and never
 		   send messages except open to non-open drivers.  */
-		MR(UTableBase)[devicen].p = CLC(0);
+		HIDDEN_VAL_WRITE0(MR(UTableBase)[devicen]);
 	    }
 
 	    if (routine < Close)
@@ -251,7 +251,7 @@ A1(PUBLIC, DCtlHandle, GetDCtlEntry, INTEGER, rn)
     return (devicen < 0 || devicen >= NDEVICES) ?
 	       0
 	   :
-	       MR(MR(UTableBase)[devicen].p);
+	       FROM_HIDDEN(MR(UTableBase)[devicen]);
 }
 
 /*
@@ -300,11 +300,14 @@ A2(PUBLIC, OSErr, ROMlib_driveropen, ParmBlkPtr, pbp,		/* INTERNAL */
 	 LoadResource((Handle) ramdh);
 	 GetResInfo((Handle) ramdh, &devicen, &typ, (StringPtr) 0);
 	 devicen = CW(devicen);
-	 h = MR(MR(UTableBase)[devicen].p);
+	 h = FROM_HIDDEN(MR(UTableBase)[devicen]);
 	 alreadyopen = h && (HxX(h, dCtlFlags) & CWC(DRIVEROPENBIT));
-	 if (!h && !(h = MR(MR(UTableBase)[devicen].p =
-			    RM((DCtlHandle) NewHandle(sizeof(DCtlEntry))))))
-	   err = MemError();
+	 if (!h && !(h = FROM_HIDDEN(MR(UTableBase)[devicen]))) {
+	   HIDDEN_VAL_WRITE(MR(UTableBase)[devicen], (DCtlHandle) NewHandle(sizeof(DCtlEntry)));
+	   h = FROM_HIDDEN(MR(UTableBase)[devicen]);
+	   if (!h)
+	     err = MemError();
+	 }
 	 else if (!alreadyopen) {
 	   memset((char *) STARH(h), 0, sizeof(DCtlEntry));
 	   HxX(h, dCtlDriver)   = (umacdriverptr) RM(ramdh);
@@ -352,14 +355,15 @@ A2(PUBLIC, OSErr, ROMlib_driveropen, ParmBlkPtr, pbp,		/* INTERNAL */
 	   devicen = -dip->refnum -1;
 	   if (devicen < 0 || devicen >= NDEVICES)
 	     err = badUnitErr;
-	   else if (MR(UTableBase)[devicen].p)
+	   else if (HIDDEN_VAL(MR(UTableBase)[devicen]))
 	     err = noErr;	/* note:  if we choose to support desk */
 	   /*	  accessories, we will have to */
 	   /*	  check to see if this is one and */
 	   /*	  call the open routine if it is */
 	   else {
-	     if (!(h = MR(MR(UTableBase)[devicen].p =
-			  RM((DCtlHandle) NewHandle(sizeof(DCtlEntry))))))
+	     HIDDEN_VAL_WRITE(MR(UTableBase)[devicen], (DCtlHandle) NewHandle(sizeof(DCtlEntry)));
+	     h = FROM_HIDDEN(MR(UTableBase)[devicen]);
+	     if (!h)
 	       err = MemError();
 	     else {
 	       memset((char *) STARH(h), 0, sizeof(DCtlEntry));

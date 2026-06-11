@@ -120,18 +120,18 @@ AddResourceRN (INTEGER rn, Handle h, ResType type, INTEGER id, Str255 name)
       INTEGER savern;
       HIDDEN_Handle hh;
 
-      hh.p = h; 
+      HIDDEN_VAL_WRITE(hh, h);
       if (HandleZone (h) != SysZone)
 	{
 	  Handle save_hand;
-      
+
 	  save_hand = h;
 	  HandToHand (&hh);
 	  DisposHandle (save_hand);
 	}
       savern = CurResFile ();
       UseResFile (rn);
-      AddResource (hh.p, type, id, name);
+      AddResource (FROM_HIDDEN(hh), type, id, name);
       UseResFile (savern);
     }
 }

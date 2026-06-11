@@ -76,16 +76,16 @@ P2 (PUBLIC pascal trap, void, PlotIcon,
 {
   if (icon == NULL)
     return;
-  
-  if (!(*icon).p)
+
+  if (!icon->pp)
     LoadResource (icon);
-  
+
   LOCK_HANDLE_EXCURSION_1
     (icon,
      {
        BitMap bm;
-       
-       bm.baseAddr = (Ptr) icon->p;
+
+       bm.baseAddr = STARH(icon);
        bm.rowBytes = CWC(4);
        bm.bounds.left = bm.bounds.top = 0;
        if (GetHandleSize (icon) == 2 * 16)

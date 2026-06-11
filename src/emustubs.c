@@ -745,9 +745,9 @@ STUB(HandToHand)
     HIDDEN_Handle vp;
 
     SAVE_A1_D1_D2();
-    vp.p = (Handle) SYN68K_TO_US_CHECK0(EM_A0);
+    HIDDEN_VAL_WRITE(vp, (Handle) SYN68K_TO_US_CHECK0(EM_A0));
     EM_D0 = HandToHand((HIDDEN_Handle *) &vp);
-    EM_A0 = (long) US_TO_SYN68K_CHECK0(vp.p);
+    EM_A0 = (long) US_TO_SYN68K_CHECK0(HIDDEN_VAL(vp));
     RESTORE_A1_D1_D2();
     ADJUST_CC_BASED_ON_D0();
     RTS();
@@ -760,7 +760,7 @@ STUB(PtrToHand)
     SAVE_A1_D1_D2();
     EM_D0 = PtrToHand((Ptr) SYN68K_TO_US_CHECK0(EM_A0),
 		      (HIDDEN_Handle *) &dsthand, EM_D0);
-    EM_A0 = US_TO_SYN68K_CHECK0 ((long) dsthand.p);
+    EM_A0 = US_TO_SYN68K_CHECK0 ((long) HIDDEN_VAL(dsthand));
     RESTORE_A1_D1_D2();
     ADJUST_CC_BASED_ON_D0();
     RTS();
@@ -1834,7 +1834,7 @@ STUB(PostEvent)
 #warning the first argument to PPostEvent looks suspicious
     EM_D0 = PPostEvent(EM_A0, EM_D0,
 		       (HIDDEN_EvQElPtr *) &qelemp);
-    EM_A0 = (long) qelemp.p;
+    EM_A0 = (long) HIDDEN_VAL(qelemp);
     RTS();
 }
 
