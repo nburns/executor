@@ -355,9 +355,9 @@ InitApplZone (void)
 #define INIT_APPLZONE_SIZE \
   (ROMlib_applzone_size + APPLZONE_SLOP)
   
-  HeapEnd = (Ptr) RM ((char *) MR (ApplZone)
-		      + INIT_APPLZONE_SIZE
-		      - (MIN_BLOCK_SIZE + APPLZONE_SLOP));
+  SET_HeapEnd((Ptr) ((char *) GET_ApplZone()
+		    + INIT_APPLZONE_SIZE
+		    - (MIN_BLOCK_SIZE + APPLZONE_SLOP)));
   
   InitZone (0, 64, (Ptr) HEAPEND, (Zone *) MR (ApplZone));
   MM_SLAM ("exit");
@@ -495,9 +495,9 @@ ROMlib_InitZones (offset_enum which)
 	  break;
 	}
 
-      MemTop = mem_top;
+      SET_MemTop(mem_top);
 
-      SysZone = (void *) RM (memory);
+      SET_SysZone((THz) memory);
       ROMlib_syszone = (unsigned long) memory;
       ROMlib_memtop = (unsigned long) (memory + total_allocated_memory);
       InitZone (0, 32, (Ptr) ((long) MR (SysZone) + init_syszone_size),
@@ -513,9 +513,9 @@ ROMlib_InitZones (offset_enum which)
 		  applzone_memory_segment_size) == -1)
 	warning_errno ("unable to `munmap ()' previous applzone");
   
-      ApplZone = (THz) RM ((long) MR (SysZone)
+      SET_ApplZone((THz) ((long) GET_SysZone()
 			   + INIT_SYSZONE_SIZE
-			   + (mm_current_applzone * INIT_APPLZONE_SIZE));
+			   + (mm_current_applzone * INIT_APPLZONE_SIZE)));
       mm_current_applzone = (mm_current_applzone + 1) % mm_n_applzones;
   
       if (mmap ((char *) MR (ApplZone), INIT_APPLZONE_SIZE,
@@ -524,15 +524,14 @@ ROMlib_InitZones (offset_enum which)
 	errno_fatal ("unable to `mmap ()' new applzone");
     }
   else
-    ApplZone = (THz) RM ((long) MR (SysZone) + INIT_SYSZONE_SIZE);
+    SET_ApplZone((THz) ((long) GET_SysZone() + INIT_SYSZONE_SIZE));
 #else /* !MM_MANY_APPLZONES */
-  ApplZone = (THz) RM ((long) MR (SysZone) + INIT_SYSZONE_SIZE);
+  SET_ApplZone((THz) ((long) GET_SysZone() + INIT_SYSZONE_SIZE));
 #endif
   
   InitApplZone ();
   
-  ApplLimit = RM ((Ptr) ((long) MR (ApplZone)
-			 + INIT_APPLZONE_SIZE));
+  SET_ApplLimit((Ptr) ((long) GET_ApplZone() + INIT_APPLZONE_SIZE));
   
   EM_A7 = (long) US_TO_SYN68K(stack_end - 16 - MANDELSLOP);
   
@@ -572,7 +571,7 @@ SetApplBase (Ptr newbase)
     }
   /* Otherwise, blow it off.  There isn't room for another block at the end,
      so we just let the old bkLim stand. */
-  ApplZone = RM ((THz) newbase);
+  SET_ApplZone((THz) newbase);
   
   InitApplZone ();
   SET_MEM_ERR (noErr);
@@ -587,7 +586,7 @@ MoreMasters (void)
   
   MM_SLAM ("entry");
   
-  current_zone = MR (TheZone);
+  current_zone = GET_TheZone();
 
   handles = (uint32 *) NewPtr (ZONE_MORE_MAST (current_zone)
 			       * sizeof (uint32));
@@ -598,12 +597,12 @@ MoreMasters (void)
       return;
     }
   
-  handles[0] = (uint32) ZONE_HFST_FREE_X (current_zone);
-  ZONE_HFST_FREE_X (current_zone)
-    = RM ((Ptr) &handles[ZONE_MORE_MAST (current_zone) - 1]);
+  handles[0] = (uint32) RM (ZONE_HFST_FREE (current_zone));
+  PACKED_ASSIGN (current_zone->hFstFree,
+		 (Ptr) &handles[ZONE_MORE_MAST (current_zone) - 1]);
 
   for (i = ZONE_MORE_MAST (current_zone) - 1; i > 0; i--)
-    handles[i] = RM ((uint32) &handles[i - 1]);
+    handles[i] = (uint32) RM ((Ptr) &handles[i - 1]);
   
   MM_SLAM ("exit");
   SET_MEM_ERR (noErr);
@@ -634,15 +633,15 @@ InitZone (ProcPtr pGrowZone, int16 cMoreMasters,
   last_block = (block_header_t *) ((char *) limitPtr - MIN_BLOCK_SIZE);
   first_block = ZONE_HEAP_DATA (zone);
   
-  zone->bkLim     = RM ((Ptr) last_block);
-  zone->purgePtr  = CLC_NULL;
-  zone->hFstFree  = CLC_NULL;
+  PACKED_ASSIGN(zone->bkLim, (Ptr) last_block);
+  PACKED_ASSIGN0(zone->purgePtr);
+  PACKED_ASSIGN0(zone->hFstFree);
   zone->zcbFree   = CL ((uint32) limitPtr - (uint32) zone - 64);
-  zone->gzProc    = RM (pGrowZone);
+  PACKED_ASSIGN(zone->gzProc, pGrowZone);
   zone->moreMast  = CW (cMoreMasters);
   zone->flags     = CWC (0);
   zone->minCBFree = CWC (0);
-  zone->purgeProc = CLC_NULL;
+  PACKED_ASSIGN0(zone->purgeProc);
   zone->cntRel = zone->cntNRel = zone->cntEmpty = zone->cntHandles
     = CWC (0);
   
@@ -657,12 +656,12 @@ InitZone (ProcPtr pGrowZone, int16 cMoreMasters,
   zone->maxRel = zone->maxNRel = CWC (-1);
   
 #if 0
-  zone->sparePtr = CLC ((Ptr) 0x83d2);	/* From experimentation */
+  PACKED_ASSIGN(zone->sparePtr, (Ptr) 0x83d2);	/* From experimentation */
 #else
-  zone->sparePtr = CLC (0);	/* Better safe than sorry */
+  PACKED_ASSIGN0(zone->sparePtr);	/* Better safe than sorry */
 #endif
 
-  zone->allocPtr = RM ((Ptr) first_block);
+  PACKED_ASSIGN(zone->allocPtr, (Ptr) first_block);
 
   mm_set_block_fields_offset (first_block,
 		       FREE_BLOCK_STATE, FREE, 0,
@@ -672,7 +671,7 @@ InitZone (ProcPtr pGrowZone, int16 cMoreMasters,
 		       FREE_BLOCK_STATE, FREE, 0,
 		       MIN_BLOCK_SIZE, 0);
   
-  TheZone = RM (zone);
+  SET_TheZone(zone);
   MoreMasters ();
   
   MM_SLAM_ZONE (zone, "exit");
@@ -692,7 +691,7 @@ void
 SetZone (THz hz)
 {
   MM_SLAM ("entry");
-  TheZone = RM (hz);
+  SET_TheZone(hz);
   SET_MEM_ERR (noErr);
 }
 
@@ -707,17 +706,17 @@ _NewEmptyHandle_flags (boolean_t sys_p)
   
   save_zone = TheZone;
   if (sys_p)
-    TheZone = SysZone;
+    SET_TheZone(SysZone);
   
-  current_zone = MR (TheZone);
+  current_zone = GET_TheZone();
   
   for (;;)
     {
       h = (Handle) ZONE_HFST_FREE (current_zone);
       if (h)
 	{
-	  ZONE_HFST_FREE_X (current_zone) = h->p;
-	  h->p = NULL;
+	  PACKED_ASSIGN(current_zone->hFstFree, STARH(h));
+	  HPTR_WRITE0(h);
 	  SET_MEM_ERR (noErr);
 	  break;
 	}
@@ -733,7 +732,7 @@ _NewEmptyHandle_flags (boolean_t sys_p)
     }
   
   MM_SLAM ("exit");
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   return h;
 }
 
@@ -748,8 +747,8 @@ _NewHandle_flags (Size size, boolean_t sys_p, boolean_t clear_p)
   
   save_zone = TheZone;
   if (sys_p)
-    TheZone = SysZone;
-  current_zone = MR (TheZone);
+    SET_TheZone(SysZone);
+  current_zone = GET_TheZone();
   
   newh = NewEmptyHandle ();
   if (newh == NULL)
@@ -770,7 +769,7 @@ _NewHandle_flags (Size size, boolean_t sys_p, boolean_t clear_p)
   gui_assert (block < ZONE_BK_LIM (current_zone));
   
   ROMlib_setupblock (block, size, REL, newh, 0);
-  newh->p = BLOCK_DATA_X (block);
+  HPTR_WRITE(newh, BLOCK_DATA (block));
   
   if (clear_p)
     memset (BLOCK_DATA (block), 0, size - HDRSIZE);
@@ -781,7 +780,7 @@ _NewHandle_flags (Size size, boolean_t sys_p, boolean_t clear_p)
  done:
   
   MM_SLAM ("exit");
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   return newh;
 }
 
@@ -809,13 +808,13 @@ DisposHandle (Handle h)
 	  SET_MEM_ERR (memAZErr);
 	  return;
 	}
-      TheZone = RM (current_zone);
+      SET_TheZone(current_zone);
       
       block = HANDLE_TO_BLOCK (h);
 
-      if (h->p && BLOCK_TO_HANDLE (MR (TheZone), block) != h)
+      if (HPTR_VAL(h) && BLOCK_TO_HANDLE (GET_TheZone(), block) != h)
 	{
-	  TheZone = save_zone;
+	  SET_TheZone(save_zone);
 	  SET_MEM_ERR (memAZErr);
 	  return;
 	}
@@ -824,7 +823,7 @@ DisposHandle (Handle h)
 	{
 	  if (USE (block) == FREE)
 	    {
-	      TheZone = save_zone;
+	      SET_TheZone(save_zone);
 	      SET_MEM_ERR (memWZErr);
 	      return;
 	    }
@@ -842,10 +841,10 @@ DisposHandle (Handle h)
 	  ROMlib_freeblock (block);
 	}
       
-      h->p = ZONE_HFST_FREE_X (current_zone);
-      ZONE_HFST_FREE_X (current_zone) = RM ((Ptr) h);
+      HPTR_WRITE(h, ZONE_HFST_FREE (current_zone));
+      PACKED_ASSIGN(current_zone->hFstFree, (Ptr) h);
       
-      TheZone = save_zone;
+      SET_TheZone(save_zone);
     }
 
   MM_SLAM ("exit");
@@ -913,7 +912,7 @@ SetHandleSize (Handle h, Size newsize)
   
   save_zone = TheZone;
   current_zone = HandleZone (h);
-  TheZone = RM (current_zone);
+  SET_TheZone(current_zone);
   state = HANDLE_STATE (h, block);
 
   oldpsize = PSIZE (block);
@@ -948,26 +947,26 @@ SetHandleSize (Handle h, Size newsize)
 	  if (ROMlib_locked (block))
 	    goto bad;
 	  
-	  GZRootHnd = RM (h);
+	  SET_GZRootHnd(h);
 	  /* Now try and find the space elsewhere */
 	  if (ROMlib_relalloc (newsize, &newblock))
 	    {
-	      GZRootHnd = NULL;
+	      SET_GZRootHnd(NULL);
 	      goto bad;
 	    }
-	  GZRootHnd = NULL;
+	  SET_GZRootHnd(NULL);
 	  ROMlib_moveblock (block, newblock, newsize);
 	}
     }
 
   /* And now we're done. */
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   SET_MEM_ERR (noErr);
   MM_SLAM ("exit");
   return;
 
  bad:
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   MM_SLAM ("exit");
   SET_MEM_ERR (memFullErr);
 }
@@ -1119,7 +1118,7 @@ ReallocHandle (Handle h, Size size)
   
   save_zone = TheZone;
   current_zone = HandleZone (h);
-  TheZone = RM (current_zone);
+  SET_TheZone(current_zone);
   
   size += HDRSIZE;
   
@@ -1129,14 +1128,14 @@ ReallocHandle (Handle h, Size size)
     {
       if (ROMlib_locked (oldb))
 	{
-	  TheZone = save_zone;
+	  SET_TheZone(save_zone);
 	  SET_MEM_ERR (memPurErr);
 	  return;
 	}
 
       if (USE (oldb) == FREE)
 	{
-	  TheZone = save_zone;
+	  SET_TheZone(save_zone);
 	  SET_MEM_ERR (memWZErr);
 	  return;
 	}
@@ -1167,7 +1166,7 @@ ReallocHandle (Handle h, Size size)
 
   if (ROMlib_relalloc (size, &newb))
     {
-      TheZone = save_zone;
+      SET_TheZone(save_zone);
       SET_MEM_ERR (memFullErr);
       return;
     }
@@ -1179,7 +1178,7 @@ ReallocHandle (Handle h, Size size)
     ROMlib_freeblock (oldb);
   /* fall through */
  done:
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   MM_SLAM ("exit");
   SET_MEM_ERR (noErr);
 }
@@ -1202,9 +1201,9 @@ _NewPtr_flags (Size size, boolean_t sys_p, boolean_t clear_p)
   
   save_zone = TheZone;
   if (sys_p)
-    TheZone = SysZone;
+    SET_TheZone(SysZone);
 
-  current_zone = MR (TheZone);
+  current_zone = GET_TheZone();
 
   size += HDRSIZE;
 
@@ -1212,7 +1211,7 @@ _NewPtr_flags (Size size, boolean_t sys_p, boolean_t clear_p)
   save_alloc_ptr = (typeof (save_alloc_ptr)) ZONE_ALLOC_PTR_X (current_zone);
 #endif
 
-  ZONE_ALLOC_PTR_X (current_zone) = CLC_NULL;
+  PACKED_ASSIGN0(current_zone->allocPtr);
 
   ResrvMem (size);
   if (ROMlib_relalloc (size, &b))
@@ -1220,7 +1219,7 @@ _NewPtr_flags (Size size, boolean_t sys_p, boolean_t clear_p)
 #if 0
       ZONE_ALLOC_PTR_X (current_zone) = save_alloc_ptr;
 #endif
-      TheZone = save_zone;
+      SET_TheZone(save_zone);
       SET_MEM_ERR (memFullErr);
       MM_SLAM ("exit");
       return NULL;
@@ -1228,8 +1227,7 @@ _NewPtr_flags (Size size, boolean_t sys_p, boolean_t clear_p)
 
 #if 1 && !defined(NDEBUG)
   if (do_save_alloc)
-    ZONE_ALLOC_PTR_X (current_zone)
-      = (typeof (ZONE_ALLOC_PTR_X (current_zone))) save_alloc_ptr;
+    PACKED_ASSIGN(current_zone->allocPtr, save_alloc_ptr);
   else
     checkallocptr ();
 #endif
@@ -1242,7 +1240,7 @@ _NewPtr_flags (Size size, boolean_t sys_p, boolean_t clear_p)
   if (clear_p)
     memset (p, 0, size - HDRSIZE);
 
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   SET_MEM_ERR (noErr);
   MM_SLAM ("exit");
   return p;
@@ -1336,7 +1334,7 @@ SetPtrSize (Ptr p, Size newsize)
     }
   else
     {
-      TheZone = RM (current_zone);
+      SET_TheZone(current_zone);
       
       oldpsize = PSIZE (block);
       if (newsize <= oldpsize)
@@ -1359,7 +1357,7 @@ SetPtrSize (Ptr p, Size newsize)
 	    }
 	  else
 	    {
-	      TheZone = save_zone;
+	      SET_TheZone(save_zone);
 	      SET_MEM_ERR (memFullErr);
 	      return;
 	    }
@@ -1367,7 +1365,7 @@ SetPtrSize (Ptr p, Size newsize)
     }
 
   /* And now we're done. */
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   SET_MEM_ERR (noErr);
   MM_SLAM ("exit");
 }
@@ -1467,9 +1465,9 @@ _MaxMem_flags (Size *growp, boolean_t sys_p)
   
   save_zone = TheZone;
   if (sys_p)
-    TheZone = SysZone;
+    SET_TheZone(SysZone);
   
-  current_zone = MR (TheZone);
+  current_zone = GET_TheZone();
 
   /* Purge everyone */
   for (b = ZONE_HEAP_DATA (current_zone);
@@ -1520,7 +1518,7 @@ _MaxMem_flags (Size *growp, boolean_t sys_p)
 	      if (ZONE_ALLOC_PTR (current_zone) > startb
 		  && ((char *) ZONE_ALLOC_PTR (current_zone)
 		      < (char *) startb + sizesofar))
-		ZONE_ALLOC_PTR_X (current_zone) = RM ((Ptr) startb);
+		PACKED_ASSIGN(current_zone->allocPtr, (Ptr)startb);
 	      if (sizesofar > biggestfree)
 		biggestfree = sizesofar;
 	      state = SEARCHING;
@@ -1533,7 +1531,7 @@ _MaxMem_flags (Size *growp, boolean_t sys_p)
       if (ZONE_ALLOC_PTR (current_zone) > startb
 	  && ((char *) ZONE_ALLOC_PTR (current_zone)
 	      < (char *) startb + sizesofar))
-	ZONE_ALLOC_PTR_X (current_zone) = RM ((Ptr) startb);
+	PACKED_ASSIGN(current_zone->allocPtr, (Ptr)startb);
 
       if (sizesofar > biggestfree)
 	biggestfree = sizesofar;
@@ -1544,7 +1542,7 @@ _MaxMem_flags (Size *growp, boolean_t sys_p)
   else
     grow = 0;
 
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
 
   *growp = grow;
   SET_MEM_ERR (noErr);
@@ -1566,8 +1564,8 @@ _CompactMem_flags (Size sizeneeded, boolean_t sys_p)
   
   save_zone = TheZone;
   if (sys_p)
-    TheZone = SysZone;
-  current_zone = MR (TheZone);
+    SET_TheZone(SysZone);
+  current_zone = GET_TheZone();
 
 
   /* We've seen HyperCard load allocPtr with -8 before ... yahoo.
@@ -1583,7 +1581,7 @@ _CompactMem_flags (Size sizeneeded, boolean_t sys_p)
   startfront_p = (src == ZONE_HEAP_DATA (current_zone));
 
  repeat:
-  ZONE_ALLOC_PTR_X (current_zone) = CLC_NULL;
+  PACKED_ASSIGN0(current_zone->allocPtr);
   amtfree = 0;
 
   while (src != ZONE_BK_LIM (current_zone)
@@ -1624,7 +1622,7 @@ _CompactMem_flags (Size sizeneeded, boolean_t sys_p)
 		{
 		  amtfree = src_target_diff;
 		  if (!ZONE_ALLOC_PTR_X (current_zone))
-		    ZONE_ALLOC_PTR_X (current_zone) = (Ptr) RM (target);
+		    PACKED_ASSIGN(current_zone->allocPtr, (Ptr)target);
 		}
 	    }
 	  src = target = BLOCK_NEXT (src);
@@ -1645,7 +1643,7 @@ _CompactMem_flags (Size sizeneeded, boolean_t sys_p)
 	{
 	  amtfree = src_target_diff;
 	  if (!ZONE_ALLOC_PTR_X (current_zone))
-	    ZONE_ALLOC_PTR_X (current_zone) = RM ((Ptr) target);
+	    PACKED_ASSIGN(current_zone->allocPtr, (Ptr)target);
 	}
     }
   
@@ -1656,7 +1654,7 @@ _CompactMem_flags (Size sizeneeded, boolean_t sys_p)
       goto repeat;
     }
   
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   SET_MEM_ERR (noErr);
   MM_SLAM ("exit");
   return amtfree;
@@ -1682,8 +1680,8 @@ _ResrvMem_flags (Size needed, boolean_t sys_p)
 
   save_zone = TheZone;
   if (sys_p)
-    TheZone = SysZone;
-  current_zone = MR (TheZone);
+    SET_TheZone(SysZone);
+  current_zone = GET_TheZone();
   already_maxed_p = FALSE;
 
  again:
@@ -1696,7 +1694,7 @@ _ResrvMem_flags (Size needed, boolean_t sys_p)
 
       if (ROMlib_makespace (&b, needed))
 	{
-	  TheZone = save_zone;
+	  SET_TheZone(save_zone);
 	  MM_SLAM ("exit");
 	  SET_MEM_ERR (noErr);
 	  return;
@@ -1712,13 +1710,13 @@ _ResrvMem_flags (Size needed, boolean_t sys_p)
   if (free >= needed)
     {
       /* relalloc will do the actual extension. */
-      TheZone = save_zone;
+      SET_TheZone(save_zone);
       MM_SLAM ("exit");
       SET_MEM_ERR (noErr);
       return;
     }
 
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   MM_SLAM ("exit");
   SET_MEM_ERR (memFullErr);
 }
@@ -1737,8 +1735,8 @@ _PurgeMem_flags (Size sizeneeded, boolean_t sys_p)
 
   save_zone = TheZone;
   if (sys_p)
-    TheZone = SysZone;
-  current_zone = MR (TheZone);
+    SET_TheZone(SysZone);
+  current_zone = GET_TheZone();
 
   max_free = 0;
   for (b = ZONE_HEAP_DATA (current_zone);
@@ -1763,7 +1761,7 @@ _PurgeMem_flags (Size sizeneeded, boolean_t sys_p)
 	break;
     }
 
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   
   if (amount_free < sizeneeded)
     SET_MEM_ERR (memFullErr);
@@ -1869,8 +1867,8 @@ _MaxBlock_flags (boolean_t sys_p)
   
   save_zone = TheZone;
   if (sys_p)
-    TheZone = SysZone;
-  current_zone = MR (TheZone);
+    SET_TheZone(SysZone);
+  current_zone = GET_TheZone();
   
   max_free = total_free = 0;
   
@@ -1891,7 +1889,7 @@ _MaxBlock_flags (boolean_t sys_p)
 	}
     }
 
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   SET_MEM_ERR (noErr);
   MM_SLAM ("exit");
   return MAX (total_free, max_free) - HDRSIZE;
@@ -1910,8 +1908,8 @@ _PurgeSpace_flags (Size *total_out, Size *contig_out, boolean_t sys_p)
   
   save_zone = TheZone;
   if (sys_p)
-    TheZone = SysZone;
-  current_zone = MR (TheZone);
+    SET_TheZone(SysZone);
+  current_zone = GET_TheZone();
   
   total_free = this_contig = max_contig = 0;
   for (b = ZONE_HEAP_DATA (current_zone);
@@ -1939,7 +1937,7 @@ _PurgeSpace_flags (Size *total_out, Size *contig_out, boolean_t sys_p)
 	}
     }
   
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   
   SET_MEM_ERR (noErr);
   *total_out = total_free - HDRSIZE;
@@ -1976,8 +1974,8 @@ SetApplLimit (Ptr new_limit)
   
   MM_SLAM ("entry");
   
-  ApplLimit = RM (new_limit);
-  HeapEnd = RM (new_limit - MIN_BLOCK_SIZE);
+  SET_ApplLimit(new_limit);
+  SET_HeapEnd(new_limit - MIN_BLOCK_SIZE);
 
   SET_MEM_ERR (noErr);
 }
@@ -1987,7 +1985,7 @@ SetGrowZone (ProcPtr newgz)
 {
   MM_SLAM ("entry");
   
-  ZONE_GZ_PROC_X (MR (TheZone)) = RM (newgz);
+  PACKED_ASSIGN(GET_TheZone()->gzProc, newgz);
   SET_MEM_ERR (noErr);
 }
 
@@ -2008,17 +2006,17 @@ EmptyHandle (Handle h)
 
   save_zone = TheZone;
   current_zone = HandleZone (h);
-  TheZone = RM (current_zone);
+  SET_TheZone(current_zone);
 
   if (ROMlib_locked (b))
     {
-      TheZone = save_zone;
+      SET_TheZone(save_zone);
       SET_MEM_ERR (memPurErr);
       return;
     }
   if (USE (b) == FREE)
     {
-      TheZone = save_zone;
+      SET_TheZone(save_zone);
       SET_MEM_ERR (memWZErr);
       return;
     }
@@ -2046,7 +2044,7 @@ EmptyHandle (Handle h)
   ROMlib_freeblock (b);
   SETMASTER (h, NULL);
 
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   MM_SLAM ("exit");
   SET_MEM_ERR (noErr);
 }
@@ -2059,7 +2057,7 @@ ROMlib_installhandle (Handle sh, Handle dh)
   
   MM_SLAM ("entry");
   save_zone = TheZone;
-  TheZone = RM (HandleZone (dh));
+  SET_TheZone(HandleZone(dh));
 
   if (TRUE
       || ROMlib_locked (HANDLE_TO_BLOCK (dh))
@@ -2080,10 +2078,10 @@ ROMlib_installhandle (Handle sh, Handle dh)
       ROMlib_freeblock (db);
       SETMASTER (dh, STARH (sh));
       BLOCK_LOCATION_OFFSET_X (sb) = CL ((uint32) dh - (uint32) MR (TheZone));
-      sh->p = (Ptr) ZONE_HFST_FREE_X (MR (TheZone));
-      ZONE_HFST_FREE_X (MR (TheZone)) = RM ((Ptr) sh);
+      HPTR_WRITE(sh, ZONE_HFST_FREE (GET_TheZone()));
+      PACKED_ASSIGN(GET_TheZone()->hFstFree, (Ptr) sh);
     }
-  TheZone = save_zone;
+  SET_TheZone(save_zone);
   MM_SLAM ("exit");
 }
 

@@ -203,10 +203,10 @@ A1(PUBLIC, void, ROMlib_eventinit, boolean_t, graphics_valid_p)	/* INTERNAL */
 	MouseLocation2.h = 0;
 	MouseLocation2.v = 0;
 	ScrDmpEnb = TRUE;
-	evs[0].qLink = 0;	/* end of the line */
+	PACKED_ASSIGN0(evs[0].qLink);	/* end of the line */
 	beenhere = 1;
 	for (p = evs+1, ep = evs+NEVENT; p != ep; p++)
-	  p->qLink = RM((QElemPtr) (p-1));
+	  PACKED_ASSIGN(p->qLink, (QElemPtr)(p-1));
 	SysEvtMask = CWC(~(1L<< keyUp)); /* EVERYTHING except keyUp */
 #if defined (NEXT)
 	ROMlib_started = 3;
@@ -238,7 +238,7 @@ A1(PUBLIC, void, ROMlib_eventinit, boolean_t, graphics_valid_p)	/* INTERNAL */
 A1(PRIVATE, void, dropevent, EvQEl *, qp)
 {
     Dequeue((QElemPtr) qp, &EventQueue);
-    qp->qLink = RM((QElemPtr) freeelem);
+    PACKED_ASSIGN(qp->qLink, (QElemPtr)freeelem);
     freeelem = qp;
     nevent--;
 }
@@ -249,10 +249,10 @@ geteventelem (void)
     EvQEl *retval = freeelem;
 
     if (nevent == NEVENT) {
-	dropevent((EvQEl *) MR(EventQueue.qHead));
+	dropevent((EvQEl *) PPR(EventQueue.qHead));
 	retval = freeelem;
     }
-    freeelem = (EvQEl *) MR(freeelem->qLink);
+    freeelem = (EvQEl *) PPR(freeelem->qLink);
     nevent++;
     return retval;
 }
@@ -326,7 +326,7 @@ A3(PUBLIC trap, OSErrRET, PPostEvent, INTEGER, evcode,		/* IMIV-85 */
 	if (!(evmsg & 0xff))
 	  {
 	    if (qelp)
-	      qelp->p = 0;
+	      HPTR_WRITE0(qelp);
 	    return noErr;
 	  }
 	lastdown = -1;
@@ -335,7 +335,7 @@ A3(PUBLIC trap, OSErrRET, PPostEvent, INTEGER, evcode,		/* IMIV-85 */
 	if (!(evmsg & 0xff))
 	  {
 	    if (qelp)
-	      qelp->p = 0;
+	      HPTR_WRITE0(qelp);
 	    return noErr;
 	  }
 	lastdown = evmsg;
@@ -413,9 +413,9 @@ A2(PUBLIC trap, void, FlushEvents, INTEGER, evmask,
     virtual_int_state_t block;
 
     block = block_virtual_ints ();
-    for (qp = (EvQEl *) MR(EventQueue.qHead);
+    for (qp = (EvQEl *) PPR(EventQueue.qHead);
 	    qp && !((x=1<<Cx(qp->evtQWhat))&stopmask); qp = next) {
-	next = (EvQEl *) MR(qp->qLink);	/* save before dropping event */
+	next = (EvQEl *) PPR(qp->qLink);	/* save before dropping event */
 	if (x & evmask)
 	    dropevent(qp);
     }
@@ -544,8 +544,8 @@ A3(PRIVATE, BOOLEAN, OSEventCommon, INTEGER, evmask, EventRecord *, eventp,
 #endif /* CYGWIN32 */
 
     block = block_virtual_ints ();
-    for (qp = (EvQEl *) MR(EventQueue.qHead); qp && !((1<<Cx(qp->evtQWhat))&evmask) ;
-						    qp = (EvQEl *) MR(qp->qLink))
+    for (qp = (EvQEl *) PPR(EventQueue.qHead); qp && !((1<<Cx(qp->evtQWhat))&evmask) ;
+						    qp = (EvQEl *) PPR(qp->qLink))
 	;
     if (qp) {
 	*eventp = *(EventRecord *)(&qp->evtQWhat);

@@ -451,7 +451,15 @@ extern pascal trap OSErr C_AEManagerInfo (LONGINT *resultp);
 extern HIDDEN_AE_info_ptr AE_info_H;
 #endif
 
-#define AE_info (AE_info_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define AE_info        (AE_info_H.p)
+# define GET_AE_info()  (MR(AE_info_H.p))
+# define SET_AE_info(v) (AE_info_H.p = RM(v))
+#else
+# define GET_AE_info()  ((AE_info_t *) PPR(AE_info_H))
+# define SET_AE_info(v) (AE_info_H.pp = RPP(v))
+# define AE_info        GET_AE_info()
+#endif
 
 extern pascal trap OSErr C_AEDisposeToken (AEDesc *theToken);
 extern pascal trap OSErr C_AEREesolve (AEDesc *objectSpecifier,

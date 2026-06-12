@@ -76,7 +76,7 @@ raw_read_write (func_t func, our_file_info_t *op, LONGINT *lengthp,
   check_virtual_interrupt ();
   pbr.ioParam.ioVRefNum = CW (op->vref);
   pbr.ioParam.ioRefNum = CW (op->dref);
-  pbr.ioParam.ioBuffer = (Ptr) RM (buf);
+  PACKED_ASSIGN(pbr.ioParam.ioBuffer, (Ptr) buf);
   pbr.ioParam.ioReqCount = CL (*lengthp);
   pbr.ioParam.ioPosMode = CWC (fsFromStart);
   pbr.ioParam.ioPosOffset = CL (op->pos);

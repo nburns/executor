@@ -17,7 +17,15 @@ extern Byte 	WWExist;
 extern Byte 	QDExist;
 #endif
 
-#define DSAlertTab (DSAlertTab_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define DSAlertTab        (DSAlertTab_H.p)
+# define GET_DSAlertTab()  (MR(DSAlertTab_H.p))
+# define SET_DSAlertTab(v) (DSAlertTab_H.p = RM(v))
+#else
+# define GET_DSAlertTab()  ((Ptr) PPR(DSAlertTab_H))
+# define SET_DSAlertTab(v) (DSAlertTab_H.pp = RPP(v))
+# define DSAlertTab        GET_DSAlertTab()
+#endif
 
 extern char syserr_msg[];
 

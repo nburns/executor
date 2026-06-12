@@ -75,6 +75,14 @@ extern Byte 	SoundActive;
 extern INTEGER 	CurPitch;
 #endif
 
-#define SoundBase	(SoundBase_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define SoundBase        (SoundBase_H.p)
+# define GET_SoundBase()  (MR(SoundBase_H.p))
+# define SET_SoundBase(v) (SoundBase_H.p = RM(v))
+#else
+# define GET_SoundBase()  ((Ptr) PPR(SoundBase_H))
+# define SET_SoundBase(v) (SoundBase_H.pp = RPP(v))
+# define SoundBase        GET_SoundBase()
+#endif
 
 #endif /* __SOUND__ */

@@ -514,9 +514,12 @@ extern INTEGER 	TEScrpLength;
 # define SET_TEScrpHandle(v)	(TEScrpHandle_H.p = RM(v))
 # define SET_TEDoText(v)	(TEDoText_H.p = RM(v))
 #else
+# define GET_TEDoText()		((ProcPtr) PPR(TEDoText_H))
+# define SET_TEDoText(v)	(TEDoText_H.pp = RPP(v))
 # define GET_TEScrpHandle()	((Handle) PPR(TEScrpHandle_H))
 # define SET_TEScrpHandle(v)	(TEScrpHandle_H.pp = RPP(v))
-# define SET_TEDoText(v)	(TEDoText_H.pp = RPP(v))
+# define TEDoText		GET_TEDoText()
+# define TEScrpHandle		GET_TEScrpHandle()
 #endif
 
 extern pascal trap void C_TESetText( Ptr p, LONGINT ln, TEHandle teh ); extern pascal trap void P_TESetText( Ptr p, LONGINT ln, TEHandle teh); 

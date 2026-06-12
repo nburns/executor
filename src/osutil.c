@@ -65,7 +65,7 @@ A1(PUBLIC trap, OSErrRET, HandToHand, HIDDEN_Handle *, hp)
     if ((err = MemError()))
 /*-->*/	return(err);
 
-    BlockMove(STARH(hp), *nh, s);
+    BlockMove((Ptr)STARH(FROM_HIDDEN(*hp)), *nh, s);
     HPTR_WRITE(hp, nh);
     return noErr;
 }
@@ -83,7 +83,7 @@ A3(PUBLIC trap, OSErrRET, PtrToHand, Ptr, p, HIDDEN_Handle *, h, LONGINT, s)
     nh = NewHandle(s);
     if ((err = MemError()))
 	return(err);
-    BlockMove(p, *nh, s);
+    BlockMove(p, (Ptr)STARH(nh), s);
     if ((err = MemError()))
 	return(err);
     HPTR_WRITE(h, nh);
@@ -792,12 +792,12 @@ A2(PUBLIC trap, void, Enqueue, QElemPtr, e, QHdrPtr, h)
 					qpp = (HIDDEN_QElemPtr *) STARH(qpp))
 	;
     if (!qpp->pp) {
-	e->evQElem.qLink = 0;
-	if (h->qTail)
-	    MR(h->qTail)->evQElem.qLink = RM(e);
+	PACKED_ASSIGN0(e->evQElem.qLink);
+	if (PPR(h->qTail))
+	    PACKED_ASSIGN(((EvQElPtr)PPR(h->qTail))->evQElem.qLink, e);
 	else
-	    h->qHead = RM(e);
-	h->qTail = RM(e);
+	    PACKED_ASSIGN(h->qHead, e);
+	PACKED_ASSIGN(h->qTail, e);
     }
     restore_virtual_ints (block);
 }

@@ -558,7 +558,7 @@ ROMlib_setupblock (block_header_t *block,
     }
   
   if ((char *) ZONE_ALLOC_PTR (current_zone) < (char *) block + oldsize)
-    ZONE_ALLOC_PTR_X (current_zone) = (Ptr) RM (newfree);
+    PACKED_ASSIGN(current_zone->allocPtr, (Ptr)newfree);
 
 
 #if 0
@@ -629,7 +629,7 @@ ROMlib_coalesce (block_header_t *block)
   
   if (ZONE_ALLOC_PTR (current_zone) >= block
       && (char *) ZONE_ALLOC_PTR (current_zone) <= (char *) block + total_free)
-    ZONE_ALLOC_PTR_X (current_zone) = (Ptr) RM (block);
+    PACKED_ASSIGN(current_zone->allocPtr, (Ptr)block);
 }
 
 /* Mark a block free.  If relocatable, the master must have already
@@ -765,7 +765,7 @@ ROMlib_makespace (block_header_t **block_out, uint32 size)
 
   if (ZONE_ALLOC_PTR (current_zone) > block
       && ZONE_ALLOC_PTR (current_zone) <= b)
-    ZONE_ALLOC_PTR_X (current_zone) = (Ptr) RM (block);
+    PACKED_ASSIGN(current_zone->allocPtr, (Ptr)block);
 
   /* Finally, coalesce the space into one big free block */
   gui_assert (USE (block) == FREE);
@@ -812,7 +812,7 @@ ROMlib_amtfree (block_header_t *block)
       SETPSIZE (block, total);
       if (ZONE_ALLOC_PTR (current_zone) > block
 	  && ZONE_ALLOC_PTR (current_zone) <= b)
-	ZONE_ALLOC_PTR_X (current_zone) = (Ptr) RM (block);
+	PACKED_ASSIGN(current_zone->allocPtr, (Ptr)block);
     }
   return total;
 }
@@ -970,9 +970,8 @@ ROMlib_relalloc (Size size, block_header_t ** newblk)
 	  *newblk = b;
 
 	  /* The new trailer */
-	  ZONE_BK_LIM_X (current_zone) =
-	    RM ((block_header_t *)
-		((uint32) ZONE_BK_LIM (current_zone) + newsize));
+	  PACKED_ASSIGN(current_zone->bkLim,
+		(Ptr)((uint32) ZONE_BK_LIM (current_zone) + newsize));
 	  b = ZONE_BK_LIM (current_zone);
 	  SETZERO (b);
 	  SETUSE (b, FREE);
@@ -982,7 +981,7 @@ ROMlib_relalloc (Size size, block_header_t ** newblk)
 	  
 	  ZONE_ZCB_FREE_X (current_zone) = CL (ZONE_ZCB_FREE (current_zone)
 					       + newsize);
-	  HeapEnd = (Ptr) ZONE_BK_LIM (current_zone);
+	  SET_HeapEnd((Ptr) ZONE_BK_LIM (current_zone));
 	  return noErr;
 	}
 #endif
@@ -993,14 +992,14 @@ ROMlib_relalloc (Size size, block_header_t ** newblk)
     {
       LONGINT retval;
 
-      ZONE_ALLOC_PTR_X (current_zone) = CLC_NULL;
+      PACKED_ASSIGN0(current_zone->allocPtr);
       ROMlib_hook (memory_gznumber);
       HOOKSAVEREGS ();
       retval = CToPascalCall (ZONE_GZ_PROC (current_zone), CTOP_BitNot, size);
       HOOKRESTOREREGS ();
 
       if (retval)
-	ZONE_ALLOC_PTR_X (current_zone) = CLC_NULL;
+	PACKED_ASSIGN0(current_zone->allocPtr);
       if (biggest_block != old_biggest_block)
 	{
 	  old_biggest_block = biggest_block;

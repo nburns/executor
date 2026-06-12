@@ -30,9 +30,9 @@ typedef HIDDEN_WHandlePtr *WHandleHandle;
 
 #define FONTRESID(font, size)   (((font) << 7) | (size))
 
-#define WIDTHPTR	((WPtr)    MR(WidthPtr))
-#define WIDTHTABHANDLE	((WHandle) MR(WidthTabHandle))
-#define WIDTHLISTHAND	((WHandleHandle) MR(WidthListHand))
+#define WIDTHPTR	((WPtr)          FROM_HIDDEN(WidthPtr_H))
+#define WIDTHTABHANDLE	((WHandle)       FROM_HIDDEN(WidthTabHandle_H))
+#define WIDTHLISTHAND	((WHandleHandle) FROM_HIDDEN(WidthListHand_H))
 
 extern Fixed font_width_expand (Fixed width, Fixed extra,
 				Fixed hOutputInverse);

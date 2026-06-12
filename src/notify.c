@@ -35,9 +35,9 @@ A1(PUBLIC trap, OSErrRET, NMInstall, NMRecPtr, nmptr)
    * really irritating to use.
    */
     SysBeep(5);
-    if (MR(nmptr->nmResp))
+    if (PPR(nmptr->nmResp))
       {
-	if ((LONGINT) nmptr->nmResp == (LONGINT) CLC (-1))
+	if ((LONGINT) (uintptr_t) PPR(nmptr->nmResp) == (LONGINT) CLC (-1))
 	  NMRemove(nmptr);
 	else {
 	  LONGINT saved0, saved1, saved2, savea0, savea1;
@@ -50,7 +50,7 @@ A1(PUBLIC trap, OSErrRET, NMInstall, NMRecPtr, nmptr)
 	  savea0 = EM_A0;
 	  savea1 = EM_A1;
 	  PUSHADDR((LONGINT) (long) US_TO_SYN68K(nmptr));
-	  CALL_EMULATOR((syn68k_addr_t) CL((long) nmptr->nmResp));
+	  CALL_EMULATOR((syn68k_addr_t) CL((long) HIDDEN_VAL(nmptr->nmResp)));
 	  EM_D0 = saved0;
 	  EM_D1 = saved1;
 	  EM_D2 = saved2;

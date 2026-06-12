@@ -31,8 +31,21 @@ extern INTEGER 	ScrapCount;
 extern INTEGER 	ScrapState;
 #endif
 
-#define ScrapHandle	(ScrapHandle_H.p)
-#define ScrapName	(ScrapName_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define ScrapHandle        (ScrapHandle_H.p)
+# define ScrapName          (ScrapName_H.p)
+# define GET_ScrapHandle()  (MR(ScrapHandle_H.p))
+# define SET_ScrapHandle(v) (ScrapHandle_H.p = RM(v))
+# define GET_ScrapName()    (MR(ScrapName_H.p))
+# define SET_ScrapName(v)   (ScrapName_H.p = RM(v))
+#else
+# define GET_ScrapHandle()  ((Handle) PPR(ScrapHandle_H))
+# define SET_ScrapHandle(v) (ScrapHandle_H.pp = RPP(v))
+# define GET_ScrapName()    ((StringPtr) PPR(ScrapName_H))
+# define SET_ScrapName(v)   (ScrapName_H.pp = RPP(v))
+# define ScrapHandle        GET_ScrapHandle()
+# define ScrapName          GET_ScrapName()
+#endif
 
 #if !defined (__STDC__)
 extern PScrapStuff InfoScrap(); 

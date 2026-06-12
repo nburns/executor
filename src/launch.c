@@ -382,7 +382,7 @@ PUBLIC void SFSaveDisk_Update (INTEGER vrefnum, Str255 filename)
   Str255 save_name;
 
   str255assign (save_name, filename);
-  pbr.volumeParam.ioNamePtr = (StringPtr) RM ((long) save_name);
+  PACKED_ASSIGN(pbr.volumeParam.ioNamePtr, (StringPtr) save_name);
   pbr.volumeParam.ioVolIndex = CWC (-1);
   pbr.volumeParam.ioVRefNum = CW (vrefnum);
   PBGetVInfo (&pbr, FALSE);
@@ -522,7 +522,7 @@ PRIVATE void launchchain(StringPtr fName, INTEGER vRefNum, BOOLEAN resetmemory,
       {
 	CInfoPBRec hpb;
 
-	hpb.hFileInfo.ioNamePtr   = RM(&fName[0]);
+	PACKED_ASSIGN(hpb.hFileInfo.ioNamePtr, &fName[0]);
 	hpb.hFileInfo.ioVRefNum   = CW(vRefNum);
 	hpb.hFileInfo.ioFDirIndex = CWC (0);
 	hpb.hFileInfo.ioDirID     = 0;
@@ -540,7 +540,7 @@ PRIVATE void launchchain(StringPtr fName, INTEGER vRefNum, BOOLEAN resetmemory,
       }
     /* Do not do this -- Loser does it SFSaveDisk_Update (vRefNum, fName); */
     wdpb.ioWDProcID = T('X','c','t','r');
-    wdpb.ioNamePtr = 0;
+    PACKED_ASSIGN0(wdpb.ioNamePtr);
     PBOpenWD(&wdpb, FALSE);
     ROMlib_exevrefnum = CW(wdpb.ioVRefNum);
     ROMlib_exefname = CurApName;
@@ -725,7 +725,7 @@ PRIVATE void launchchain(StringPtr fName, INTEGER vRefNum, BOOLEAN resetmemory,
 
     GetDateTime((LONGINT *) &Time);
     SET_ROMBase(RM((Ptr) ROMlib_phoneyrom));
-    dodusesit = ROMBase;
+    SET_dodusesit(ROMBase);
     QDExist = WWExist = EXIST_NO;
     SET_TheZone(ApplZone);
     ROMlib_memnomove_p = TRUE;
@@ -871,7 +871,7 @@ PRIVATE void reset_low_globals(void)
 	saveSCCRd	  = FROM_HIDDEN(SCCRd_H);
 	saveSCCWr	  = FROM_HIDDEN(SCCWr_H);
 	saveSoundBase     = SoundBase;
-	saveAppParmHandle = AppParmHandle;
+	saveAppParmHandle = GET_AppParmHandle();
 	saveVCBQHdr       = VCBQHdr;
 	saveFSQHdr        = FSQHdr;
 	saveDrvQHdr       = DrvQHdr;
@@ -893,8 +893,8 @@ PRIVATE void reset_low_globals(void)
 	saveScrapCount    = ScrapCount;
 	saveScrapState    = ScrapState;
 	saveScrapName     = ScrapName;
-	saveROMFont0	  = ROMFont0;
-	saveWidthListHand = WidthListHand;
+	saveROMFont0	  = FROM_HIDDEN(ROMFont0_H);
+	saveWidthListHand = FROM_HIDDEN(WidthListHand_H);
 	saveSPValid	  = SPValid;
 	saveSPATalkA	  = SPATalkA;
 	saveSPATalkB	  = SPATalkB;
@@ -940,25 +940,25 @@ PRIVATE void reset_low_globals(void)
 	memcpy (saveKeyMap, KeyMap, sizeof_KeyMap);
 	
 	/* Set low globals to 0xFF, but don't touch exception vectors. */
-	memset ((char *)&nilhandle + 64 * sizeof (ULONGINT),
+	memset ((char *)&nilhandle_H + 64 * sizeof (ULONGINT),
 		0xFF,
-		((char *)&lastlowglobal - (char *)&nilhandle
+		((char *)&lastlowglobal - (char *)&nilhandle_H
 		 - 64 * sizeof (ULONGINT)));
 	
-	AE_info = saveAE_info;
-	
-	JCrsrTask = saveJCrsrTask;
-	
-        MBDFHndl = saveMBDFHndl;
-        WMgrCPort = saveWMgrCPort;
-        WindowList = NULL;
+	SET_AE_info(saveAE_info);
+
+	SET_JCrsrTask(saveJCrsrTask);
+
+        SET_MBDFHndl(saveMBDFHndl);
+        SET_WMgrCPort(saveWMgrCPort);
+        SET_WindowList(NULL);
         memcpy(FinderName, saveFinderName, sizeof(FinderName));
 
-        DABeeper = saveDABeeper;
+        SET_DABeeper(saveDABeeper);
     	MouseLocation = saveMouseLocation;
         MouseLocation2 = saveMouseLocation;
     
-	UTableBase   = saveUTableBase;
+	SET_UTableBase(saveUTableBase);
 	UnitNtryCnt  = saveUnitNtryCnt;
 	MemTop = saveMemTop;
 	DAStrings_H[3]  = saveDAStrings[3];
@@ -984,12 +984,12 @@ PRIVATE void reset_low_globals(void)
         SPATalkB      = saveSPATalkB;
         SPATalkA      = saveSPATalkA;
         SPValid       = saveSPValid;
-	WidthListHand = saveWidthListHand;
-	ROMFont0      = saveROMFont0;
-	ScrapName     = saveScrapName;
+	HIDDEN_VAL_WRITE(WidthListHand_H, saveWidthListHand);
+	HIDDEN_VAL_WRITE(ROMFont0_H, saveROMFont0);
+	SET_ScrapName(saveScrapName);
 	ScrapState    = saveScrapState;
 	ScrapCount    = saveScrapCount;
-	ScrapHandle   = saveScrapHandle;
+	SET_ScrapHandle(saveScrapHandle);
 	ScrapSize     = saveScrapSize;
 	SysMap        = saveSysMap;
 	SET_SysMapHndl (saveSysMapHndl);
@@ -997,25 +997,25 @@ PRIVATE void reset_low_globals(void)
 	CurMap	      = saveCurMap;
 	CurApRefNum   = saveCurApRefNum;
 	memcpy(CurApName, saveCurApName, sizeof(CurApName));
-	DefVCBPtr     = saveDefVCBPtr;
+	SET_DefVCBPtr(saveDefVCBPtr);
 	VBLQueue      = saveVBLQueue;
 	EventQueue    = saveEventQueue;
 	CurDirStore   = saveCurDirStore;
 	SFSaveDisk    = saveSFSaveDisk;
-	WDCBsPtr      = saveWDCBsPtr;
-	FCBSPtr       = saveFCBSPtr;
+	SET_WDCBsPtr(saveWDCBsPtr);
+	SET_FCBSPtr(saveFCBSPtr);
 	DrvQHdr       = saveDrvQHdr;
 	FSQHdr        = saveFSQHdr;
 	VCBQHdr       = saveVCBQHdr;
 	Lo3Bytes      = saveLo3Bytes;
-	VIA           = saveVIA;
+	SET_VIA(saveVIA);
 	HIDDEN_VAL_WRITE(SCCRd_H, saveSCCRd);
 	HIDDEN_VAL_WRITE(SCCWr_H, saveSCCWr);
-	SoundBase     = saveSoundBase;
+	SET_SoundBase(saveSoundBase);
 	Ticks_UL.u    = saveTicks;
-	SysZone       = saveSysZone;
+	SET_SysZone(saveSysZone);
 	BootDrive     = saveBootDrive;
-	AppParmHandle = saveAppParmHandle;
+	SET_AppParmHandle(saveAppParmHandle);
 
         HiliteRGB = saveHiliteRGB;
         TheGDevice = saveTheGDevice;
@@ -1024,15 +1024,15 @@ PRIVATE void reset_low_globals(void)
     
     restore_virtual_ints (bt);
 
-    nilhandle   = 0;	/* so nil dereferences "work" */
+    HIDDEN_VAL_WRITE0(nilhandle_H);	/* so nil dereferences "work" */
 
     CrsrBusy    = 0;
     TESysJust   = 0;
-    DSAlertTab  = 0;
-    ResumeProc  = 0;
-    GZRootHnd   = 0;
+    SET_DSAlertTab(0);
+    SET_ResumeProc(0);
+    SET_GZRootHnd(0);
     ANumber     = 0;
-    ResErrProc  = 0;
+    SET_ResErrProc(0);
 #if 0
     FractEnable = 0xff;	/* NEW MOD -- QUESTIONABLE */
 #else

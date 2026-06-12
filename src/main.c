@@ -1823,13 +1823,13 @@ A2 (PUBLIC, int, main, int, argc, char **, argv)
   saveSysZone = SysZone;
   saveApplZone = ApplZone;
   saveApplLimit = ApplLimit;
-  memset (&nilhandle, ~0, (char *) &lastlowglobal - (char *) &nilhandle);
+  memset (&nilhandle_H, ~0, (char *) &lastlowglobal - (char *) &nilhandle_H);
 
   setupsignals ();
 
 
   Ticks_UL.u = 0;
-  nilhandle = 0;		/* so nil dereferences "work" */
+  HIDDEN_VAL_WRITE0(nilhandle_H);	/* so nil dereferences "work" */
 
   memset (&EventQueue, 0, sizeof (EventQueue));
   memset (&VBLQueue,   0, sizeof (VBLQueue));
@@ -1844,7 +1844,7 @@ A2 (PUBLIC, int, main, int, argc, char **, argv)
   SET_DefVCBPtr(0);
   CurMap      = 0;
   SET_TopMapHndl(0);
-  DSAlertTab  = 0;
+  SET_DSAlertTab(0);
   SET_ResumeProc(0);
   SFSaveDisk  = 0;
   SET_GZRootHnd(0);
@@ -1852,13 +1852,13 @@ A2 (PUBLIC, int, main, int, argc, char **, argv)
   SET_ResErrProc(0);
   FractEnable = 0;
   SEvtEnb     = 0;
-  MenuList    = 0;
+  SET_MenuList(0);
   MBarEnable  = 0;
   MenuFlash   = 0;
   TheMenu     = 0;
-  MBarHook    = 0;
-  MenuHook    = 0;
-  MenuCInfo   = NULL;
+  SET_MBarHook(0);
+  SET_MenuHook(0);
+  SET_MenuCInfo(NULL);
   SET_HeapEnd(0);
   SET_ApplLimit(0);
   SoundActive = soundactiveoff;
@@ -1882,20 +1882,22 @@ A2 (PUBLIC, int, main, int, argc, char **, argv)
   {
     static uint16 ret = CWC (0x4E75);
     
-    JCrsrTask = (ProcPtr) RM (&ret);
+    SET_JCrsrTask(&ret);
   }
   
   SET_HILITE_BIT ();
-  TheGDevice = MainDevice = DeviceList = CLC_NULL;
+  SET_TheGDevice(CLC_NULL);
+  SET_MainDevice(CLC_NULL);
+  SET_DeviceList(CLC_NULL);
 
   OneOne     = CLC (0x00010001);
   Lo3Bytes   = CLC (0xFFFFFF);
   SET_DragHook(0);
   SET_TopMapHndl(0);
   SET_SysMapHndl(0);
-  MBDFHndl   = 0;
-  MenuList   = 0;
-  MBSaveLoc  = 0;
+  SET_MBDFHndl(0);
+  SET_MenuList(0);
+  SET_MBSaveLoc(0);
 
   SysVersion = CW (system_version);
   FSFCBLen = CWC (94);
@@ -1935,9 +1937,8 @@ A2 (PUBLIC, int, main, int, argc, char **, argv)
 #endif /* NEXT */
 
   SET_TheZone(SysZone);
-  UTableBase =
-    (DCtlHandlePtr) (long) RM (NewPtr (sizeof (Ptr) * NDEVICES));
-  memset (MR (UTableBase), 0, sizeof (Ptr) * NDEVICES);
+  SET_UTableBase(NewPtr (sizeof (Ptr) * NDEVICES));
+  memset (GET_UTableBase(), 0, sizeof (Ptr) * NDEVICES);
   UnitNtryCnt = CW (NDEVICES);
   SET_TheZone(ApplZone);
 
@@ -2054,7 +2055,7 @@ A2 (PUBLIC, int, main, int, argc, char **, argv)
     ROMlib_Fsetenv (&env, 0);
   }
 
-  TEDoText = RM ((ProcPtr) P_ROMlib_dotext);	/* where should this go ? */
+  SET_TEDoText((ProcPtr) P_ROMlib_dotext);	/* where should this go ? */
 
 #if defined (SYN68K)
   {

@@ -40,9 +40,9 @@ P0(PUBLIC pascal trap, void, InitFonts)	/* IMI-222 */
 	saveZone = TheZone;
 	SET_TheZone(SysZone);
 	SetResLoad(TRUE);
-	ROMFont0 = RM(GetResource(TICK("FONT"), FONTRESID(systemFont, 12)));
-	WidthListHand = RM(NewHandle(MAXTABLES * sizeof(HIDDEN_Handle)));
-	memset(STARH(MR(WidthListHand)), 0, MAXTABLES * sizeof(HIDDEN_Handle));
+	HIDDEN_VAL_WRITE(ROMFont0_H, GetResource(TICK("FONT"), FONTRESID(systemFont, 12)));
+	HIDDEN_VAL_WRITE(WidthListHand_H, NewHandle(MAXTABLES * sizeof(HIDDEN_Handle)));
+	memset(STARH(FROM_HIDDEN(WidthListHand_H)), 0, MAXTABLES * sizeof(HIDDEN_Handle));
 	SET_TheZone(saveZone);
 	beenhere = TRUE;
     }
@@ -71,7 +71,7 @@ invalidate_all_widths (void)
   HIDDEN_Handle *hp;
   Handle wlh;
 
-  wlh = MR (WidthListHand);
+  wlh = FROM_HIDDEN(WidthListHand_H);
   HLock (wlh);
   n_entries = GetHandleSize (wlh) / sizeof (HIDDEN_Handle);
   hp = (HIDDEN_Handle *) STARH (wlh);
@@ -153,12 +153,12 @@ P1(PUBLIC pascal trap, void, SetFontLock, BOOLEAN, lflag)	/* IMI-223 */
 {
     INTEGER attrs;
     
-    attrs = GetResAttrs(MR(ROMlib_fmo.fontHandle));
+    attrs = GetResAttrs(PPR(ROMlib_fmo.fontHandle));
     if (lflag) {
-	LoadResource(MR(ROMlib_fmo.fontHandle));
-	SetResAttrs(MR(ROMlib_fmo.fontHandle), attrs & ~resPurgeable);
+	LoadResource(PPR(ROMlib_fmo.fontHandle));
+	SetResAttrs(PPR(ROMlib_fmo.fontHandle), attrs & ~resPurgeable);
     } else {	/* TODO: is the next line necessary */
-	SetResAttrs(MR(ROMlib_fmo.fontHandle), attrs | resPurgeable);
+	SetResAttrs(PPR(ROMlib_fmo.fontHandle), attrs | resPurgeable);
     }
 }
 
@@ -217,7 +217,7 @@ A1(PRIVATE, BOOLEAN, widthlistmatch, FMInput *, fmip)
 				  WIDTHPTR->fSize     != -1 &&
 				  WIDTHPTR->fSize     !=  0 &&
 				 !WIDTHPTR->usedFam   == !FractEnable) {
-		WidthTabHandle = (WidthTableHandle) HIDDEN_VAL(*whp);
+		HIDDEN_VAL_WRITE(WidthTabHandle_H, FROM_HIDDEN(*whp));
 		HLock((Handle) FROM_HIDDEN(WidthTabHandle_H));
 		return TRUE;
 	    }
@@ -324,7 +324,7 @@ PRIVATE void buildtabdata(howtobuild_t howtobuild, INTEGER extra,
     Fixed *p, *ep, misswidth, hOutputInverse, fixed_extra;
     FontRec *fp;
     
-    fp = MR( *(FontRec **)MR(WIDTHPTR->tabFont));
+    fp = (FontRec *) STARH(PPR(WIDTHPTR->tabFont));
     firstchar = Cx(fp->firstChar);
     lastchar  = Cx(fp->lastChar);
 
@@ -395,7 +395,7 @@ A1(PRIVATE, void, buildtable, INTEGER, extra)
 #endif
     if (!FractEnable)
 	howtobuild = FontInt;
-    else if (MR(*(FontRec **)MR(WIDTHPTR->tabFont))->fontType & CWC(WIDTHBIT))
+    else if (((FontRec *) STARH(PPR(WIDTHPTR->tabFont)))->fontType & CWC(WIDTHBIT))
       {
 	howtobuild = FontFract;
 	extra = 0;
@@ -587,8 +587,8 @@ at_least_one_fond_entry (INTEGER family)
  * TODO:  NFNT below
  */
 
-#define AVAILABLE(x) (WIDTHPTR->fSize = CW((x)), WIDTHPTR->tabFont = \
-		         RM(GetResource(TICK("FONT"), FONTRESID(family, (x)))))
+#define AVAILABLE(x) (WIDTHPTR->fSize = CW((x)), \
+		         PACKED_ASSIGN(WIDTHPTR->tabFont, GetResource(TICK("FONT"), FONTRESID(family, (x)))))
 
 A1(PRIVATE, void, newwidthtable, FMInput *, fmip)
 {
@@ -600,10 +600,10 @@ A1(PRIVATE, void, newwidthtable, FMInput *, fmip)
     int n_tried_sys_font;
 
     savezone = TheZone;
-    TheZone = SysZone;
-    WidthTabHandle = (WidthTableHandle) RM(NewHandle((Size) sizeof(WidthTable)));
-    TheZone = savezone;
-    Munger((Handle) MR(WidthListHand), (LONGINT) 0, (Ptr) 0, 0,
+    SET_TheZone(SysZone);
+    HIDDEN_VAL_WRITE(WidthTabHandle_H, NewHandle((Size) sizeof(WidthTable)));
+    SET_TheZone(savezone);
+    Munger((Handle) FROM_HIDDEN(WidthListHand_H), (LONGINT) 0, (Ptr) 0, 0,
 				(Ptr) &WidthTabHandle, sizeof(WidthTabHandle));
 
 /*
@@ -613,16 +613,16 @@ A1(PRIVATE, void, newwidthtable, FMInput *, fmip)
  *	 neither we delete the last entry.
  */
 
-    if (GetHandleSize((Handle) MR(WidthListHand)) >
+    if (GetHandleSize((Handle) FROM_HIDDEN(WidthListHand_H)) >
 			(int) sizeof(HIDDEN_Handle) * MAXTABLES) {
 	todelete = 0;
-	if (Munger((Handle) MR(WidthListHand), (LONGINT) 0, (Ptr) &todelete,
+	if (Munger((Handle) FROM_HIDDEN(WidthListHand_H), (LONGINT) 0, (Ptr) &todelete,
 					  sizeof(todelete), (Ptr) "", 0) < 0) {
 	    todelete = -1;
-	    if (Munger((Handle) MR(WidthListHand), (LONGINT) 0, (Ptr) &todelete,
+	    if (Munger((Handle) FROM_HIDDEN(WidthListHand_H), (LONGINT) 0, (Ptr) &todelete,
 					  sizeof(todelete), (Ptr) "", 0) < 0) {
 		DisposHandle((Handle) MR(STARH(WIDTHLISTHAND)[MAXTABLES]));
-		SetHandleSize(MR(WidthListHand),
+		SetHandleSize(FROM_HIDDEN(WidthListHand_H),
 				    (Size) sizeof(HIDDEN_Handle) * MAXTABLES);
 	    }
 	}
@@ -662,8 +662,8 @@ A1(PRIVATE, void, newwidthtable, FMInput *, fmip)
 	tried_app_font = TRUE;
 	++n_tried_sys_font;
       }
-    WIDTHPTR->tabFont = 0;
-  while (!WIDTHPTR->tabFont && n_tried_sys_font < 2) {
+    PACKED_ASSIGN0(WIDTHPTR->tabFont);
+  while (!PPR(WIDTHPTR->tabFont) && n_tried_sys_font < 2) {
     WIDTHPTR->fHand = RM((Handle) fh);
     WIDTHPTR->fID = CW(family);
     if (fh) {
@@ -690,23 +690,22 @@ A1(PRIVATE, void, newwidthtable, FMInput *, fmip)
 	if (!WIDTHPTR->fSize)
 	    fprintf(stderr, "fh:  fSize = 0\n");
 	fontresid = closestface();
-	if (!(WIDTHPTR->tabFont = RM(GetResource(TICK("NFNT"), fontresid))))
-	      WIDTHPTR->tabFont = RM(GetResource(TICK("FONT"), fontresid));
-	if (!WIDTHPTR->tabFont)
-	  WIDTHPTR->tabFont = 
-	    RM(GetResource(TICK("FONT"),
-			   FONTRESID(family, Cx(WIDTHPTR->fSize))));
-	if (!WIDTHPTR->tabFont)
+	if (!PACKED_ASSIGN(WIDTHPTR->tabFont, GetResource(TICK("NFNT"), fontresid)))
+	      PACKED_ASSIGN(WIDTHPTR->tabFont, GetResource(TICK("FONT"), fontresid));
+	if (!PPR(WIDTHPTR->tabFont))
+	  PACKED_ASSIGN(WIDTHPTR->tabFont,
+	    GetResource(TICK("FONT"), FONTRESID(family, Cx(WIDTHPTR->fSize))));
+	if (!PPR(WIDTHPTR->tabFont))
 	  warning_unexpected (NULL_STRING);
     }
-    if (!WIDTHPTR->tabFont) {
+    if (!PPR(WIDTHPTR->tabFont)) {
 	WIDTHPTR->face  = 0;
 
 	if (!AVAILABLE(Cx(fmip->size))) {
 	    if (FScaleDisable) {
 		findclosestfont(family, Cx(fmip->size), &lesser, &greater);
 		WIDTHPTR->fSize   = lesser ? CW(lesser) : CW(greater);
-		WIDTHPTR->tabFont = RM(GetResource(TICK("FONT"),
+		PACKED_ASSIGN(WIDTHPTR->tabFont, GetResource(TICK("FONT"),
 				      FONTRESID(family, Cx(WIDTHPTR->fSize))));
 	    } else {
 		if (!AVAILABLE(Cx(fmip->size) * 2) &&
@@ -717,13 +716,13 @@ A1(PRIVATE, void, newwidthtable, FMInput *, fmip)
 			WIDTHPTR->fSize = CW(lesser);
 		    else
 			WIDTHPTR->fSize = CW(greater);
-		    WIDTHPTR->tabFont = RM(GetResource(TICK("FONT"),
+		    PACKED_ASSIGN(WIDTHPTR->tabFont, GetResource(TICK("FONT"),
 				      FONTRESID(family, Cx(WIDTHPTR->fSize))));
 		}
 	    }
 	}
     }
-    if (!WIDTHPTR->tabFont) {
+    if (!PPR(WIDTHPTR->tabFont)) {
       if (!tried_app_font)
 	{
 	  tried_app_font = TRUE;
@@ -738,7 +737,7 @@ A1(PRIVATE, void, newwidthtable, FMInput *, fmip)
 	}
     }
   }
-  LoadResource (MR (WIDTHPTR->tabFont));
+  LoadResource (PPR(WIDTHPTR->tabFont));
   if (!WIDTHPTR->fSize)
     warning_unexpected ("!fh:  fSize = 0, family = %d\n",
 			(LONGINT) Cx(fmip->family));
@@ -810,9 +809,9 @@ P1(PUBLIC pascal trap, FMOutPtr, FMSwapFont, FMInput *, fmip)	/* IMI-223 */
 				      Cx(fmip->denom.v) / Cx(WIDTHPTR->fSize));
 	ROMlib_fmo.denom.h    = CWC(256);
 	ROMlib_fmo.denom.v    = CWC(256);
-	ROMlib_fmo.fontHandle = WIDTHPTR->tabFont;
-	LoadResource(MR(ROMlib_fmo.fontHandle));
-	fp = (FontRec *) STARH((MR(ROMlib_fmo.fontHandle)));
+	PACKED_COPY(ROMlib_fmo.fontHandle, WIDTHPTR->tabFont);
+	LoadResource(PPR(ROMlib_fmo.fontHandle));
+	fp = (FontRec *) STARH((PPR(ROMlib_fmo.fontHandle)));
 	style = Cx(fmip->face) ^ Cx(WIDTHPTR->face);
 	if (style & (int) bold )
 	    mungfmo(ftstr.boldt, &ROMlib_fmo);
@@ -845,7 +844,7 @@ P1(PUBLIC pascal trap, FMOutPtr, FMSwapFont, FMInput *, fmip)	/* IMI-223 */
 				 ROMlib_fmo.shadow + ROMlib_fmo.bold;
 	ROMlib_fmo.leading = CW(fp->leading);
     } else {
-	LoadResource(MR(ROMlib_fmo.fontHandle));
+	LoadResource(PPR(ROMlib_fmo.fontHandle));
 	WidthPtr = (*MR(WidthTabHandle)).p;
     }
     fmip->size   = savesize;

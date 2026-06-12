@@ -47,7 +47,7 @@ A4(PUBLIC, OSErr, ROMlib_dispatch, ParmBlkPtr, p,		/* INTERNAL */
     if (devicen < 0 || devicen >= NDEVICES)
 	retval = badUnitErr;
     else if (UTableBase == (DCtlHandlePtr) (long) CLC(0xFFFFFFFF) ||
-		(h = FROM_HIDDEN(MR(UTableBase)[devicen])) == 0 || h->pp == 0)
+		(h = FROM_HIDDEN(GET_UTableBase()[devicen])) == 0 || h->pp == 0)
 	retval =  unitEmptyErr;
     else {
 	HLock((Handle) h);
@@ -151,7 +151,7 @@ A4(PUBLIC, OSErr, ROMlib_dispatch, ParmBlkPtr, p,		/* INTERNAL */
 		/* NOTE: It's not clear whether we should zero out this
 		   field or just check for DRIVEROPEN bit up above and never
 		   send messages except open to non-open drivers.  */
-		HIDDEN_VAL_WRITE0(MR(UTableBase)[devicen]);
+		HIDDEN_VAL_WRITE0(GET_UTableBase()[devicen]);
 	    }
 
 	    if (routine < Close)
@@ -251,7 +251,7 @@ A1(PUBLIC, DCtlHandle, GetDCtlEntry, INTEGER, rn)
     return (devicen < 0 || devicen >= NDEVICES) ?
 	       0
 	   :
-	       FROM_HIDDEN(MR(UTableBase)[devicen]);
+	       FROM_HIDDEN(GET_UTableBase()[devicen]);
 }
 
 /*
@@ -296,21 +296,21 @@ A2(PUBLIC, OSErr, ROMlib_driveropen, ParmBlkPtr, pbp,		/* INTERNAL */
 	 
        if ((ramdh =
 	    (ramdriverhand) GetNamedResource(TICK("DRVR"),
-					     MR(pbp->ioParam.ioNamePtr)))) {
+					     PPR(pbp->ioParam.ioNamePtr)))) {
 	 LoadResource((Handle) ramdh);
 	 GetResInfo((Handle) ramdh, &devicen, &typ, (StringPtr) 0);
 	 devicen = CW(devicen);
-	 h = FROM_HIDDEN(MR(UTableBase)[devicen]);
+	 h = FROM_HIDDEN(GET_UTableBase()[devicen]);
 	 alreadyopen = h && (HxX(h, dCtlFlags) & CWC(DRIVEROPENBIT));
-	 if (!h && !(h = FROM_HIDDEN(MR(UTableBase)[devicen]))) {
-	   HIDDEN_VAL_WRITE(MR(UTableBase)[devicen], (DCtlHandle) NewHandle(sizeof(DCtlEntry)));
-	   h = FROM_HIDDEN(MR(UTableBase)[devicen]);
+	 if (!h && !(h = FROM_HIDDEN(GET_UTableBase()[devicen]))) {
+	   HIDDEN_VAL_WRITE(GET_UTableBase()[devicen], (DCtlHandle) NewHandle(sizeof(DCtlEntry)));
+	   h = FROM_HIDDEN(GET_UTableBase()[devicen]);
 	   if (!h)
 	     err = MemError();
 	 }
 	 else if (!alreadyopen) {
 	   memset((char *) STARH(h), 0, sizeof(DCtlEntry));
-	   HxX(h, dCtlDriver)   = (umacdriverptr) RM(ramdh);
+	   SETP(h, dCtlDriver, ramdh);
 	   HxX(h, dCtlFlags)    = HxX(ramdh, drvrFlags) | CWC(RAMBASEDBIT);
 	   HxX(h, dCtlRefNum)   = CW(- (devicen + 1));
 	   HxX(h, dCtlDelay)    = HxX(ramdh, drvrDelay);
@@ -336,7 +336,7 @@ A2(PUBLIC, OSErr, ROMlib_driveropen, ParmBlkPtr, pbp,		/* INTERNAL */
 	 dip = 0;
 	 if (ROMlib_otherdrivers) {
 	   for (dip = ROMlib_otherdrivers; dip->open &&
-		!EqualString(dip->name, MR(pbp->ioParam.ioNamePtr), FALSE, TRUE);
+		!EqualString(dip->name, PPR(pbp->ioParam.ioNamePtr), FALSE, TRUE);
 		dip++)
 	     ;
 	   if (!dip->open)
@@ -345,7 +345,7 @@ A2(PUBLIC, OSErr, ROMlib_driveropen, ParmBlkPtr, pbp,		/* INTERNAL */
 	 if (!dip) {
 	   for (dip = knowndrivers, edip = dip + NELEM(knowndrivers);
 		dip != edip &&
-		!EqualString(dip->name, MR(pbp->ioParam.ioNamePtr), FALSE, TRUE);
+		!EqualString(dip->name, PPR(pbp->ioParam.ioNamePtr), FALSE, TRUE);
 		dip++)
 	     ;
 	   if (dip == edip)
@@ -355,20 +355,21 @@ A2(PUBLIC, OSErr, ROMlib_driveropen, ParmBlkPtr, pbp,		/* INTERNAL */
 	   devicen = -dip->refnum -1;
 	   if (devicen < 0 || devicen >= NDEVICES)
 	     err = badUnitErr;
-	   else if (HIDDEN_VAL(MR(UTableBase)[devicen]))
+	   else if (HIDDEN_VAL(GET_UTableBase()[devicen]))
 	     err = noErr;	/* note:  if we choose to support desk */
 	   /*	  accessories, we will have to */
 	   /*	  check to see if this is one and */
 	   /*	  call the open routine if it is */
 	   else {
-	     HIDDEN_VAL_WRITE(MR(UTableBase)[devicen], (DCtlHandle) NewHandle(sizeof(DCtlEntry)));
-	     h = FROM_HIDDEN(MR(UTableBase)[devicen]);
+	     HIDDEN_VAL_WRITE(GET_UTableBase()[devicen], (DCtlHandle) NewHandle(sizeof(DCtlEntry)));
+	     h = FROM_HIDDEN(GET_UTableBase()[devicen]);
 	     if (!h)
 	       err = MemError();
 	     else {
 	       memset((char *) STARH(h), 0, sizeof(DCtlEntry));
 	       up = (umacdriverptr) NewPtr(sizeof(umacdriver));
-	       if (!(HxX(h, dCtlDriver) = RM(up)))
+	       SETP(h, dCtlDriver, up);
+	       if (!HxP(h, dCtlDriver))
 		 err = MemError();
 	       else {
 		 up->udrvrOpen   = (ProcPtr) RM(dip->open);
@@ -400,7 +401,7 @@ A2(PUBLIC, OSErr, OpenDriver, StringPtr, name, INTEGER *, rnp)	/* IMII-178 */
 
     pb.ioParam.ioRefNum = CWC (0); /* so we can't get garbage for ioRefNum. */
     pb.ioParam.ioPermssn = fsCurPerm;
-    pb.ioParam.ioNamePtr = RM(name);
+    PACKED_ASSIGN(pb.ioParam.ioNamePtr, name);
     retval = ROMlib_driveropen(&pb, FALSE);
     *rnp = pb.ioParam.ioRefNum;
     fs_err_hook (retval);

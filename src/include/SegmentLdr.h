@@ -37,7 +37,15 @@ extern INTEGER 	CurJTOffset;
 extern INTEGER 	CurPageOption;
 #endif
 
-#define AppParmHandle	(AppParmHandle_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define AppParmHandle        (AppParmHandle_H.p)
+# define GET_AppParmHandle()  (MR(AppParmHandle_H.p))
+# define SET_AppParmHandle(v) (AppParmHandle_H.p = RM(v))
+#else
+# define GET_AppParmHandle()  ((Handle) PPR(AppParmHandle_H))
+# define SET_AppParmHandle(v) (AppParmHandle_H.pp = RPP(v))
+# define AppParmHandle        GET_AppParmHandle()
+#endif
 
 extern void flushcache (void); 
 

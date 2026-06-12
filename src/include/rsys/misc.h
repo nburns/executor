@@ -22,7 +22,14 @@ extern INTEGER MCLKPCmiss1;
 extern INTEGER MCLKPCmiss2;
 #endif
 
-#define nilhandle	(nilhandle_H.p)
-#define dodusesit	(dodusesit_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define nilhandle  (nilhandle_H.p)
+# define dodusesit  (dodusesit_H.p)
+# define SET_dodusesit(v) (dodusesit_H.p = RM(v))
+#else
+# define nilhandle  ((Ptr) PPR(nilhandle_H))
+# define dodusesit  ((Ptr) PPR(dodusesit_H))
+# define SET_dodusesit(v) (dodusesit_H.pp = RPP(v))
+#endif
 
 #endif /* !defined(__RSYS_MISC__) */

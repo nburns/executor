@@ -138,7 +138,8 @@ P0(PUBLIC pascal trap, void, InitMenus)
 {
   Handle default_mcinfo;
   
-  MenuHook = MBarHook = 0;
+  SET_MenuHook(0);
+  SET_MBarHook(0);
   ClearMenuBar ();
   default_mcinfo = ROMlib_getrestid (TICK ("mctb"), 0);
   if (!default_mcinfo)

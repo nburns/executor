@@ -83,11 +83,18 @@ extern unsigned long ROMlib_memtop;
 			  (unsigned long)(p) <  ROMlib_memtop)
 
 /* handle to block pointer */
-#define HANDLE_TO_BLOCK(handle)					\
-  (VALID_ADDRESS(handle) && VALID_ADDRESS(MR((handle)->p))	\
-   ? (block_header_t *) ((char *) STARH (handle)		\
-		         - HDRSIZE)				\
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define HANDLE_TO_BLOCK(handle)					\
+  (VALID_ADDRESS(handle) && VALID_ADDRESS(MR((handle)->p))		\
+   ? (block_header_t *) ((char *) STARH (handle) - HDRSIZE)		\
    : NULL)
+#else
+# define HANDLE_TO_BLOCK(handle)					\
+  (VALID_ADDRESS(handle) && (handle)->pp				\
+     && VALID_ADDRESS(STARH(handle))					\
+   ? (block_header_t *) ((char *) STARH (handle) - HDRSIZE)		\
+   : NULL)
+#endif
 
 #define BLOCK_TO_HANDLE(zone, block)			\
   ((Handle) ((char *) (zone) + BLOCK_LOCATION_OFFSET (block)))
@@ -117,7 +124,11 @@ extern unsigned long ROMlib_memtop;
   ((block)->master_ptr_flags = (state))
 
 /* set the master pointer of a handle to a given value */
-#define SETMASTER(handle, ptr)	((handle)->p = RM (ptr))
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define SETMASTER(handle, ptr)	((handle)->p = RM (ptr))
+#else
+# define SETMASTER(handle, ptr)	HPTR_WRITE(handle, ptr)
+#endif
 
 #define BLOCK_NEXT(block)			\
   ((block_header_t *) ((char *) (block) + PSIZE (block)))
@@ -139,23 +150,40 @@ extern unsigned long ROMlib_memtop;
 /* Zone record accessor macros */
 #define ZONE_HEAP_DATA(zone)	((block_header_t *) &(zone)->heapData)
 
-#define ZONE_BK_LIM_X(zone)	((block_header_t *) ((zone)->bkLim))
-#define ZONE_PURGE_PTR_X(zone)	((zone)->purgePtr)
-#define ZONE_HFST_FREE_X(zone)	((zone)->hFstFree)
+/* zcbFree and moreMast are plain integers - no PACKED_MEMBER treatment needed */
 #define ZONE_ZCB_FREE_X(zone)	((zone)->zcbFree)
-#define ZONE_GZ_PROC_X(zone)	((zone)->gzProc)
 #define ZONE_MORE_MAST_X(zone)	((zone)->moreMast)
-#define ZONE_PURGE_PROC_X(zone)	((zone)->purgeProc)
-#define ZONE_ALLOC_PTR_X(zone)	((zone)->allocPtr)
-
-#define ZONE_BK_LIM(zone)	(MR (ZONE_BK_LIM_X (zone)))
-#define ZONE_PURGE_PTR(zone)	(MR (ZONE_PURGE_PTR_X (zone)))
-#define ZONE_HFST_FREE(zone)	(MR (ZONE_HFST_FREE_X (zone)))
 #define ZONE_ZCB_FREE(zone)	(CL (ZONE_ZCB_FREE_X (zone)))
-#define ZONE_GZ_PROC(zone)	(MR (ZONE_GZ_PROC_X (zone)))
 #define ZONE_MORE_MAST(zone)	(CW (ZONE_MORE_MAST_X (zone)))
-#define ZONE_PURGE_PROC(zone)	(MR (ZONE_PURGE_PROC_X (zone)))
-#define ZONE_ALLOC_PTR(zone)	((block_header_t *) MR (ZONE_ALLOC_PTR_X (zone)))
+
+/* Pointer fields in Zone are PACKED_MEMBER on 64-bit - access via PPR */
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define ZONE_BK_LIM_X(zone)	  ((block_header_t *) ((zone)->bkLim))
+# define ZONE_PURGE_PTR_X(zone)	  ((zone)->purgePtr)
+# define ZONE_HFST_FREE_X(zone)	  ((zone)->hFstFree)
+# define ZONE_GZ_PROC_X(zone)	  ((zone)->gzProc)
+# define ZONE_PURGE_PROC_X(zone)  ((zone)->purgeProc)
+# define ZONE_ALLOC_PTR_X(zone)	  ((zone)->allocPtr)
+# define ZONE_BK_LIM(zone)	  (MR (ZONE_BK_LIM_X (zone)))
+# define ZONE_PURGE_PTR(zone)	  (MR (ZONE_PURGE_PTR_X (zone)))
+# define ZONE_HFST_FREE(zone)	  (MR (ZONE_HFST_FREE_X (zone)))
+# define ZONE_GZ_PROC(zone)	  (MR (ZONE_GZ_PROC_X (zone)))
+# define ZONE_PURGE_PROC(zone)	  (MR (ZONE_PURGE_PROC_X (zone)))
+# define ZONE_ALLOC_PTR(zone)	  ((block_header_t *) MR (ZONE_ALLOC_PTR_X (zone)))
+#else
+# define ZONE_BK_LIM_X(zone)	  ((block_header_t *) PPR((zone)->bkLim))
+# define ZONE_PURGE_PTR_X(zone)	  (PPR((zone)->purgePtr))
+# define ZONE_HFST_FREE_X(zone)	  (PPR((zone)->hFstFree))
+# define ZONE_GZ_PROC_X(zone)	  (PPR((zone)->gzProc))
+# define ZONE_PURGE_PROC_X(zone)  (PPR((zone)->purgeProc))
+# define ZONE_ALLOC_PTR_X(zone)	  (PPR((zone)->allocPtr))
+# define ZONE_BK_LIM(zone)	  (ZONE_BK_LIM_X (zone))
+# define ZONE_PURGE_PTR(zone)	  (ZONE_PURGE_PTR_X (zone))
+# define ZONE_HFST_FREE(zone)	  (ZONE_HFST_FREE_X (zone))
+# define ZONE_GZ_PROC(zone)	  (ZONE_GZ_PROC_X (zone))
+# define ZONE_PURGE_PROC(zone)	  (ZONE_PURGE_PROC_X (zone))
+# define ZONE_ALLOC_PTR(zone)	  ((block_header_t *) ZONE_ALLOC_PTR_X (zone))
+#endif
 
 #define MEM_DEBUG_P()	ERROR_ENABLED_P (ERROR_TRAP_FAILURE)
 

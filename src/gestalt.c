@@ -559,7 +559,7 @@ syszone_p(ProcPtr p)
       
   syszone = MR(SysZone);
   return ((unsigned long) p >= (unsigned long) &syszone->heapData
-	  && (unsigned long) p < (unsigned long) MR(syszone->bkLim));
+	  && (unsigned long) p < (unsigned long) PPR(syszone->bkLim));
 }
 
 PRIVATE OSErr

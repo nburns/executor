@@ -117,8 +117,21 @@ extern INTEGER UnitNtryCnt;
 extern INTEGER 	UnitNtryCnt;
 #endif
 
-#define UTableBase	(UTableBase_H.p)
-#define VIA		(VIA_H.p)
+#if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
+# define UTableBase        (UTableBase_H.p)
+# define VIA               (VIA_H.p)
+# define GET_UTableBase()  ((DCtlHandlePtr) MR(UTableBase_H.p))
+# define SET_UTableBase(v) (UTableBase_H.p = RM(v))
+# define GET_VIA()         (MR(VIA_H.p))
+# define SET_VIA(v)        (VIA_H.p = RM(v))
+#else
+# define GET_UTableBase()  ((DCtlHandlePtr) PPR(UTableBase_H))
+# define SET_UTableBase(v) (UTableBase_H.pp = RPP(v))
+# define GET_VIA()         ((Ptr) PPR(VIA_H))
+# define SET_VIA(v)        (VIA_H.pp = RPP(v))
+# define UTableBase        GET_UTableBase()
+# define VIA               GET_VIA()
+#endif
 
 #if !defined (__STDC__)
 extern OSErr PBControl(); 

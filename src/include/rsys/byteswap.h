@@ -58,7 +58,7 @@
 #if (SIZEOF_CHAR_P == 4) && !FORCE_EXPERIMENTAL_PACKED_MACROS
 #  define PPR(n) MR(n)
 #else
-#  define PPR(n) ((typeof (n.type[0]))({ typeof (n) _t = n; _t.pp ? (YY(_t.pp)) : 0;}))
+#  define PPR(n) ((typeof ((n).type[0]))({ typeof (n) _t = (n); _t.pp ? (YY(_t.pp)) : 0;}))
 #endif
 
 #endif
@@ -126,6 +126,9 @@ extern int bad_cx_splosion;
 #  define PACKED_ASSIGN0(lval)            ((lval) = CLC_NULL)
 /* FROM_HIDDEN: convert a HIDDEN_* value to a native pointer */
 #  define FROM_HIDDEN(h)  MR((h).p)
+/* PACKED_COPY: copy a PACKED_MEMBER field or HIDDEN_* value between two
+   locations - preserves the raw Mac address without conversion */
+#  define PACKED_COPY(dst, src) ((dst) = (src))
 #else
 #  define STARH(h)		((typeof ((h)->type[0])) (YY ((h)->pp)))
 #  define HxP(handle, field)	PPR ((STARH(handle))->field)
@@ -153,6 +156,9 @@ extern int bad_cx_splosion;
 #  define PACKED_ASSIGN0(lval)            ((lval).pp = 0)
 /* FROM_HIDDEN: convert a HIDDEN_* value to a native pointer */
 #  define FROM_HIDDEN(h)  PPR(h)
+/* PACKED_COPY: copy a PACKED_MEMBER field or HIDDEN_* value between two
+   locations - preserves the raw Mac address without conversion */
+#  define PACKED_COPY(dst, src) ((dst).pp = (src).pp)
 #endif
 
 #define Hx(handle, field)	Cx (STARH(handle)->field)
